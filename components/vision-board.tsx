@@ -825,6 +825,64 @@ export function VisionBoard() {
         />
       </div>
 
+      {/* Welcome overlay — outside the transformed canvas so fixed positioning works */}
+      {isLoaded && items.length === 0 && (
+        <div className="absolute inset-0 top-[49px] flex flex-col items-center justify-center z-20 pointer-events-none">
+          <div className="flex flex-col items-center max-w-lg w-full px-6 pointer-events-auto">
+            {/* Hero */}
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold tracking-tight text-foreground mb-2">
+                What are you dreaming about?
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Drop images, add words, arrange freely. This is your space.
+              </p>
+            </div>
+
+            {/* Templates */}
+            <div className="grid grid-cols-2 gap-3 w-full mb-8">
+              {TEMPLATES.map((tmpl) => (
+                <button
+                  key={tmpl.id}
+                  onClick={() => loadTemplate(tmpl.id)}
+                  className="group flex flex-col items-start gap-1.5 rounded-xl border border-border/60 bg-background/70 backdrop-blur-sm p-4 text-left transition-all hover:border-border hover:bg-background hover:shadow-md"
+                >
+                  <span className="text-xl">{tmpl.emoji}</span>
+                  <span className="text-sm font-medium text-foreground">{tmpl.name}</span>
+                  <span className="text-xs text-muted-foreground leading-relaxed">{tmpl.description}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Quick actions */}
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 text-sm"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <ImageIcon className="h-4 w-4" />
+                Drop an image
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 text-sm"
+                onClick={addTextItem}
+              >
+                <Type className="h-4 w-4" />
+                Add words
+              </Button>
+            </div>
+
+            <p className="text-xs text-muted-foreground/50 mt-6">
+              Paste from clipboard &middot; Drag files onto the canvas
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Canvas */}
       <div
         ref={canvasRef}
@@ -846,62 +904,6 @@ export function VisionBoard() {
             minHeight: zoom < 1 ? `${3000 * zoom}px` : '100%',
           }}
         >
-          {isLoaded && items.length === 0 && (
-            <div className="fixed inset-0 flex flex-col items-center justify-center z-0">
-              <div className="flex flex-col items-center max-w-lg w-full px-6">
-                {/* Hero */}
-                <div className="text-center mb-8">
-                  <h2 className="text-2xl font-bold tracking-tight text-foreground mb-2">
-                    What are you dreaming about?
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    Drop images, add words, arrange freely. This is your space.
-                  </p>
-                </div>
-
-                {/* Templates */}
-                <div className="grid grid-cols-2 gap-3 w-full mb-8">
-                  {TEMPLATES.map((tmpl) => (
-                    <button
-                      key={tmpl.id}
-                      onClick={() => loadTemplate(tmpl.id)}
-                      className="group flex flex-col items-start gap-1.5 rounded-xl border border-border/60 bg-background/70 backdrop-blur-sm p-4 text-left transition-all hover:border-border hover:bg-background hover:shadow-md"
-                    >
-                      <span className="text-xl">{tmpl.emoji}</span>
-                      <span className="text-sm font-medium text-foreground">{tmpl.name}</span>
-                      <span className="text-xs text-muted-foreground leading-relaxed">{tmpl.description}</span>
-                    </button>
-                  ))}
-                </div>
-
-                {/* Quick actions */}
-                <div className="flex items-center gap-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-2 text-sm"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <ImageIcon className="h-4 w-4" />
-                    Drop an image
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-2 text-sm"
-                    onClick={addTextItem}
-                  >
-                    <Type className="h-4 w-4" />
-                    Add words
-                  </Button>
-                </div>
-
-                <p className="text-xs text-muted-foreground/50 mt-6">
-                  Paste from clipboard &middot; Drag files onto the canvas
-                </p>
-              </div>
-            </div>
-          )}
           {items.map((item) => (
             <BoardItemComponent
               key={item.id}
@@ -1305,6 +1307,16 @@ export function VisionBoard() {
           </Button>
         </div>
       )}
+
+      {/* Attribution */}
+      <a
+        href="https://kemenystudio.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-2 right-3 text-[10px] text-muted-foreground/40 hover:text-muted-foreground/70 transition-colors z-50"
+      >
+        kemenystudio.com
+      </a>
     </div>
   )
 }
