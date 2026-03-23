@@ -27,6 +27,8 @@ import {
   Download,
   Upload,
   MoreVertical,
+  Lock,
+  Unlock,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -604,6 +606,35 @@ export function VisionBoard() {
     [selectedIds, updateItem]
   )
 
+  const toggleLock = useCallback(() => {
+    const anyUnlocked = selectedItems.some((i) => !i.locked)
+    selectedIds.forEach((id) => updateItem(id, { locked: anyUnlocked }))
+  }, [selectedItems, selectedIds, updateItem])
+
+  const getMultiDragStartPositions = useCallback(() => {
+    const positions = new Map<string, { x: number; y: number }>()
+    items.forEach((item) => {
+      if (selectedIds.has(item.id)) {
+        positions.set(item.id, { x: item.x, y: item.y })
+      }
+    })
+    return positions
+  }, [items, selectedIds])
+
+  const handleMultiDragMove = useCallback((dx: number, dy: number, startPositions: Map<string, { x: number; y: number }>) => {
+    setItems((prev) =>
+      prev.map((item) => {
+        const startPos = startPositions.get(item.id)
+        if (!startPos || item.locked) return item
+        return {
+          ...item,
+          x: Math.max(0, startPos.x + dx),
+          y: Math.max(0, startPos.y + dy),
+        }
+      })
+    )
+  }, [])
+
   const cycleFontSize = useCallback(
     (direction: 1 | -1) => {
       if (!selectedItem || selectedItem.type !== "text") return
@@ -808,6 +839,7 @@ export function VisionBoard() {
               key={item.id}
               item={item}
               isSelected={selectedIds.has(item.id)}
+              isMultiSelected={selectedIds.size > 1 && selectedIds.has(item.id)}
               zoom={zoom}
               onSelect={(e?: React.MouseEvent) => {
                 if (e && (e.shiftKey || e.metaKey)) {
@@ -821,12 +853,16 @@ export function VisionBoard() {
                     return next
                   })
                 } else {
-                  setSelectedIds(new Set([item.id]))
+                  if (!selectedIds.has(item.id)) {
+                    setSelectedIds(new Set([item.id]))
+                  }
                 }
                 bringToFront(item.id)
               }}
               onUpdate={(updates) => updateItem(item.id, updates)}
               onDelete={() => deleteItem(item.id)}
+              onMultiDragStart={getMultiDragStartPositions}
+              onMultiDragMove={handleMultiDragMove}
             />
           ))}
         </div>
@@ -977,6 +1013,17 @@ export function VisionBoard() {
 
           <div className="mx-1 h-5 w-px bg-border" />
 
+          {/* Lock control */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn("h-8 w-8 p-0", selectedItem.locked && "text-amber-500")}
+            title={selectedItem.locked ? "Unlock" : "Lock"}
+            onClick={toggleLock}
+          >
+            {selectedItem.locked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
+          </Button>
+
           {/* Layer controls */}
           <Button
             variant="ghost"
@@ -1068,6 +1115,17 @@ export function VisionBoard() {
 
           <div className="mx-1 h-5 w-px bg-border" />
 
+          {/* Lock control */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn("h-8 w-8 p-0", selectedItems.every((i) => i.locked) && "text-amber-500")}
+            title={selectedItems.some((i) => !i.locked) ? "Lock all" : "Unlock all"}
+            onClick={toggleLock}
+          >
+            {selectedItems.every((i) => i.locked) ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
+          </Button>
+
           {/* Layer controls */}
           <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Bring to front" onClick={() => selectedIds.forEach((id) => bringToFront(id))}>
             <ArrowUpToLine className="h-3.5 w-3.5" />
@@ -1134,6 +1192,17 @@ export function VisionBoard() {
               Reset rotation
             </Button>
           )}
+
+          {/* Lock control */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn("h-8 w-8 p-0", selectedItem.locked && "text-amber-500")}
+            title={selectedItem.locked ? "Unlock" : "Lock"}
+            onClick={toggleLock}
+          >
+            {selectedItem.locked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
+          </Button>
 
           {/* Layer controls */}
           <Button

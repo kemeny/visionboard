@@ -78,6 +78,7 @@ export interface BoardItem {
   bgColor?: string
   rotation?: number
   originalContent?: string // stores original image before bg removal
+  locked?: boolean
 }
 
 export interface BoardState {
