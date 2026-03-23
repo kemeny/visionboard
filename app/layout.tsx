@@ -7,9 +7,8 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'Vision Board',
-  description: 'Collect and organize your ideas visually',
-  generator: 'v0.app',
+  title: 'Vision Board — See your goals. Build your life.',
+  description: 'A free, beautiful canvas to visualize your dreams. Drop images, add words, arrange freely. No signup needed.',
   icons: {
     icon: [
       {

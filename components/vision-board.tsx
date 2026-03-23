@@ -29,6 +29,8 @@ import {
   MoreVertical,
   Lock,
   Unlock,
+  Sparkles,
+  RotateCw,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -43,6 +45,7 @@ function resolveStyle(fs?: string): FontStyle {
   return fs as FontStyle
 }
 import { saveItemsDB, loadItemsDB, saveMaxZDB, loadMaxZDB, migrateFromLocalStorage } from "@/lib/storage"
+import { TEMPLATES } from "@/lib/templates"
 import { BoardItemComponent } from "./board-item"
 import {
   DropdownMenu,
@@ -150,6 +153,27 @@ export function VisionBoard() {
     setMaxZIndex((prev) => prev + 1)
     setSelectedIds(new Set([newItem.id]))
   }, [maxZIndex])
+
+  const loadTemplate = useCallback((templateId: string) => {
+    const template = TEMPLATES.find((t) => t.id === templateId)
+    if (!template) return
+    const newItems: BoardItem[] = template.items.map((item, i) => ({
+      ...item,
+      id: generateId(),
+      zIndex: item.zIndex || i + 1,
+    }))
+    setItems(newItems)
+    setMaxZIndex(newItems.length + 1)
+    setSelectedIds(new Set())
+    setZoom(1)
+  }, [])
+
+  const resetBoard = useCallback(() => {
+    setItems([])
+    setMaxZIndex(1)
+    setSelectedIds(new Set())
+    setZoom(1)
+  }, [])
 
   const handleImageUpload = useCallback(
     (file: File) => {
@@ -659,7 +683,7 @@ export function VisionBoard() {
       {/* Toolbar */}
       <div className="flex items-center gap-2 border-b border-border bg-background/80 backdrop-blur-sm px-4 py-2.5 z-10">
         <h1 className="text-base font-semibold tracking-tight text-foreground">
-          Vision Board
+          vision board
         </h1>
         <div className="flex-1" />
         {/* Canvas pattern toggle */}
@@ -784,6 +808,12 @@ export function VisionBoard() {
               <Upload className="mr-2 h-4 w-4" />
               Import board
             </DropdownMenuItem>
+            {items.length > 0 && (
+              <DropdownMenuItem onClick={resetBoard} className="text-destructive focus:text-destructive">
+                <RotateCw className="mr-2 h-4 w-4" />
+                Reset board
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
         <input
@@ -817,20 +847,58 @@ export function VisionBoard() {
           }}
         >
           {isLoaded && items.length === 0 && (
-            <div className="fixed inset-0 flex flex-col items-center justify-center text-muted-foreground pointer-events-none z-0">
-              <div className="flex flex-col items-center gap-5 rounded-2xl border border-dashed border-border/60 p-10 bg-background/50 backdrop-blur-sm">
-                <div className="flex gap-3 text-muted-foreground/60">
-                  <Type className="h-10 w-10" strokeWidth={1.5} />
-                  <ImageIcon className="h-10 w-10" strokeWidth={1.5} />
-                </div>
-                <div className="text-center space-y-1">
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Your board is empty
-                  </p>
-                  <p className="text-xs text-muted-foreground/70">
-                    Add text or images &middot; Drag & drop &middot; Paste from clipboard
+            <div className="fixed inset-0 flex flex-col items-center justify-center z-0">
+              <div className="flex flex-col items-center max-w-lg w-full px-6">
+                {/* Hero */}
+                <div className="text-center mb-8">
+                  <h2 className="text-2xl font-bold tracking-tight text-foreground mb-2">
+                    What are you dreaming about?
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    Drop images, add words, arrange freely. This is your space.
                   </p>
                 </div>
+
+                {/* Templates */}
+                <div className="grid grid-cols-2 gap-3 w-full mb-8">
+                  {TEMPLATES.map((tmpl) => (
+                    <button
+                      key={tmpl.id}
+                      onClick={() => loadTemplate(tmpl.id)}
+                      className="group flex flex-col items-start gap-1.5 rounded-xl border border-border/60 bg-background/70 backdrop-blur-sm p-4 text-left transition-all hover:border-border hover:bg-background hover:shadow-md"
+                    >
+                      <span className="text-xl">{tmpl.emoji}</span>
+                      <span className="text-sm font-medium text-foreground">{tmpl.name}</span>
+                      <span className="text-xs text-muted-foreground leading-relaxed">{tmpl.description}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Quick actions */}
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 text-sm"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <ImageIcon className="h-4 w-4" />
+                    Drop an image
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 text-sm"
+                    onClick={addTextItem}
+                  >
+                    <Type className="h-4 w-4" />
+                    Add words
+                  </Button>
+                </div>
+
+                <p className="text-xs text-muted-foreground/50 mt-6">
+                  Paste from clipboard &middot; Drag files onto the canvas
+                </p>
               </div>
             </div>
           )}
