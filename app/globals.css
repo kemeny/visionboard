@@ -124,6 +124,11 @@
   }
 }
 
+/* Prevent browser touch gestures on canvas items */
+[data-canvas="true"] {
+  touch-action: none;
+}
+
 /* Canvas background styles */
 .canvas-dots {
   background-image: radial-gradient(circle, var(--canvas-dot, var(--border)) 1px, transparent 1px);

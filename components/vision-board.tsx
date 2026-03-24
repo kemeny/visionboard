@@ -681,8 +681,8 @@ export function VisionBoard() {
   return (
     <div className="flex h-screen flex-col bg-muted/30">
       {/* Toolbar */}
-      <div className="flex items-center gap-2 border-b border-border bg-background/80 backdrop-blur-sm px-4 py-2.5 z-10">
-        <h1 className="text-base font-semibold tracking-tight text-foreground">
+      <div className="flex items-center gap-1.5 sm:gap-2 border-b border-border bg-background/80 backdrop-blur-sm px-3 sm:px-4 py-2 sm:py-2.5 z-10">
+        <h1 className="text-sm sm:text-base font-semibold tracking-tight text-foreground">
           vision board
         </h1>
         <div className="flex-1" />
@@ -690,7 +690,7 @@ export function VisionBoard() {
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 w-8 p-0 text-muted-foreground"
+          className="hidden sm:flex h-8 w-8 p-0 text-muted-foreground"
           title={canvasPattern === 'canvas-dots' ? 'Dots' : canvasPattern === 'canvas-grid' ? 'Grid' : 'Blank'}
           onClick={cycleCanvasPattern}
         >
@@ -717,7 +717,7 @@ export function VisionBoard() {
         {/* Canvas bg color picker */}
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Canvas color">
+            <Button variant="ghost" size="sm" className="hidden sm:flex h-8 w-8 p-0" title="Canvas color">
               <div
                 className="h-4 w-4 rounded-full border border-border"
                 style={{ backgroundColor: canvasBgColors.find(c => c.id === canvasBgColor)?.color }}
@@ -748,17 +748,17 @@ export function VisionBoard() {
 
         {/* Zoom controls */}
         <div className="flex items-center gap-0.5 ml-1">
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground" title="Zoom out" onClick={zoomOut}>
+          <Button variant="ghost" size="sm" className="hidden sm:flex h-8 w-8 p-0 text-muted-foreground" title="Zoom out" onClick={zoomOut}>
             <ZoomOut className="h-4 w-4" />
           </Button>
           <button
-            className="text-xs text-muted-foreground w-10 text-center hover:text-foreground transition-colors"
+            className="hidden sm:block text-xs text-muted-foreground w-10 text-center hover:text-foreground transition-colors"
             title="Reset zoom"
             onClick={resetZoom}
           >
             {Math.round(zoom * 100)}%
           </button>
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground" title="Zoom in" onClick={zoomIn}>
+          <Button variant="ghost" size="sm" className="hidden sm:flex h-8 w-8 p-0 text-muted-foreground" title="Zoom in" onClick={zoomIn}>
             <ZoomIn className="h-4 w-4" />
           </Button>
           <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground" title="Fit all" onClick={fitAll}>
@@ -827,56 +827,56 @@ export function VisionBoard() {
 
       {/* Welcome overlay — outside the transformed canvas so fixed positioning works */}
       {isLoaded && items.length === 0 && (
-        <div className="absolute inset-0 top-[49px] flex flex-col items-center justify-center z-20 pointer-events-none">
-          <div className="flex flex-col items-center max-w-lg w-full px-6 pointer-events-auto">
+        <div className="absolute inset-0 top-[41px] sm:top-[49px] flex flex-col items-center justify-center z-20 pointer-events-none overflow-auto">
+          <div className="flex flex-col items-center max-w-lg w-full px-4 sm:px-6 py-6 pointer-events-auto">
             {/* Hero */}
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold tracking-tight text-foreground mb-2">
+            <div className="text-center mb-6 sm:mb-8">
+              <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground mb-2">
                 What are you dreaming about?
               </h2>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 Drop images, add words, arrange freely. This is your space.
               </p>
             </div>
 
             {/* Templates */}
-            <div className="grid grid-cols-2 gap-3 w-full mb-8">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3 w-full mb-6 sm:mb-8">
               {TEMPLATES.map((tmpl) => (
                 <button
                   key={tmpl.id}
                   onClick={() => loadTemplate(tmpl.id)}
-                  className="group flex flex-col items-start gap-1.5 rounded-xl border border-border/60 bg-background/70 backdrop-blur-sm p-4 text-left transition-all hover:border-border hover:bg-background hover:shadow-md"
+                  className="group flex flex-col items-start gap-1 sm:gap-1.5 rounded-xl border border-border/60 bg-background/70 backdrop-blur-sm p-3 sm:p-4 text-left transition-all hover:border-border hover:bg-background hover:shadow-md active:scale-[0.98]"
                 >
-                  <span className="text-xl">{tmpl.emoji}</span>
-                  <span className="text-sm font-medium text-foreground">{tmpl.name}</span>
-                  <span className="text-xs text-muted-foreground leading-relaxed">{tmpl.description}</span>
+                  <span className="text-lg sm:text-xl">{tmpl.emoji}</span>
+                  <span className="text-xs sm:text-sm font-medium text-foreground">{tmpl.name}</span>
+                  <span className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed">{tmpl.description}</span>
                 </button>
               ))}
             </div>
 
             {/* Quick actions */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-2 text-sm"
+                className="gap-1.5 sm:gap-2 text-xs sm:text-sm"
                 onClick={() => fileInputRef.current?.click()}
               >
-                <ImageIcon className="h-4 w-4" />
+                <ImageIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 Drop an image
               </Button>
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-2 text-sm"
+                className="gap-1.5 sm:gap-2 text-xs sm:text-sm"
                 onClick={addTextItem}
               >
-                <Type className="h-4 w-4" />
+                <Type className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 Add words
               </Button>
             </div>
 
-            <p className="text-xs text-muted-foreground/50 mt-6">
+            <p className="text-[10px] sm:text-xs text-muted-foreground/50 mt-4 sm:mt-6">
               Paste from clipboard &middot; Drag files onto the canvas
             </p>
           </div>
@@ -940,7 +940,7 @@ export function VisionBoard() {
 
       {/* Bottom toolbar - text formatting */}
       {selectedItem && selectedItem.type === "text" && (
-        <div className="flex items-center gap-1.5 border-t border-border bg-background/80 backdrop-blur-sm px-4 py-2 z-10">
+        <div className="flex items-center gap-1.5 border-t border-border bg-background/80 backdrop-blur-sm px-3 sm:px-4 py-2 z-10 overflow-x-auto">
           {/* Text style picker */}
           <Popover>
             <PopoverTrigger asChild>
@@ -1130,7 +1130,7 @@ export function VisionBoard() {
 
       {/* Bottom toolbar - multi-select alignment */}
       {selectedIds.size > 1 && (
-        <div className="flex items-center gap-1.5 border-t border-border bg-background/80 backdrop-blur-sm px-4 py-2 z-10">
+        <div className="flex items-center gap-1.5 border-t border-border bg-background/80 backdrop-blur-sm px-3 sm:px-4 py-2 z-10 overflow-x-auto">
           <span className="text-xs text-muted-foreground mr-1">{selectedIds.size} selected</span>
 
           <div className="mx-1 h-5 w-px bg-border" />
@@ -1220,7 +1220,7 @@ export function VisionBoard() {
 
       {/* Bottom toolbar - image selected */}
       {selectedItem && selectedItem.type === "image" && (
-        <div className="flex items-center gap-1.5 border-t border-border bg-background/80 backdrop-blur-sm px-4 py-2 z-10">
+        <div className="flex items-center gap-1.5 border-t border-border bg-background/80 backdrop-blur-sm px-3 sm:px-4 py-2 z-10 overflow-x-auto">
           {/* Remove / Restore background */}
           <Button
             variant="ghost"
@@ -1313,7 +1313,7 @@ export function VisionBoard() {
         href="https://kemenystudio.com"
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-2 right-3 text-[10px] text-muted-foreground/40 hover:text-muted-foreground/70 transition-colors z-50"
+        className="fixed bottom-1.5 right-2 sm:bottom-2 sm:right-3 text-[9px] sm:text-[10px] text-muted-foreground/40 hover:text-muted-foreground/70 transition-colors z-50"
       >
         kemenystudio.com
       </a>

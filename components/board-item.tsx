@@ -61,24 +61,23 @@ export function BoardItemComponent({
     }
   }, [isEditing])
 
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent) => {
+  // Shared start logic for mouse and touch
+  const startDrag = useCallback(
+    (clientX: number, clientY: number, e?: React.MouseEvent) => {
       if (isEditing || item.locked) return
-      e.stopPropagation()
       onSelect(e)
 
       const rect = elementRef.current?.getBoundingClientRect()
       if (rect) {
         dragOffset.current = {
-          x: (e.clientX - rect.left) / zoomRef.current,
-          y: (e.clientY - rect.top) / zoomRef.current,
+          x: (clientX - rect.left) / zoomRef.current,
+          y: (clientY - rect.top) / zoomRef.current,
         }
       }
 
-      // For multi-select drag, capture start positions
       if (isMultiSelected && onMultiDragStart) {
         const z = zoomRef.current
-        dragStartMouse.current = { x: e.clientX / z, y: e.clientY / z }
+        dragStartMouse.current = { x: clientX / z, y: clientY / z }
         multiDragPositions.current = onMultiDragStart()
       } else {
         multiDragPositions.current = null
@@ -89,14 +88,30 @@ export function BoardItemComponent({
     [isEditing, item.locked, isMultiSelected, onSelect, onMultiDragStart]
   )
 
-  const handleResizeMouseDown = useCallback(
+  const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
-      if (item.locked) return
       e.stopPropagation()
+      startDrag(e.clientX, e.clientY, e)
+    },
+    [startDrag]
+  )
+
+  const handleTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      if (isEditing || item.locked) return
+      const touch = e.touches[0]
+      startDrag(touch.clientX, touch.clientY)
+    },
+    [isEditing, item.locked, startDrag]
+  )
+
+  const startResize = useCallback(
+    (clientX: number, clientY: number) => {
+      if (item.locked) return
       onSelect()
       resizeStart.current = {
-        x: e.clientX,
-        y: e.clientY,
+        x: clientX,
+        y: clientY,
         width: item.width,
         height: item.height,
       }
@@ -105,16 +120,32 @@ export function BoardItemComponent({
     [item.locked, onSelect, item.width, item.height]
   )
 
-  const handleRotateMouseDown = useCallback(
+  const handleResizeMouseDown = useCallback(
     (e: React.MouseEvent) => {
-      if (item.locked) return
       e.stopPropagation()
+      startResize(e.clientX, e.clientY)
+    },
+    [startResize]
+  )
+
+  const handleResizeTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      e.stopPropagation()
+      const touch = e.touches[0]
+      startResize(touch.clientX, touch.clientY)
+    },
+    [startResize]
+  )
+
+  const startRotate = useCallback(
+    (clientX: number, clientY: number) => {
+      if (item.locked) return
       onSelect()
       const rect = elementRef.current?.getBoundingClientRect()
       if (rect) {
         const centerX = rect.left + rect.width / 2
         const centerY = rect.top + rect.height / 2
-        const startAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * (180 / Math.PI)
+        const startAngle = Math.atan2(clientY - centerY, clientX - centerX) * (180 / Math.PI)
         rotateStart.current = {
           angle: item.rotation || 0,
           startAngle,
@@ -125,23 +156,38 @@ export function BoardItemComponent({
     [item.locked, onSelect, item.rotation]
   )
 
+  const handleRotateMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation()
+      startRotate(e.clientX, e.clientY)
+    },
+    [startRotate]
+  )
+
+  const handleRotateTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      e.stopPropagation()
+      const touch = e.touches[0]
+      startRotate(touch.clientX, touch.clientY)
+    },
+    [startRotate]
+  )
+
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
+    const handlePointerMove = (clientX: number, clientY: number) => {
       if (isDragging) {
         if (multiDragPositions.current && onMultiDragMove) {
-          // Multi-select drag: compute delta from start and move all items
           const z = zoomRef.current
-          const dx = e.clientX / z - dragStartMouse.current.x
-          const dy = e.clientY / z - dragStartMouse.current.y
+          const dx = clientX / z - dragStartMouse.current.x
+          const dy = clientY / z - dragStartMouse.current.y
           onMultiDragMove(dx, dy, multiDragPositions.current)
         } else {
-          // Single item drag
           const parent = elementRef.current?.parentElement
           if (parent) {
             const parentRect = parent.getBoundingClientRect()
             const z = zoomRef.current
-            const newX = (e.clientX - parentRect.left) / z - dragOffset.current.x
-            const newY = (e.clientY - parentRect.top) / z - dragOffset.current.y
+            const newX = (clientX - parentRect.left) / z - dragOffset.current.x
+            const newY = (clientY - parentRect.top) / z - dragOffset.current.y
             onUpdate({
               x: Math.max(0, newX),
               y: Math.max(0, newY),
@@ -150,8 +196,8 @@ export function BoardItemComponent({
         }
       }
       if (isResizing) {
-        const deltaX = (e.clientX - resizeStart.current.x) / zoomRef.current
-        const deltaY = (e.clientY - resizeStart.current.y) / zoomRef.current
+        const deltaX = (clientX - resizeStart.current.x) / zoomRef.current
+        const deltaY = (clientY - resizeStart.current.y) / zoomRef.current
         onUpdate({
           width: Math.max(100, resizeStart.current.width + deltaX),
           height: Math.max(50, resizeStart.current.height + deltaY),
@@ -162,17 +208,23 @@ export function BoardItemComponent({
         if (rect) {
           const centerX = rect.left + rect.width / 2
           const centerY = rect.top + rect.height / 2
-          const currentAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * (180 / Math.PI)
+          const currentAngle = Math.atan2(clientY - centerY, clientX - centerX) * (180 / Math.PI)
           const delta = currentAngle - rotateStart.current.startAngle
           let newRotation = rotateStart.current.angle + delta
-          // Snap to 0 when close
           if (Math.abs(newRotation % 360) < 5) newRotation = Math.round(newRotation / 360) * 360
           onUpdate({ rotation: newRotation })
         }
       }
     }
 
-    const handleMouseUp = () => {
+    const handleMouseMove = (e: MouseEvent) => handlePointerMove(e.clientX, e.clientY)
+    const handleTouchMove = (e: TouchEvent) => {
+      e.preventDefault()
+      const touch = e.touches[0]
+      handlePointerMove(touch.clientX, touch.clientY)
+    }
+
+    const handleEnd = () => {
       setIsDragging(false)
       setIsResizing(false)
       setIsRotating(false)
@@ -180,14 +232,20 @@ export function BoardItemComponent({
 
     if (isDragging || isResizing || isRotating) {
       window.addEventListener("mousemove", handleMouseMove)
-      window.addEventListener("mouseup", handleMouseUp)
+      window.addEventListener("mouseup", handleEnd)
+      window.addEventListener("touchmove", handleTouchMove, { passive: false })
+      window.addEventListener("touchend", handleEnd)
+      window.addEventListener("touchcancel", handleEnd)
     }
 
     return () => {
       window.removeEventListener("mousemove", handleMouseMove)
-      window.removeEventListener("mouseup", handleMouseUp)
+      window.removeEventListener("mouseup", handleEnd)
+      window.removeEventListener("touchmove", handleTouchMove)
+      window.removeEventListener("touchend", handleEnd)
+      window.removeEventListener("touchcancel", handleEnd)
     }
-  }, [isDragging, isResizing, isRotating, onUpdate])
+  }, [isDragging, isResizing, isRotating, onUpdate, onMultiDragMove])
 
   const clickCountRef = useRef(0)
   const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -254,6 +312,7 @@ export function BoardItemComponent({
     <div
       ref={elementRef}
       onMouseDown={handleMouseDown}
+      onTouchStart={handleTouchStart}
       onClick={handleClick}
       className={cn(
         "absolute select-none transition-shadow duration-200",
@@ -336,15 +395,17 @@ export function BoardItemComponent({
         <>
           <div
             onMouseDown={handleResizeMouseDown}
-            className="absolute -bottom-2 -right-2 h-4 w-4 cursor-se-resize rounded-full border-2 border-blue-500 bg-white shadow-sm"
+            onTouchStart={handleResizeTouchStart}
+            className="absolute -bottom-2 -right-2 h-5 w-5 cursor-se-resize rounded-full border-2 border-blue-500 bg-white shadow-sm sm:h-4 sm:w-4"
           />
           {/* Rotate handle */}
           <div
             onMouseDown={handleRotateMouseDown}
-            className="absolute -top-8 left-1/2 -translate-x-1/2 flex flex-col items-center"
+            onTouchStart={handleRotateTouchStart}
+            className="absolute -top-10 left-1/2 -translate-x-1/2 flex flex-col items-center sm:-top-8"
           >
-            <div className="h-4 w-px bg-blue-500/50" />
-            <div className="h-3.5 w-3.5 cursor-grab rounded-full border-2 border-blue-500 bg-white shadow-sm" />
+            <div className="h-5 w-px bg-blue-500/50 sm:h-4" />
+            <div className="h-5 w-5 cursor-grab rounded-full border-2 border-blue-500 bg-white shadow-sm sm:h-3.5 sm:w-3.5" />
           </div>
         </>
       )}
