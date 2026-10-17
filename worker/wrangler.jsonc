@@ -1,0 +1,23 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "visionboard-sync",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-09-01",
+  // Hourly: each subscription gets its reminder at its own local hour
+  "triggers": { "crons": ["0 * * * *"] },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "visionboard",
+      "database_id": "463d2f1a-6215-48fe-9cf1-f78950d04c03",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [
+    { "binding": "IMAGES", "bucket_name": "visionboard-images" }
+  ],
+  "vars": {
+    "VAPID_SUBJECT": "mailto:francisco@kemeny.cl"
+  },
+  "observability": { "enabled": true }
+}

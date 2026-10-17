@@ -31,6 +31,7 @@ import {
   Unlock,
   Sparkles,
   RotateCw,
+  Cloud,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -57,6 +58,8 @@ import {
 } from "@/lib/storage"
 import { TEMPLATES } from "@/lib/templates"
 import { BoardItemComponent } from "./board-item"
+import { SyncDialog } from "./sync-dialog"
+import { useBoardSync } from "@/hooks/use-board-sync"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -91,6 +94,7 @@ export function VisionBoard() {
   const [canvasBgColor, setCanvasBgColor] = useState<CanvasBgColor>('canvas-bg-warm')
   const [zoom, setZoom] = useState(1)
   const [showBackupReminder, setShowBackupReminder] = useState(false)
+  const [syncOpen, setSyncOpen] = useState(false)
   const canvasRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const importInputRef = useRef<HTMLInputElement>(null)
@@ -130,11 +134,18 @@ export function VisionBoard() {
     requestPersistentStorage()
   }, [])
 
+  const applyRemote = useCallback((remoteItems: BoardItem[], remoteMaxZ: number) => {
+    setItems(remoteItems)
+    setMaxZIndex(remoteMaxZ)
+    setSelectedIds(new Set())
+  }, [])
+  const sync = useBoardSync({ items, maxZIndex, isLoaded, applyRemote, replaceItems: setItems })
+
   // Nudge toward a backup file, since the board otherwise lives only in this browser
   useEffect(() => {
     if (!isLoaded) return
-    setShowBackupReminder(shouldRemindBackup(items.length))
-  }, [items.length, isLoaded])
+    setShowBackupReminder(!sync.syncKey && shouldRemindBackup(items.length))
+  }, [items.length, isLoaded, sync.syncKey])
 
   // Save to IndexedDB on change
   useEffect(() => {
@@ -821,6 +832,12 @@ export function VisionBoard() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            {sync.status !== "unavailable" && (
+              <DropdownMenuItem onClick={() => setSyncOpen(true)}>
+                <Cloud className="mr-2 h-4 w-4" />
+                Sync & reminders
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onClick={exportBoard}>
               <Download className="mr-2 h-4 w-4" />
               Export board
@@ -1329,11 +1346,19 @@ export function VisionBoard() {
         </div>
       )}
 
+      <SyncDialog open={syncOpen} onOpenChange={setSyncOpen} sync={sync} />
+
       {showBackupReminder && (
         <div className="fixed top-[49px] sm:top-[57px] left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-lg border bg-background/95 backdrop-blur px-3 py-2 shadow-sm text-xs max-w-[calc(100vw-32px)]">
           <span className="text-muted-foreground">
             Your board is saved only in this browser. Keep a backup file.
           </span>
+          {sync.status !== "unavailable" && (
+            <Button variant="outline" size="sm" className="h-7 text-xs shrink-0" onClick={() => setSyncOpen(true)}>
+              <Cloud className="mr-1.5 h-3.5 w-3.5" />
+              Sync
+            </Button>
+          )}
           <Button size="sm" className="h-7 text-xs shrink-0" onClick={exportBoard}>
             <Download className="mr-1.5 h-3.5 w-3.5" />
             Back up
