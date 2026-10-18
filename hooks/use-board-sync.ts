@@ -78,15 +78,19 @@ export function useBoardSync({ items, maxZIndex, isLoaded, applyRemote, replaceI
       setStatus("syncing")
       try {
         let { items: current, maxZIndex: z } = latest.current
+        let imageError: string | null = null
         if (hasInlineImages(current)) {
-          const uploaded = await uploadInlineImages(key, current)
-          // Swap inline images for hosted ones locally too, so they upload once
-          replaceItems((prev) => {
-            const next = replaceImageUrls(prev, uploaded)
-            ownWrite.current = next
-            return next
-          })
-          current = replaceImageUrls(current, uploaded)
+          const { uploaded, error: uploadError } = await uploadInlineImages(key, current)
+          imageError = uploadError
+          if (uploaded.size) {
+            // Swap inline images for hosted ones locally too, so they upload once
+            replaceItems((prev) => {
+              const next = replaceImageUrls(prev, uploaded)
+              ownWrite.current = next
+              return next
+            })
+            current = replaceImageUrls(current, uploaded)
+          }
         }
         // Anything still inline was added mid-upload; the next push takes it
         const updatedAt = await pushRemoteBoard(key, {
@@ -95,8 +99,14 @@ export function useBoardSync({ items, maxZIndex, isLoaded, applyRemote, replaceI
         })
         setSyncedAt(updatedAt)
         dirty.current = hasInlineImages(latest.current.items)
-        setStatus("synced")
-        setError(null)
+        if (imageError) {
+          // The rest of the board is saved; only the failed images are missing
+          setStatus("error")
+          setError(`Some images couldn't be saved to the cloud: ${imageError}`)
+        } else {
+          setStatus("synced")
+          setError(null)
+        }
       } catch (e) {
         setStatus("error")
         setError(e instanceof Error ? e.message : "Sync failed")
