@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { BoardItem } from "@/lib/types"
 import {
+  cloudItems,
   deleteRemoteBoard,
   disableReminders,
   fetchRemoteBoard,
@@ -92,11 +93,8 @@ export function useBoardSync({ items, maxZIndex, isLoaded, applyRemote, replaceI
             current = replaceImageUrls(current, uploaded)
           }
         }
-        // Anything still inline was added mid-upload; the next push takes it
-        const updatedAt = await pushRemoteBoard(key, {
-          items: current.filter((i) => !i.content.startsWith("data:")),
-          maxZIndex: z,
-        })
+        // Anything still inline (added mid-upload, or failed) stays local; the next push retries it
+        const updatedAt = await pushRemoteBoard(key, { items: cloudItems(current), maxZIndex: z })
         setSyncedAt(updatedAt)
         dirty.current = hasInlineImages(latest.current.items)
         if (imageError) {

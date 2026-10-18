@@ -177,6 +177,16 @@ export function replaceImageUrls(items: BoardItem[], uploaded: Map<string, strin
   })
 }
 
+// The cloud copy never carries inline images: they would push the board past
+// the Worker's size limit. Drop images still waiting to upload, and drop a
+// background-removed image's original if it couldn't be uploaded (it only
+// powers "restore original").
+export function cloudItems(items: BoardItem[]): BoardItem[] {
+  return items
+    .filter((i) => !isDataUrl(i.content))
+    .map((i) => (isDataUrl(i.originalContent) ? { ...i, originalContent: undefined } : i))
+}
+
 export const hasInlineImages = (items: BoardItem[]) =>
   items.some((i) => isDataUrl(i.content) || isDataUrl(i.originalContent))
 
