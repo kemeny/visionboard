@@ -56,6 +56,7 @@ import {
   snoozeBackupReminder,
   shouldRemindBackup,
 } from "@/lib/storage"
+import { takeSyncKeyFromUrl } from "@/lib/sync"
 import { TEMPLATES } from "@/lib/templates"
 import { BoardItemComponent } from "./board-item"
 import { SyncDialog } from "./sync-dialog"
@@ -95,6 +96,7 @@ export function VisionBoard() {
   const [zoom, setZoom] = useState(1)
   const [showBackupReminder, setShowBackupReminder] = useState(false)
   const [syncOpen, setSyncOpen] = useState(false)
+  const [linkKey, setLinkKey] = useState<string | null>(null)
   const canvasRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const importInputRef = useRef<HTMLInputElement>(null)
@@ -138,8 +140,27 @@ export function VisionBoard() {
     setItems(remoteItems)
     setMaxZIndex(remoteMaxZ)
     setSelectedIds(new Set())
+    // Zoom to fit the incoming board, e.g. a desktop-sized board opened on a phone
+    hasInitialFit.current = false
   }, [])
   const sync = useBoardSync({ items, maxZIndex, isLoaded, applyRemote, replaceItems: setItems })
+
+  // Opened from a "Send link" link or QR code: hand the key to the sync dialog,
+  // after the local board has loaded so the two can't race
+  useEffect(() => {
+    if (!isLoaded) return
+    const check = () => {
+      const key = takeSyncKeyFromUrl()
+      if (!key) return
+      setLinkKey(key)
+      setSyncOpen(true)
+    }
+    check()
+    // The link may be opened while the app is already open in this tab, which
+    // only changes the fragment and doesn't reload the page
+    window.addEventListener("hashchange", check)
+    return () => window.removeEventListener("hashchange", check)
+  }, [isLoaded])
 
   // Nudge toward a backup file, since the board otherwise lives only in this browser
   useEffect(() => {
@@ -914,6 +935,18 @@ export function VisionBoard() {
               </Button>
             </div>
 
+            {sync.status !== "unavailable" && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="mt-3 gap-1.5 text-xs sm:text-sm text-muted-foreground"
+                onClick={() => setSyncOpen(true)}
+              >
+                <Cloud className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                Open my board from another device
+              </Button>
+            )}
+
             <p className="text-[10px] sm:text-xs text-muted-foreground/50 mt-4 sm:mt-6">
               Paste from clipboard &middot; Drag files onto the canvas
             </p>
@@ -1346,7 +1379,14 @@ export function VisionBoard() {
         </div>
       )}
 
-      <SyncDialog open={syncOpen} onOpenChange={setSyncOpen} sync={sync} />
+      <SyncDialog
+        open={syncOpen}
+        onOpenChange={setSyncOpen}
+        sync={sync}
+        hasLocalItems={items.length > 0}
+        linkKey={linkKey}
+        onLinkHandled={() => setLinkKey(null)}
+      />
 
       {showBackupReminder && (
         <div className="fixed top-[49px] sm:top-[57px] left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-lg border bg-background/95 backdrop-blur px-3 py-2 shadow-sm text-xs max-w-[calc(100vw-32px)]">
