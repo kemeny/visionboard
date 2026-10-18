@@ -69,6 +69,48 @@ export async function loadMaxZDB(): Promise<number> {
   })
 }
 
+// Ask the browser not to evict our data under storage pressure.
+// Browsers may grant silently, prompt, or refuse; failure is harmless.
+export async function requestPersistentStorage(): Promise<boolean> {
+  try {
+    if (!navigator.storage?.persist) return false
+    if (await navigator.storage.persisted()) return true
+    return await navigator.storage.persist()
+  } catch {
+    return false
+  }
+}
+
+const LAST_BACKUP_KEY = 'visionboard-last-backup'
+const BACKUP_SNOOZE_KEY = 'visionboard-backup-snooze'
+const DAY = 24 * 60 * 60 * 1000
+
+export function markBackedUp(): void {
+  try {
+    localStorage.setItem(LAST_BACKUP_KEY, String(Date.now()))
+    localStorage.removeItem(BACKUP_SNOOZE_KEY)
+  } catch {}
+}
+
+export function snoozeBackupReminder(days = 3): void {
+  try {
+    localStorage.setItem(BACKUP_SNOOZE_KEY, String(Date.now() + days * DAY))
+  } catch {}
+}
+
+// Remind when a non-trivial board has never been backed up, or not in a week
+export function shouldRemindBackup(itemCount: number): boolean {
+  if (itemCount < 3) return false
+  try {
+    const snoozeUntil = Number(localStorage.getItem(BACKUP_SNOOZE_KEY) || 0)
+    if (Date.now() < snoozeUntil) return false
+    const last = Number(localStorage.getItem(LAST_BACKUP_KEY) || 0)
+    return Date.now() - last > 7 * DAY
+  } catch {
+    return false
+  }
+}
+
 // Migrate from localStorage to IndexedDB (one-time)
 export async function migrateFromLocalStorage(): Promise<{ items: BoardItem[]; maxZ: number } | null> {
   if (typeof window === 'undefined') return null
