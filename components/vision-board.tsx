@@ -182,7 +182,11 @@ export function VisionBoard() {
       if (hash) window.location.hash = hash
     }
     const onMessage = (e: MessageEvent) => {
-      if (e.data?.type === "open-url") openUrl(e.data.url)
+      if (e.data?.type !== "open-url") return
+      openUrl(e.data.url)
+      // This tap was also parked for a suspended app; clear it so it doesn't
+      // reopen the card the next time the app comes to the foreground
+      takePendingReminderUrl()
     }
     const checkPending = () => {
       if (document.visibilityState !== "visible") return
