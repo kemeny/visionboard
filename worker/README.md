@@ -18,8 +18,8 @@ menu hides itself and the app works as before.
 
 ## Local
 
-    npm install
-    npx wrangler d1 migrations apply visionboard --local
-    npm run dev              # Worker on :8787
-    npm test                 # push encryption round-trip
+    pnpm install
+    pnpm wrangler d1 migrations apply visionboard --local
+    pnpm dev                 # Worker on :8787
+    pnpm test               # push encryption round-trip
     SYNC_API_URL=http://localhost:8787 pnpm dev   # in the repo root
