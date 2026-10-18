@@ -56,10 +56,11 @@ import {
   snoozeBackupReminder,
   shouldRemindBackup,
 } from "@/lib/storage"
-import { takeSyncKeyFromUrl } from "@/lib/sync"
+import { takeSyncKeyFromUrl, takeTodayFromUrl, type TodayCard as TodayCardData } from "@/lib/sync"
 import { TEMPLATES } from "@/lib/templates"
 import { BoardItemComponent } from "./board-item"
 import { SyncDialog } from "./sync-dialog"
+import { TodayCard } from "./today-card"
 import { useBoardSync } from "@/hooks/use-board-sync"
 import {
   DropdownMenu,
@@ -97,6 +98,7 @@ export function VisionBoard() {
   const [showBackupReminder, setShowBackupReminder] = useState(false)
   const [syncOpen, setSyncOpen] = useState(false)
   const [linkKey, setLinkKey] = useState<string | null>(null)
+  const [todayCard, setTodayCard] = useState<TodayCardData | null>(null)
   const canvasRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const importInputRef = useRef<HTMLInputElement>(null)
@@ -145,11 +147,14 @@ export function VisionBoard() {
   }, [])
   const sync = useBoardSync({ items, maxZIndex, isLoaded, applyRemote, replaceItems: setItems })
 
-  // Opened from a "Send link" link or QR code: hand the key to the sync dialog,
-  // after the local board has loaded so the two can't race
+  // Links into the app: a "Send link"/QR key goes to the sync dialog, and a
+  // tapped reminder opens today's card. Handled after the local board has
+  // loaded so a joined board can't race it.
   useEffect(() => {
     if (!isLoaded) return
     const check = () => {
+      const card = takeTodayFromUrl()
+      if (card) setTodayCard(card)
       const key = takeSyncKeyFromUrl()
       if (!key) return
       setLinkKey(key)
@@ -159,7 +164,17 @@ export function VisionBoard() {
     // The link may be opened while the app is already open in this tab, which
     // only changes the fragment and doesn't reload the page
     window.addEventListener("hashchange", check)
-    return () => window.removeEventListener("hashchange", check)
+    // A tapped reminder reaches an already-open app as a service worker message
+    const onMessage = (e: MessageEvent) => {
+      if (e.data?.type !== "open-url") return
+      const url = new URL(e.data.url, window.location.origin)
+      if (url.origin === window.location.origin) window.location.hash = url.hash
+    }
+    navigator.serviceWorker?.addEventListener("message", onMessage)
+    return () => {
+      window.removeEventListener("hashchange", check)
+      navigator.serviceWorker?.removeEventListener("message", onMessage)
+    }
   }, [isLoaded])
 
   // Nudge toward a backup file, since the board otherwise lives only in this browser
@@ -1378,6 +1393,8 @@ export function VisionBoard() {
           </Button>
         </div>
       )}
+
+      {todayCard && <TodayCard card={todayCard} onClose={() => setTodayCard(null)} />}
 
       <SyncDialog
         open={syncOpen}

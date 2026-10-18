@@ -78,9 +78,17 @@ async function sendReminder(env: Env, vapid: VapidKeys, row: SubscriptionRow, no
   const items: BoardItem[] = board ? JSON.parse(board.data).items || [] : []
   const { body, image } = pickReminder(items, Math.floor(now.getTime() / 86_400_000))
   const origin = row.app_origin || ''
+  // Tapping the notification opens today's goal and photo full screen. iOS
+  // never shows images inside web notifications, so this is where they appear.
+  const card = new URLSearchParams({ text: body, ...(image && { image }) })
   const status = await sendPush(
     JSON.parse(row.subscription) as PushSubscriptionJSON,
-    { title: 'Your vision board', body, image: image && origin ? origin + image : undefined, url: origin + '/' },
+    {
+      title: 'Your vision board',
+      body,
+      image: image && origin ? origin + image : undefined,
+      url: `${origin}/#today&${card}`,
+    },
     vapid,
     env.VAPID_SUBJECT
   )
