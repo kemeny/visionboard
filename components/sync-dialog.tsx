@@ -102,7 +102,7 @@ export function SyncDialog({ open, onOpenChange, sync }: { open: boolean; onOpen
                 <Cloud className="h-4 w-4" /> Cloud sync
                 {sync.syncKey && (
                   <span className="ml-auto text-xs font-normal text-muted-foreground">
-                    {sync.status === "syncing" ? "Saving…" : sync.status === "error" ? "Offline, will retry" : "Saved"}
+                    {sync.status === "syncing" ? "Saving…" : sync.status === "error" ? "Not fully saved" : "Saved"}
                   </span>
                 )}
               </h3>

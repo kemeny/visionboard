@@ -90,8 +90,51 @@ export async function deleteRemoteBoard(key: string): Promise<void> {
 
 const isDataUrl = (s?: string) => !!s && s.startsWith('data:')
 
+const MAX_IMAGE_EDGE = 2560
+const KEEP_AS_IS_BYTES = 1.5 * 1024 * 1024
+// Well under the Worker's 10 MB cap and Vercel's proxy body limit
+const MAX_UPLOAD_BYTES = 3 * 1024 * 1024
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => resolve(img)
+    img.onerror = () => reject(new Error('Could not read image'))
+    img.src = src
+  })
+}
+
+function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: number): Promise<Blob | null> {
+  return new Promise((resolve) => canvas.toBlob(resolve, type, quality))
+}
+
+// Phone photos and background-removed cutouts are often 10+ MB as data URLs.
+// Shrink to a board-friendly size, keeping transparency via WebP (or PNG where
+// the browser can't encode WebP).
+async function shrinkImage(blob: Blob, dataUrl: string): Promise<Blob> {
+  const img = await loadImage(dataUrl)
+  const longest = Math.max(img.naturalWidth, img.naturalHeight)
+  if (blob.size <= KEEP_AS_IS_BYTES && longest <= MAX_IMAGE_EDGE) return blob
+
+  let scale = Math.min(1, MAX_IMAGE_EDGE / longest)
+  let best = blob
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.max(1, Math.round(img.naturalWidth * scale))
+    canvas.height = Math.max(1, Math.round(img.naturalHeight * scale))
+    canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
+    const webp = await canvasToBlob(canvas, 'image/webp', 0.85)
+    const out = webp?.type === 'image/webp' ? webp : await canvasToBlob(canvas, 'image/png', 1)
+    if (out && out.size < best.size) best = out
+    if (best.size <= MAX_UPLOAD_BYTES) break
+    scale *= 0.7
+  }
+  return best
+}
+
 async function uploadDataUrl(key: string, dataUrl: string): Promise<string> {
-  const blob = await (await fetch(dataUrl)).blob()
+  const original = await (await fetch(dataUrl)).blob()
+  const blob = await shrinkImage(original, dataUrl).catch(() => original)
   const { path } = await api<{ path: string }>('/images', key, {
     method: 'PUT',
     headers: { 'Content-Type': blob.type || 'image/png' },
@@ -100,8 +143,12 @@ async function uploadDataUrl(key: string, dataUrl: string): Promise<string> {
   return path
 }
 
-// Upload any inline images and return a map of data URL -> hosted path
-export async function uploadInlineImages(key: string, items: BoardItem[]): Promise<Map<string, string>> {
+// Upload any inline images and return a map of data URL -> hosted path.
+// One failing image doesn't stop the rest; the first error is reported.
+export async function uploadInlineImages(
+  key: string,
+  items: BoardItem[]
+): Promise<{ uploaded: Map<string, string>; error: string | null }> {
   const pending = new Set<string>()
   for (const item of items) {
     if (item.type !== 'image') continue
@@ -109,10 +156,15 @@ export async function uploadInlineImages(key: string, items: BoardItem[]): Promi
     if (isDataUrl(item.originalContent)) pending.add(item.originalContent!)
   }
   const uploaded = new Map<string, string>()
+  let error: string | null = null
   for (const dataUrl of pending) {
-    uploaded.set(dataUrl, await uploadDataUrl(key, dataUrl))
+    try {
+      uploaded.set(dataUrl, await uploadDataUrl(key, dataUrl))
+    } catch (e) {
+      error ??= e instanceof Error ? e.message : 'Image upload failed'
+    }
   }
-  return uploaded
+  return { uploaded, error }
 }
 
 export function replaceImageUrls(items: BoardItem[], uploaded: Map<string, string>): BoardItem[] {
