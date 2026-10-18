@@ -79,6 +79,7 @@ export interface BoardItem {
   rotation?: number
   originalContent?: string // stores original image before bg removal
   locked?: boolean
+  liked?: boolean // hearted in the feed; synced with the board
 }
 
 export interface BoardState {

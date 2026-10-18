@@ -24,7 +24,7 @@ const LEGACY_STYLE_MAP: Record<string, string> = {
   serif: 'elegant',
 }
 
-function getTextStyle(fontStyle?: string) {
+export function getTextStyle(fontStyle?: string) {
   const mapped = fontStyle && LEGACY_STYLE_MAP[fontStyle] ? LEGACY_STYLE_MAP[fontStyle] : fontStyle
   return TEXT_STYLES.find((s) => s.id === mapped) || TEXT_STYLES[0]
 }
