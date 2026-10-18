@@ -29,6 +29,21 @@ export function normalizeSyncKey(input: string): string {
   return input.trim().toLowerCase().replace(/\s+/g, '')
 }
 
+// A link that opens this board on another device. The key rides in the URL
+// fragment, which browsers never send to the server.
+export function syncLink(key: string): string {
+  return `${window.location.origin}/#sync=${encodeURIComponent(key)}`
+}
+
+// Read a key from a "#sync=" link and remove it from the address bar
+export function takeSyncKeyFromUrl(): string | null {
+  if (typeof window === 'undefined') return null
+  const match = window.location.hash.match(/^#sync=([^&]+)/)
+  if (!match) return null
+  history.replaceState(null, '', window.location.pathname + window.location.search)
+  return normalizeSyncKey(decodeURIComponent(match[1]))
+}
+
 function read(key: string): string | null {
   try {
     return localStorage.getItem(key)
@@ -211,6 +226,12 @@ export function pushSupported(): boolean {
 
 export function isIos(): boolean {
   return typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent)
+}
+
+// Running as an installed Home Screen app rather than in a browser tab
+export function isStandalone(): boolean {
+  if (typeof window === 'undefined') return false
+  return window.matchMedia('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true
 }
 
 function urlBase64ToUint8Array(base64: string): Uint8Array {
