@@ -22,7 +22,10 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
       const open = windows.find((w) => new URL(w.url).origin === self.location.origin)
-      return open ? open.focus() : self.clients.openWindow(url)
+      if (!open) return self.clients.openWindow(url)
+      // The app is already open: tell it to show the card, then bring it forward
+      open.postMessage({ type: 'open-url', url })
+      return open.focus()
     })
   )
 })

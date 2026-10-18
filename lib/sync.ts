@@ -228,6 +228,23 @@ export function isIos(): boolean {
   return typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent)
 }
 
+export interface TodayCard {
+  text: string
+  image?: string
+}
+
+// Read a "#today&text=…&image=…" link from a reminder and remove it from the
+// address bar. Only images hosted by our own sync API are accepted.
+export function takeTodayFromUrl(): TodayCard | null {
+  if (typeof window === 'undefined' || !window.location.hash.startsWith('#today')) return null
+  const params = new URLSearchParams(window.location.hash.slice('#today'.length).replace(/^&/, ''))
+  history.replaceState(null, '', window.location.pathname + window.location.search)
+  const text = params.get('text') || ''
+  const image = params.get('image') || ''
+  if (!text && !image) return null
+  return { text, image: image.startsWith('/api/sync/images/') ? image : undefined }
+}
+
 // Running as an installed Home Screen app rather than in a browser tab
 export function isStandalone(): boolean {
   if (typeof window === 'undefined') return false
