@@ -56,7 +56,13 @@ import {
   snoozeBackupReminder,
   shouldRemindBackup,
 } from "@/lib/storage"
-import { takeSyncKeyFromUrl, takeTodayFromUrl, type TodayCard as TodayCardData } from "@/lib/sync"
+import {
+  refreshServiceWorker,
+  takePendingReminderUrl,
+  takeSyncKeyFromUrl,
+  takeTodayFromUrl,
+  type TodayCard as TodayCardData,
+} from "@/lib/sync"
 import { TEMPLATES } from "@/lib/templates"
 import { BoardItemComponent } from "./board-item"
 import { SyncDialog } from "./sync-dialog"
@@ -164,16 +170,29 @@ export function VisionBoard() {
     // The link may be opened while the app is already open in this tab, which
     // only changes the fragment and doesn't reload the page
     window.addEventListener("hashchange", check)
-    // A tapped reminder reaches an already-open app as a service worker message
+    // A tapped reminder reaches an already-open app as a service worker
+    // message, or, if the app was suspended and missed it, as a parked link
+    // Only the fragment matters (its contents are validated when read), so a
+    // link saved under another address of this app still opens here
+    const openUrl = (raw: string) => {
+      const { hash } = new URL(raw, window.location.origin)
+      if (hash) window.location.hash = hash
+    }
     const onMessage = (e: MessageEvent) => {
-      if (e.data?.type !== "open-url") return
-      const url = new URL(e.data.url, window.location.origin)
-      if (url.origin === window.location.origin) window.location.hash = url.hash
+      if (e.data?.type === "open-url") openUrl(e.data.url)
+    }
+    const checkPending = () => {
+      if (document.visibilityState !== "visible") return
+      takePendingReminderUrl().then((url) => url && openUrl(url))
     }
     navigator.serviceWorker?.addEventListener("message", onMessage)
+    document.addEventListener("visibilitychange", checkPending)
+    checkPending()
+    refreshServiceWorker()
     return () => {
       window.removeEventListener("hashchange", check)
       navigator.serviceWorker?.removeEventListener("message", onMessage)
+      document.removeEventListener("visibilitychange", checkPending)
     }
   }, [isLoaded])
 
