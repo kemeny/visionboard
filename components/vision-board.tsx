@@ -32,6 +32,7 @@ import {
   Sparkles,
   RotateCw,
   Cloud,
+  GalleryVerticalEnd,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -56,11 +57,18 @@ import {
   snoozeBackupReminder,
   shouldRemindBackup,
 } from "@/lib/storage"
-import { takeSyncKeyFromUrl, takeTodayFromUrl, type TodayCard as TodayCardData } from "@/lib/sync"
+import {
+  refreshServiceWorker,
+  takePendingReminderUrl,
+  takeSyncKeyFromUrl,
+  takeTodayFromUrl,
+  type TodayCard as TodayCardData,
+} from "@/lib/sync"
 import { TEMPLATES } from "@/lib/templates"
 import { BoardItemComponent } from "./board-item"
 import { SyncDialog } from "./sync-dialog"
 import { TodayCard } from "./today-card"
+import { FeedView } from "./feed-view"
 import { useBoardSync } from "@/hooks/use-board-sync"
 import {
   DropdownMenu,
@@ -99,6 +107,7 @@ export function VisionBoard() {
   const [syncOpen, setSyncOpen] = useState(false)
   const [linkKey, setLinkKey] = useState<string | null>(null)
   const [todayCard, setTodayCard] = useState<TodayCardData | null>(null)
+  const [feedOpen, setFeedOpen] = useState(false)
   const canvasRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const importInputRef = useRef<HTMLInputElement>(null)
@@ -164,16 +173,33 @@ export function VisionBoard() {
     // The link may be opened while the app is already open in this tab, which
     // only changes the fragment and doesn't reload the page
     window.addEventListener("hashchange", check)
-    // A tapped reminder reaches an already-open app as a service worker message
+    // A tapped reminder reaches an already-open app as a service worker
+    // message, or, if the app was suspended and missed it, as a parked link
+    // Only the fragment matters (its contents are validated when read), so a
+    // link saved under another address of this app still opens here
+    const openUrl = (raw: string) => {
+      const { hash } = new URL(raw, window.location.origin)
+      if (hash) window.location.hash = hash
+    }
     const onMessage = (e: MessageEvent) => {
       if (e.data?.type !== "open-url") return
-      const url = new URL(e.data.url, window.location.origin)
-      if (url.origin === window.location.origin) window.location.hash = url.hash
+      openUrl(e.data.url)
+      // This tap was also parked for a suspended app; clear it so it doesn't
+      // reopen the card the next time the app comes to the foreground
+      takePendingReminderUrl()
+    }
+    const checkPending = () => {
+      if (document.visibilityState !== "visible") return
+      takePendingReminderUrl().then((url) => url && openUrl(url))
     }
     navigator.serviceWorker?.addEventListener("message", onMessage)
+    document.addEventListener("visibilitychange", checkPending)
+    checkPending()
+    refreshServiceWorker()
     return () => {
       window.removeEventListener("hashchange", check)
       navigator.serviceWorker?.removeEventListener("message", onMessage)
+      document.removeEventListener("visibilitychange", checkPending)
     }
   }, [isLoaded])
 
@@ -305,6 +331,25 @@ export function VisionBoard() {
       prev.map((item) => (item.id === id ? { ...item, ...updates } : item))
     )
   }, [])
+
+  // On phones the app reopens in whichever view you left it in
+  const openFeed = useCallback((open: boolean) => {
+    setFeedOpen(open)
+    try {
+      localStorage.setItem("visionboard-view", open ? "feed" : "board")
+    } catch {}
+  }, [])
+
+  useEffect(() => {
+    if (!isLoaded || items.length === 0) return
+    try {
+      if (window.matchMedia("(max-width: 640px)").matches && localStorage.getItem("visionboard-view") === "feed") {
+        setFeedOpen(true)
+      }
+    } catch {}
+    // Only decide once the board has loaded
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded])
 
   const deleteItem = useCallback((id: string) => {
     setItems((prev) => prev.filter((item) => item.id !== id))
@@ -829,6 +874,18 @@ export function VisionBoard() {
           <Button variant="ghost" size="sm" className="hidden sm:flex h-8 w-8 p-0 text-muted-foreground" title="Zoom in" onClick={zoomIn}>
             <ZoomIn className="h-4 w-4" />
           </Button>
+          {items.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 gap-1.5 px-2 text-muted-foreground"
+              title="Feed"
+              onClick={() => openFeed(true)}
+            >
+              <GalleryVerticalEnd className="h-4 w-4" />
+              <span className="hidden sm:inline text-xs">Feed</span>
+            </Button>
+          )}
           <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground" title="Fit all" onClick={fitAll}>
             <Maximize className="h-4 w-4" />
           </Button>
@@ -1392,6 +1449,14 @@ export function VisionBoard() {
             Delete
           </Button>
         </div>
+      )}
+
+      {feedOpen && (
+        <FeedView
+          items={items}
+          onToggleLike={(id, liked) => updateItem(id, { liked })}
+          onClose={() => openFeed(false)}
+        />
       )}
 
       {todayCard && <TodayCard card={todayCard} onClose={() => setTodayCard(null)} />}

@@ -245,6 +245,32 @@ export function takeTodayFromUrl(): TodayCard | null {
   return { text, image: image.startsWith('/api/sync/images/') ? image : undefined }
 }
 
+// A reminder tapped while the app was in the background, parked by public/sw.js.
+// Returns its link (once) if it was tapped in the last hour.
+export async function takePendingReminderUrl(): Promise<string | null> {
+  if (typeof caches === 'undefined') return null
+  try {
+    const cache = await caches.open('vb-pending')
+    const res = await cache.match('/__pending-card')
+    if (!res) return null
+    await cache.delete('/__pending-card')
+    const { url, at } = await res.json()
+    return Date.now() - at < 60 * 60 * 1000 ? url : null
+  } catch {
+    return null
+  }
+}
+
+// Re-register the service worker on each launch so the browser checks for a
+// newer public/sw.js; only needed once reminders are on
+export function refreshServiceWorker(): void {
+  if (!pushSupported() || !getReminderPref()) return
+  navigator.serviceWorker
+    .register('/sw.js')
+    .then((reg) => reg.update())
+    .catch(() => {})
+}
+
 // Running as an installed Home Screen app rather than in a browser tab
 export function isStandalone(): boolean {
   if (typeof window === 'undefined') return false
