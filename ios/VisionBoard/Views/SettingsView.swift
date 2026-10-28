@@ -15,12 +15,30 @@ struct SettingsView: View {
     @State private var confirmDelete = false
     @State private var confirmJoin = false
     @State private var reminderTime = Date()
+    @AppStorage("appearance") private var appearance: Appearance = .system
+    @AppStorage("canvas-paper") private var paper: PaperColor = .moleskine
 
     var body: some View {
         NavigationStack {
             Form {
                 syncSection
                 remindersSection
+                Section {
+                    Picker(selection: $appearance) {
+                        ForEach(Appearance.allCases) { Text($0.label).tag($0) }
+                    } label: {
+                        Label("Appearance", systemImage: "circle.lefthalf.filled")
+                    }
+                    Picker(selection: $paper) {
+                        ForEach(PaperColor.allCases) { Text($0.label).tag($0) }
+                    } label: {
+                        Label("Board Paper", systemImage: "doc")
+                    }
+                } header: {
+                    Text("Display")
+                } footer: {
+                    Text("The board paper and the words written on it switch between day and night versions with the appearance.")
+                }
                 Section {
                     LabeledContent("Version", value: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "")
                     if let site = URL(string: "https://kemenystudio.com") {
@@ -186,6 +204,11 @@ struct SettingsView: View {
                     }
                 ), displayedComponents: .hourAndMinute)
                 Button("Send a Test", systemImage: "paperplane") { Task { await reminders.sendTest(items: store.items) } }
+                if let message = reminders.testMessage {
+                    Label(message, systemImage: "checkmark.circle")
+                        .foregroundStyle(.green)
+                        .font(.callout)
+                }
             }
             if let error = reminders.errorMessage {
                 Label(error, systemImage: "exclamationmark.triangle")

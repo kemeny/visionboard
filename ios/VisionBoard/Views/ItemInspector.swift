@@ -7,6 +7,7 @@ struct ItemInspector: View {
     let itemID: String?
     var onEditText: (String) -> Void
     var onDone: () -> Void
+    @State private var shuffles = 0
 
     var body: some View {
         NavigationStack {
@@ -36,6 +37,11 @@ struct ItemInspector: View {
         Form {
             if item.type == .text {
                 Section("Text") {
+                    Button("Random Style", systemImage: "dice") {
+                        withAnimation(.snappy) { store.update(item.id) { $0.applyRandomLook() } }
+                        shuffles += 1
+                    }
+                    .sensoryFeedback(.impact(weight: .light), trigger: shuffles)
                     Button("Edit Text", systemImage: "character.cursor.ibeam") { onEditText(item.id) }
                     Picker("Font", selection: binding(item, \.fontStyle, default: TextStyle.clean.rawValue)) {
                         ForEach(TextStyle.allCases) { style in

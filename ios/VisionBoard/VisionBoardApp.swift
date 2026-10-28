@@ -10,6 +10,7 @@ struct VisionBoardApp: App {
     @State private var sync: SyncService
     @State private var reminders = Reminders()
     @State private var router = AppRouter.shared
+    @AppStorage("appearance") private var appearance: Appearance = .system
 
     init() {
         let store = BoardStore()
@@ -26,6 +27,7 @@ struct VisionBoardApp: App {
                 .environment(sync)
                 .environment(reminders)
                 .environment(router)
+                .preferredColorScheme(appearance.colorScheme)
                 .onOpenURL { url in router.open(url) }
                 .task(id: scenePhase) {
                     guard scenePhase == .active else { return }
@@ -75,7 +77,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
     }
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
-        [.banner, .sound]
+        [.banner, .list, .sound]
     }
 
     // Tapping a reminder opens that day's goal and photo full screen
@@ -85,6 +87,21 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
         let image = (info["image"] as? String).flatMap { $0.isEmpty ? nil : $0 }
         await MainActor.run {
             AppRouter.shared.todayCard = DailyCard(text: text, image: image)
+        }
+    }
+}
+
+enum Appearance: String, CaseIterable, Identifiable {
+    case system, light, dark
+
+    var id: String { rawValue }
+    var label: String { rawValue.capitalized }
+
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: nil
+        case .light: .light
+        case .dark: .dark
         }
     }
 }
