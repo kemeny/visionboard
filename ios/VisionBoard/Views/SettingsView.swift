@@ -204,6 +204,11 @@ struct SettingsView: View {
                     }
                 ), displayedComponents: .hourAndMinute)
                 Button("Send a Test", systemImage: "paperplane") { Task { await reminders.sendTest(items: store.items) } }
+                if let message = reminders.testMessage {
+                    Label(message, systemImage: "checkmark.circle")
+                        .foregroundStyle(.green)
+                        .font(.callout)
+                }
             }
             if let error = reminders.errorMessage {
                 Label(error, systemImage: "exclamationmark.triangle")

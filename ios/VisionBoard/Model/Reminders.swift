@@ -1,5 +1,7 @@
 import Foundation
 import Observation
+import UIKit
+import UniformTypeIdentifiers
 import UserNotifications
 
 // Daily reminders as local notifications. Unlike the web app these need no
@@ -16,6 +18,7 @@ final class Reminders {
     var isEnabled = UserDefaults.standard.bool(forKey: Reminders.enabledKey)
     var hour: Int = UserDefaults.standard.object(forKey: Reminders.hourKey) as? Int ?? 8
     var errorMessage: String?
+    var testMessage: String?
 
     func enable(hour: Int, items: [BoardItem]) async {
         do {
@@ -67,16 +70,30 @@ final class Reminders {
                 content.attachments = [attachment]
             }
             let parts = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: fire)
-            let request = UNNotificationRequest(
-                identifier: Self.idPrefix + "\(offset)",
-                content: content,
+            try? await Self.add(
+                content,
+                id: Self.idPrefix + "\(offset)",
                 trigger: UNCalendarNotificationTrigger(dateMatching: parts, repeats: false)
             )
-            try? await center.add(request)
         }
     }
 
     func sendTest(items: [BoardItem]) async {
+        testMessage = nil
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        switch settings.authorizationStatus {
+        case .authorized, .provisional, .ephemeral:
+            break
+        case .notDetermined:
+            let granted = (try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])) ?? false
+            guard granted else {
+                errorMessage = "Notifications are off for VisionBoard. Turn them on in Settings."
+                return
+            }
+        default:
+            errorMessage = "Notifications are off for VisionBoard. Turn them on in the Settings app, under Notifications."
+            return
+        }
         let card = DailyCard.pick(from: items)
         let content = UNMutableNotificationContent()
         content.title = "Your vision board"
@@ -85,12 +102,25 @@ final class Reminders {
         if let image = card.image, let attachment = await Self.attachment(for: image) {
             content.attachments = [attachment]
         }
-        let request = UNNotificationRequest(
-            identifier: "test-\(UUID().uuidString)",
-            content: content,
-            trigger: UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false)
-        )
-        try? await UNUserNotificationCenter.current().add(request)
+        do {
+            try await Self.add(content, id: "test-\(UUID().uuidString)", trigger: UNTimeIntervalNotificationTrigger(timeInterval: 3, repeats: false))
+            errorMessage = nil
+            testMessage = "Sent. It arrives in a few seconds."
+        } catch {
+            errorMessage = "Couldn't send the test: \(error.localizedDescription)"
+        }
+    }
+
+    // A photo the system can't use would make the whole reminder fail, so
+    // fall back to sending it without one
+    private static func add(_ content: UNMutableNotificationContent, id: String, trigger: UNNotificationTrigger) async throws {
+        let center = UNUserNotificationCenter.current()
+        do {
+            try await center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
+        } catch where !content.attachments.isEmpty {
+            content.attachments = []
+            try await center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
+        }
     }
 
     private static func removePending() async {
@@ -99,12 +129,24 @@ final class Reminders {
         center.removePendingNotificationRequests(withIdentifiers: ids)
     }
 
+    // Photos synced from the web are often WebP, which notifications can't
+    // show. Re-encode a small JPEG copy (the system moves the file it's given).
     private static func attachment(for content: String) async -> UNNotificationAttachment? {
-        guard let source = await ImageStore.shared.fileURL(for: content) else { return nil }
-        let copy = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + ".jpg")
+        guard let image = await ImageStore.shared.image(for: content) else { return nil }
+        let scale = min(1, 1200 / max(image.size.width, image.size.height, 1))
+        let size = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1
+        let jpeg = UIGraphicsImageRenderer(size: size, format: format)
+            .jpegData(withCompressionQuality: 0.8) { _ in image.draw(in: CGRect(origin: .zero, size: size)) }
+        let url = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString + ".jpg")
         do {
-            try FileManager.default.copyItem(at: source, to: copy)
-            return try UNNotificationAttachment(identifier: "image", url: copy)
+            try jpeg.write(to: url)
+            return try UNNotificationAttachment(
+                identifier: "image",
+                url: url,
+                options: [UNNotificationAttachmentOptionsTypeHintKey: UTType.jpeg.identifier]
+            )
         } catch {
             return nil
         }

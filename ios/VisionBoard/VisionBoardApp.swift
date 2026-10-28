@@ -77,7 +77,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
     }
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
-        [.banner, .sound]
+        [.banner, .list, .sound]
     }
 
     // Tapping a reminder opens that day's goal and photo full screen
