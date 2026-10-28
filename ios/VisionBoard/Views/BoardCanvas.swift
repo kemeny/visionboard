@@ -357,6 +357,9 @@ struct ItemActions: View {
     var body: some View {
         if item.type == .text {
             Button("Edit Text", systemImage: "character.cursor.ibeam", action: onEditText)
+            Button("Random Style", systemImage: "dice") {
+                withAnimation(.snappy) { store.update(item.id) { $0.applyRandomLook() } }
+            }
         }
         Button("Style", systemImage: "paintbrush", action: onShowStyle)
         Button(item.isLiked ? "Unlike" : "Like", systemImage: item.isLiked ? "heart.slash" : "heart") {
