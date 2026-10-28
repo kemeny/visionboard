@@ -114,7 +114,12 @@ final class SyncService {
             // Upload photos added on this device first, then swap in their cloud paths
             var uploaded: [String: String] = [:]
             var imageError: String?
-            let pending = Set(store.items.flatMap { [$0.content, $0.originalContent ?? ""] }.filter { ImageStore.isLocal($0) })
+            var pending = Set<String>()
+            for item in store.items {
+                for content in [item.content, item.originalContent] {
+                    if let content, ImageStore.isLocal(content) { pending.insert(content) }
+                }
+            }
             for local in pending {
                 guard let upload = await ImageStore.shared.uploadData(for: local) else { continue }
                 do {
