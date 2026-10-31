@@ -32,6 +32,12 @@ struct VisionBoardApp: App {
                 .task(id: scenePhase) {
                     guard scenePhase == .active else { return }
                     await sync.pull()
+                    // Things shared from other apps land on the board after the pull,
+                    // so a newer cloud board can't replace them
+                    if ShareInbox.hasPending {
+                        router.tab = .board
+                        router.sharedArrivals += 1
+                    }
                     await reminders.reschedule(items: store.items)
                 }
                 // Board edits change which goal shows on which day
@@ -58,6 +64,8 @@ final class AppRouter {
     var tab: Tab = .board
     var todayCard: DailyCard?
     var incomingSyncKey: String?
+    // Bumped when the share sheet left something in the inbox
+    var sharedArrivals = 0
 
     func open(_ url: URL) {
         let text = url.absoluteString

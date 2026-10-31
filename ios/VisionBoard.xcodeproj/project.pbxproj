@@ -6,8 +6,37 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		4D46DD4AF5CDCC2545A8EF3B /* VisionBoardShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = C40DF6054C0CA13EEC3541F9 /* VisionBoardShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		431387EB7262E1CFC79B125E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 46F86FAA6BBF9AC94A7E4595 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 65A5D5D40248667CCF4E25AF;
+			remoteInfo = VisionBoardShare;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		85FA865CBD15CB82182CDA17 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				4D46DD4AF5CDCC2545A8EF3B /* VisionBoardShare.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		D2A57DC1D883FD21FB995169 /* VisionBoard.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VisionBoard.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C40DF6054C0CA13EEC3541F9 /* VisionBoardShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = VisionBoardShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -16,10 +45,27 @@
 			path = VisionBoard;
 			sourceTree = "<group>";
 		};
+		3DB71C3DDCDFDFE01FEF03D9 /* VisionBoardShare */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = VisionBoardShare;
+			sourceTree = "<group>";
+		};
+		D236FE8BF1D4779E8CA80529 /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Shared;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		4F6F5CC3FCCF73F75AE9CCF4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		431E81414A478D41B840BEDB /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -33,6 +79,8 @@
 			isa = PBXGroup;
 			children = (
 				DB0F6F37EBEB6EA094891243 /* VisionBoard */,
+				3DB71C3DDCDFDFE01FEF03D9 /* VisionBoardShare */,
+				D236FE8BF1D4779E8CA80529 /* Shared */,
 				86024CAD1E83101D97359D73 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -41,6 +89,7 @@
 			isa = PBXGroup;
 			children = (
 				D2A57DC1D883FD21FB995169 /* VisionBoard.app */,
+				C40DF6054C0CA13EEC3541F9 /* VisionBoardShare.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -55,13 +104,16 @@
 				F2AB5FB218DA8B84623F4557 /* Sources */,
 				4F6F5CC3FCCF73F75AE9CCF4 /* Frameworks */,
 				55B558C7EF820E6E00E5993B /* Resources */,
+				85FA865CBD15CB82182CDA17 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				2254342BECCEAFBD04538E0A /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				DB0F6F37EBEB6EA094891243 /* VisionBoard */,
+				D236FE8BF1D4779E8CA80529 /* Shared */,
 			);
 			name = VisionBoard;
 			packageProductDependencies = (
@@ -69,6 +121,29 @@
 			productName = VisionBoard;
 			productReference = D2A57DC1D883FD21FB995169 /* VisionBoard.app */;
 			productType = "com.apple.product-type.application";
+		};
+		65A5D5D40248667CCF4E25AF /* VisionBoardShare */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E199DFECB6EE5684B9B7D884 /* Build configuration list for PBXNativeTarget "VisionBoardShare" */;
+			buildPhases = (
+				F2484AF59D5387733717BF6D /* Sources */,
+				431E81414A478D41B840BEDB /* Frameworks */,
+				565521239A789BD3F2DB9F96 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				3DB71C3DDCDFDFE01FEF03D9 /* VisionBoardShare */,
+				D236FE8BF1D4779E8CA80529 /* Shared */,
+			);
+			name = VisionBoardShare;
+			packageProductDependencies = (
+			);
+			productName = VisionBoardShare;
+			productReference = C40DF6054C0CA13EEC3541F9 /* VisionBoardShare.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -81,6 +156,9 @@
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
 					42AEFBAE01D2DFD981F7DA7D = {
+						CreatedOnToolsVersion = 26.0;
+					};
+					65A5D5D40248667CCF4E25AF = {
 						CreatedOnToolsVersion = 26.0;
 					};
 				};
@@ -100,12 +178,20 @@
 			projectRoot = "";
 			targets = (
 				42AEFBAE01D2DFD981F7DA7D /* VisionBoard */,
+				65A5D5D40248667CCF4E25AF /* VisionBoardShare */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		55B558C7EF820E6E00E5993B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		565521239A789BD3F2DB9F96 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -122,7 +208,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F2484AF59D5387733717BF6D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		2254342BECCEAFBD04538E0A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 65A5D5D40248667CCF4E25AF /* VisionBoardShare */;
+			targetProxy = 431387EB7262E1CFC79B125E /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		F76F2F5070883F96D43CA7E8 /* Debug */ = {
@@ -174,6 +275,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Config/VisionBoard.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
@@ -207,6 +309,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Config/VisionBoard.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
@@ -235,6 +338,58 @@
 			};
 			name = Release;
 		};
+		F6296F560F92E0B98B0B7DE3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = Config/VisionBoardShare.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Config/Share-Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = VisionBoard;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kemenystudio.visionboard.share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		7DE7C7537B8C08F6069A219F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = Config/VisionBoardShare.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Config/Share-Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = VisionBoard;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kemenystudio.visionboard.share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -252,6 +407,15 @@
 			buildConfigurations = (
 				2A343E603A2D64755C73B150 /* Debug */,
 				3C5975784EB8C8C214FAC427 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E199DFECB6EE5684B9B7D884 /* Build configuration list for PBXNativeTarget "VisionBoardShare" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F6296F560F92E0B98B0B7DE3 /* Debug */,
+				7DE7C7537B8C08F6069A219F /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

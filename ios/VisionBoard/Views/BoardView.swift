@@ -49,6 +49,10 @@ struct BoardView: View {
                 pickedPhotos = []
                 Task { await importPhotos(items) }
             }
+            .task(id: router.sharedArrivals) {
+                guard router.sharedArrivals > 0 else { return }
+                await importShared()
+            }
             .onChange(of: selection) { _, id in
                 if id == nil { showStyle = false }
             }
@@ -203,6 +207,35 @@ struct BoardView: View {
                 importError = error.localizedDescription
             }
         }
+    }
+
+    // Photos, video stills, links and words sent from another app's share sheet
+    private func importShared() async {
+        let pending = ShareInbox.take()
+        guard !pending.isEmpty else { return }
+        var center = visibleCenter
+        var last: BoardItem?
+        for item in pending {
+            switch item.kind {
+            case .image:
+                guard let data = item.imageData else { continue }
+                do {
+                    let imported = try await ImageStore.shared.importPhoto(data)
+                    last = store.addImage(content: imported.content, aspect: imported.aspect, at: center)
+                } catch {
+                    importError = error.localizedDescription
+                    continue
+                }
+            case .text:
+                guard let text = item.text else { continue }
+                let added = store.addText(at: center, content: text)
+                store.update(added.id) { $0.applyRandomLook() }
+                last = added
+            }
+            center.x += 30
+            center.y += 30
+        }
+        selection = last?.id
     }
 
     private func apply(_ template: BoardTemplate) {
