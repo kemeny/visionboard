@@ -319,12 +319,14 @@ extension ClippingView {
 struct BoardImage: View {
     let content: String
     var mode: ContentMode = .fill
+    @Environment(\.preloadedImages) private var preloaded
     @State private var image: UIImage?
     @State private var failed = false
 
     var body: some View {
         ZStack {
-            if let image {
+            // ImageRenderer draws in one pass, so wallpapers hand over their photos up front
+            if let image = image ?? preloaded[content] {
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: mode)
@@ -341,10 +343,15 @@ struct BoardImage: View {
             }
         }
         .task(id: content) {
+            guard preloaded[content] == nil else { return }
             image = await ImageStore.shared.image(for: content)
             failed = image == nil
         }
     }
+}
+
+extension EnvironmentValues {
+    @Entry var preloadedImages: [String: UIImage] = [:]
 }
 
 // Shared by the context menu, VoiceOver actions and the inspector

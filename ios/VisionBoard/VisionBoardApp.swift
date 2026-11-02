@@ -39,12 +39,14 @@ struct VisionBoardApp: App {
                         router.sharedArrivals += 1
                     }
                     await reminders.reschedule(items: store.items)
+                    await WidgetPublisher.publish(items: store.items)
                 }
                 // Board edits change which goal shows on which day
                 .task(id: store.items) {
                     try? await Task.sleep(for: .seconds(2))
                     guard !Task.isCancelled else { return }
                     await reminders.reschedule(items: store.items)
+                    await WidgetPublisher.publish(items: store.items)
                 }
         }
     }

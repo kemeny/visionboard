@@ -15,6 +15,7 @@ struct BoardView: View {
     @State private var viewport: CGSize = .zero
     @State private var pendingTemplate: BoardTemplate?
     @State private var importError: String?
+    @State private var showWallpaper = false
     @AppStorage("canvas-pattern") private var pattern: CanvasPattern = .dots
     @AppStorage("canvas-paper") private var paper: PaperColor = .moleskine
 
@@ -48,6 +49,9 @@ struct BoardView: View {
                 guard !items.isEmpty else { return }
                 pickedPhotos = []
                 Task { await importPhotos(items) }
+            }
+            .sheet(isPresented: $showWallpaper) {
+                WallpaperSheet(items: store.sortedItems, paper: paper)
             }
             .task(id: router.sharedArrivals) {
                 guard router.sharedArrivals > 0 else { return }
@@ -134,6 +138,8 @@ struct BoardView: View {
             Label("Paper", systemImage: "doc")
         }
         .pickerStyle(.menu)
+        Button("Make Wallpaper", systemImage: "iphone.gen3") { showWallpaper = true }
+            .disabled(store.items.isEmpty)
         if sync.isOn {
             Button("Sync Now", systemImage: "arrow.triangle.2.circlepath") { Task { await sync.syncNow() } }
         }
