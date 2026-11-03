@@ -11,22 +11,51 @@ final class SyncService {
         case unavailable, off, syncing, synced, error
     }
 
-    private(set) var key: String? = KeyStore.read()
+    private(set) var key: String?
     private(set) var status: Status = .off
     private(set) var errorMessage: String?
 
     private let store: BoardStore
     @ObservationIgnored private var pushTask: Task<Void, Never>?
     @ObservationIgnored private var dirty = false
+    private var syncedAtKey: String {
+        store.boardID == BoardLibrary.mainID ? "synced-at" : "synced-at-\(store.boardID)"
+    }
     private var syncedAt: Double {
-        get { UserDefaults.standard.double(forKey: "synced-at") }
-        set { UserDefaults.standard.set(newValue, forKey: "synced-at") }
+        get { UserDefaults.standard.double(forKey: syncedAtKey) }
+        set { UserDefaults.standard.set(newValue, forKey: syncedAtKey) }
     }
     private static let pushDelay: Duration = .milliseconds(1500)
 
     init(store: BoardStore) {
         self.store = store
+        key = KeyStore.read(board: store.boardID)
         status = !SyncAPI.isConfigured ? .unavailable : key == nil ? .off : .synced
+    }
+
+    // Before the store switches boards: send any edit still waiting, so it
+    // can't be pushed under the next board's key
+    func finishPending() async {
+        guard pushTask != nil else { return }
+        pushTask?.cancel()
+        pushTask = nil
+        if dirty, let key { await push(key: key) }
+    }
+
+    // After the store switched boards: pick up that board's own key
+    func boardChanged() {
+        pushTask?.cancel()
+        pushTask = nil
+        dirty = false
+        errorMessage = nil
+        key = KeyStore.read(board: store.boardID)
+        status = !SyncAPI.isConfigured ? .unavailable : key == nil ? .off : .synced
+    }
+
+    // A board deleted from this device takes its key with it
+    static func forget(board boardID: String) {
+        KeyStore.write(nil, board: boardID)
+        UserDefaults.standard.removeObject(forKey: "synced-at-\(boardID)")
     }
 
     var isOn: Bool { key != nil }
@@ -39,6 +68,7 @@ final class SyncService {
             try? await Task.sleep(for: Self.pushDelay)
             guard !Task.isCancelled else { return }
             await push(key: key)
+            pushTask = nil
         }
     }
 
@@ -66,7 +96,7 @@ final class SyncService {
     // Start syncing this board under a brand-new key
     func enable() async {
         let newKey = SyncAPI.generateKey()
-        KeyStore.write(newKey)
+        KeyStore.write(newKey, board: store.boardID)
         key = newKey
         syncedAt = 0
         dirty = true
@@ -82,7 +112,7 @@ final class SyncService {
         guard let remote = try await SyncAPI.fetchBoard(key: newKey) else {
             throw SyncAPI.Failure(message: "No board found for that key. Check it and try again.", status: 404)
         }
-        KeyStore.write(newKey)
+        KeyStore.write(newKey, board: store.boardID)
         key = newKey
         dirty = false
         store.applyRemote(items: remote.board.items, maxZIndex: remote.board.maxZIndex ?? Double(remote.board.items.count + 1))
@@ -94,7 +124,7 @@ final class SyncService {
     // Stop syncing here; the board stays on this device and in the cloud
     func disconnect() {
         pushTask?.cancel()
-        KeyStore.write(nil)
+        KeyStore.write(nil, board: store.boardID)
         key = nil
         syncedAt = 0
         status = .off

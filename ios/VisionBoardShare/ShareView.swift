@@ -47,6 +47,13 @@ struct ShareView: View {
                         Text("Videos go on the board as a still from the clip.")
                     }
                 }
+                if model.boards.count > 1 {
+                    Section {
+                        Picker("Board", selection: $model.board) {
+                            ForEach(model.boards) { Text($0.name).tag(Optional($0.id)) }
+                        }
+                    }
+                }
                 Section {
                     TextField("Add a goal to go with it", text: $model.caption, axis: .vertical)
                         .lineLimit(1...4)

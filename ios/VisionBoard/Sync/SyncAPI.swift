@@ -111,19 +111,22 @@ enum SyncAPI {
 
 // The sync key is a secret, so it lives in the Keychain rather than UserDefaults
 enum KeyStore {
-    private static let account = "sync-key"
+    // The first board keeps the original account name so existing installs keep syncing
+    private static func account(for boardID: String) -> String {
+        boardID == BoardLibrary.mainID ? "sync-key" : "sync-key-\(boardID)"
+    }
 
-    static func read() -> String? {
+    static func read(board boardID: String) -> String? {
         var result: AnyObject?
         let query: [CFString: Any] = [
-            kSecClass: kSecClassGenericPassword, kSecAttrAccount: account, kSecReturnData: true, kSecMatchLimit: kSecMatchLimitOne,
+            kSecClass: kSecClassGenericPassword, kSecAttrAccount: account(for: boardID), kSecReturnData: true, kSecMatchLimit: kSecMatchLimitOne,
         ]
         guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess, let data = result as? Data else { return nil }
         return String(data: data, encoding: .utf8)
     }
 
-    static func write(_ key: String?) {
-        let query: [CFString: Any] = [kSecClass: kSecClassGenericPassword, kSecAttrAccount: account]
+    static func write(_ key: String?, board boardID: String) {
+        let query: [CFString: Any] = [kSecClass: kSecClassGenericPassword, kSecAttrAccount: account(for: boardID)]
         SecItemDelete(query as CFDictionary)
         guard let key else { return }
         var add = query

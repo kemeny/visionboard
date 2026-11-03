@@ -17,6 +17,7 @@ enum ShareInbox {
     }
 
     struct Pending {
+        var boardID: String?
         var kind: Entry.Kind
         var imageData: Data?
         var text: String?
@@ -37,7 +38,46 @@ enum ShareInbox {
         case text(String)
     }
 
-    static func write(_ items: [Item]) throws {
+    // MARK: Boards to choose from
+
+    struct BoardChoice: Codable, Identifiable, Hashable {
+        var id: String
+        var name: String
+    }
+
+    private struct BoardList: Codable {
+        var boards: [BoardChoice]
+        var current: String
+    }
+
+    private static var boardsURL: URL? {
+        FileManager.default
+            .containerURL(forSecurityApplicationGroupIdentifier: appGroup)?
+            .appending(path: "boards.json")
+    }
+
+    // Written by the app whenever boards change
+    static func saveBoards(_ boards: [BoardChoice], current: String) {
+        guard let url = boardsURL, let data = try? JSONEncoder().encode(BoardList(boards: boards, current: current)) else { return }
+        try? data.write(to: url, options: .atomic)
+    }
+
+    // Read by the share sheet: every board and the one open in the app
+    static func loadBoards() -> (boards: [BoardChoice], current: String?) {
+        guard let url = boardsURL, let data = try? Data(contentsOf: url),
+              let list = try? JSONDecoder().decode(BoardList.self, from: data)
+        else { return ([], nil) }
+        return (list.boards, list.current)
+    }
+
+    // MARK: Writing a share
+
+    private struct Manifest: Codable {
+        var board: String?
+        var entries: [Entry]
+    }
+
+    static func write(_ items: [Item], board: String? = nil) throws {
         guard let inbox = directory else { throw CocoaError(.fileNoSuchFile) }
         let stamp = Int(Date().timeIntervalSince1970 * 1000)
         let folder = inbox.appending(path: "\(stamp)-\(UUID().uuidString)", directoryHint: .isDirectory)
@@ -54,7 +94,7 @@ enum ShareInbox {
                 entries.append(Entry(kind: .text, text: text))
             }
         }
-        let manifest = try JSONEncoder().encode(entries)
+        let manifest = try JSONEncoder().encode(Manifest(board: board, entries: entries))
         try manifest.write(to: folder.appending(path: "manifest.json"), options: .atomic)
     }
 
@@ -70,18 +110,19 @@ enum ShareInbox {
         for folder in finishedFolders() {
             defer { try? FileManager.default.removeItem(at: folder) }
             guard let data = try? Data(contentsOf: folder.appending(path: "manifest.json")),
-                  let entries = try? JSONDecoder().decode([Entry].self, from: data)
+                  let manifest = (try? JSONDecoder().decode(Manifest.self, from: data))
+                    ?? (try? JSONDecoder().decode([Entry].self, from: data)).map({ Manifest(board: nil, entries: $0) })
             else { continue }
-            for entry in entries {
+            for entry in manifest.entries {
                 switch entry.kind {
                 case .image:
                     guard let file = entry.file,
                           let image = try? Data(contentsOf: folder.appending(path: file))
                     else { continue }
-                    result.append(Pending(kind: .image, imageData: image))
+                    result.append(Pending(boardID: manifest.board, kind: .image, imageData: image))
                 case .text:
                     guard let text = entry.text, !text.isEmpty else { continue }
-                    result.append(Pending(kind: .text, text: text))
+                    result.append(Pending(boardID: manifest.board, kind: .text, text: text))
                 }
             }
         }

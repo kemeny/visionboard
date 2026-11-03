@@ -8,16 +8,18 @@ struct VisionBoardApp: App {
 
     @State private var store: BoardStore
     @State private var sync: SyncService
+    @State private var library: BoardLibrary
     @State private var reminders = Reminders()
     @State private var router = AppRouter.shared
     @AppStorage("appearance") private var appearance: Appearance = .system
 
     init() {
-        let store = BoardStore()
+        let store = BoardStore(boardID: BoardLibrary.savedCurrentID)
         let sync = SyncService(store: store)
         store.onEdit = { sync.localEdit() }
         _store = State(initialValue: store)
         _sync = State(initialValue: sync)
+        _library = State(initialValue: BoardLibrary(store: store, sync: sync))
     }
 
     var body: some Scene {
@@ -25,6 +27,7 @@ struct VisionBoardApp: App {
             RootView()
                 .environment(store)
                 .environment(sync)
+                .environment(library)
                 .environment(reminders)
                 .environment(router)
                 .preferredColorScheme(appearance.colorScheme)
