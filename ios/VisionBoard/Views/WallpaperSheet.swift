@@ -11,7 +11,7 @@ struct WallpaperSheet: View {
     enum Style: String, CaseIterable, Identifiable {
         case board, today
         var id: String { rawValue }
-        var label: String { self == .board ? "Whole Board" : "Today" }
+        var label: String { self == .board ? String(localized: "Whole Board") : String(localized: "Today") }
     }
 
     @Environment(\.dismiss) private var dismiss
@@ -120,16 +120,16 @@ struct WallpaperSheet: View {
         defer { saving = false }
         let access = await PHPhotoLibrary.requestAuthorization(for: .addOnly)
         guard access == .authorized || access == .limited else {
-            status = "VisionBoard can't save to Photos. Turn it on in Settings > Apps > VisionBoard > Photos."
+            status = String(localized: "VisionBoard can't save to Photos. Turn it on in Settings > Apps > VisionBoard > Photos.")
             return
         }
         do {
             try await PHPhotoLibrary.shared().performChanges {
                 PHAssetChangeRequest.creationRequestForAsset(from: rendered)
             }
-            status = "Saved. In Photos, open it, tap Share, then Use as Wallpaper."
+            status = String(localized: "Saved. In Photos, open it, tap Share, then Use as Wallpaper.")
         } catch {
-            status = "Couldn't save: \(error.localizedDescription)"
+            status = String(localized: "Couldn't save: \(error.localizedDescription)")
         }
     }
 }

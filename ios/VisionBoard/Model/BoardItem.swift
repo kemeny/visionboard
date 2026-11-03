@@ -56,8 +56,8 @@ enum TextStyle: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .handwritten: "Script"
-        default: rawValue.capitalized
+        case .handwritten: String(localized: "Script")
+        default: String(localized: String.LocalizationValue(rawValue.capitalized))
         }
     }
 

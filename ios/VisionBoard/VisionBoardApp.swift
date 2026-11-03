@@ -108,7 +108,7 @@ enum Appearance: String, CaseIterable, Identifiable {
     case system, light, dark
 
     var id: String { rawValue }
-    var label: String { rawValue.capitalized }
+    var label: String { String(localized: String.LocalizationValue(rawValue.capitalized)) }
 
     var colorScheme: ColorScheme? {
         switch self {

@@ -1,0 +1,36 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "CFBundleDisplayName": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "VisionBoard"
+          }
+        }
+      }
+    },
+    "NSCameraUsageDescription": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "VisionBoard usa la cámara para escanear el código QR que abre tu tablero sincronizado."
+          }
+        }
+      }
+    },
+    "NSPhotoLibraryAddUsageDescription": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "VisionBoard guarda en Fotos los fondos de pantalla que creas con tu tablero."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

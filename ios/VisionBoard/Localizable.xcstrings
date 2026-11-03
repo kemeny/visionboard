@@ -1,0 +1,1546 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "%lld pt": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld pt"
+          }
+        }
+      }
+    },
+    "A Daily Nudge": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un empujón diario"
+          }
+        }
+      }
+    },
+    "Add": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agregar"
+          }
+        }
+      }
+    },
+    "Add Photos": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agregar fotos"
+          }
+        }
+      }
+    },
+    "Add a Goal": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agregar una meta"
+          }
+        }
+      }
+    },
+    "Add as New Board": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agregar como tablero nuevo"
+          }
+        }
+      }
+    },
+    "Add the photos and goals that pull you forward. You'll see one each day.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agrega las fotos y metas que te impulsan. Verás una cada día."
+          }
+        }
+      }
+    },
+    "Already Syncing Elsewhere?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Ya sincronizas en otro lugar?"
+          }
+        }
+      }
+    },
+    "Appearance": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apariencia"
+          }
+        }
+      }
+    },
+    "Arrange": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ordenar"
+          }
+        }
+      }
+    },
+    "Background": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fondo"
+          }
+        }
+      }
+    },
+    "Begin with an example you can change, or with blank paper.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parte con un ejemplo que puedes cambiar, o con el papel en blanco."
+          }
+        }
+      }
+    },
+    "Blank": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Liso"
+          }
+        }
+      }
+    },
+    "Board": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tablero"
+          }
+        }
+      }
+    },
+    "Board Paper": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Papel del tablero"
+          }
+        }
+      }
+    },
+    "Bring to Front": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Traer al frente"
+          }
+        }
+      }
+    },
+    "Cancel": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancelar"
+          }
+        }
+      }
+    },
+    "Clean": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Limpia"
+          }
+        }
+      }
+    },
+    "Close": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cerrar"
+          }
+        }
+      }
+    },
+    "Coming Up": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Próximos días"
+          }
+        }
+      }
+    },
+    "Compact": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compacta"
+          }
+        }
+      }
+    },
+    "Continue": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuar"
+          }
+        }
+      }
+    },
+    "Couldn't Add Photo": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo agregar la foto"
+          }
+        }
+      }
+    },
+    "Couldn't save: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo guardar: %@"
+          }
+        }
+      }
+    },
+    "Couldn't send the test: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo enviar la prueba: %@"
+          }
+        }
+      }
+    },
+    "Couldn't sync": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo sincronizar"
+          }
+        }
+      }
+    },
+    "Cream": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crema"
+          }
+        }
+      }
+    },
+    "Create": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crear"
+          }
+        }
+      }
+    },
+    "Creative Studio": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estudio creativo"
+          }
+        }
+      }
+    },
+    "Daily Reminder": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recordatorio diario"
+          }
+        }
+      }
+    },
+    "Dark": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oscuro"
+          }
+        }
+      }
+    },
+    "Delete": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eliminar"
+          }
+        }
+      }
+    },
+    "Delete Board": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eliminar tablero"
+          }
+        }
+      }
+    },
+    "Delete Cloud Copy": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eliminar copia en la nube"
+          }
+        }
+      }
+    },
+    "Delete from Cloud": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eliminar de la nube"
+          }
+        }
+      }
+    },
+    "Delete the cloud copy?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Eliminar la copia en la nube?"
+          }
+        }
+      }
+    },
+    "Delete “%@”?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Eliminar “%@”?"
+          }
+        }
+      }
+    },
+    "Display": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pantalla"
+          }
+        }
+      }
+    },
+    "Done": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listo"
+          }
+        }
+      }
+    },
+    "Dots": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puntos"
+          }
+        }
+      }
+    },
+    "Duplicate": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Duplicar"
+          }
+        }
+      }
+    },
+    "Each day at this hour you'll get one goal and one photo from your board. Reminders go out on the hour.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cada día a esta hora recibirás una meta y una foto de tu tablero. Los recordatorios salen a la hora en punto."
+          }
+        }
+      }
+    },
+    "Edit Text": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Editar texto"
+          }
+        }
+      }
+    },
+    "Editorial": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Editorial"
+          }
+        }
+      }
+    },
+    "Elegant": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elegante"
+          }
+        }
+      }
+    },
+    "Everything on your current board will be removed.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se quitará todo lo que hay en tu tablero actual."
+          }
+        }
+      }
+    },
+    "Feed": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feed"
+          }
+        }
+      }
+    },
+    "Fit Board": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver todo"
+          }
+        }
+      }
+    },
+    "Font": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tipografía"
+          }
+        }
+      }
+    },
+    "For example 2027, Career or Travel.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por ejemplo 2027, Carrera o Viajes."
+          }
+        }
+      }
+    },
+    "Get one goal and one photo from your board each morning at 8. You can change the time in Settings.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recibe una meta y una foto de tu tablero cada mañana a las 8. Puedes cambiar la hora en Ajustes."
+          }
+        }
+      }
+    },
+    "Goal": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meta"
+          }
+        }
+      }
+    },
+    "Goals 2026": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Metas 2026"
+          }
+        }
+      }
+    },
+    "Gray": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gris"
+          }
+        }
+      }
+    },
+    "Grid": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cuadrícula"
+          }
+        }
+      }
+    },
+    "Its photos and goals are removed from this iPhone. If the board syncs, the cloud copy stays for your other devices.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sus fotos y metas se borran de este iPhone. Si el tablero se sincroniza, la copia en la nube queda para tus otros dispositivos."
+          }
+        }
+      }
+    },
+    "Keep this board in step with VisionBoard on the web and your other devices.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantén este tablero al día con VisionBoard en la web y tus otros dispositivos."
+          }
+        }
+      }
+    },
+    "Light": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claro"
+          }
+        }
+      }
+    },
+    "Liked": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Me gusta"
+          }
+        }
+      }
+    },
+    "Locked": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bloqueado"
+          }
+        }
+      }
+    },
+    "Loud": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gruesa"
+          }
+        }
+      }
+    },
+    "Made by Kemeny Studio": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hecho por Kemeny Studio"
+          }
+        }
+      }
+    },
+    "Make Wallpaper": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crear fondo de pantalla"
+          }
+        }
+      }
+    },
+    "Moleskine": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moleskine"
+          }
+        }
+      }
+    },
+    "Mono": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mono"
+          }
+        }
+      }
+    },
+    "More": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Más"
+          }
+        }
+      }
+    },
+    "Morning Routine": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rutina de mañana"
+          }
+        }
+      }
+    },
+    "My Board": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mi tablero"
+          }
+        }
+      }
+    },
+    "Name": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nombre"
+          }
+        }
+      }
+    },
+    "New Board": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nuevo tablero"
+          }
+        }
+      }
+    },
+    "No board found for that key. Check it and try again.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No hay un tablero con esa clave. Revísala e inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "Not Now": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ahora no"
+          }
+        }
+      }
+    },
+    "Notifications are off for VisionBoard. Turn them on in Settings.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las notificaciones de VisionBoard están apagadas. Actívalas en Ajustes."
+          }
+        }
+      }
+    },
+    "Notifications are off for VisionBoard. Turn them on in the Settings app, under Notifications.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las notificaciones de VisionBoard están apagadas. Actívalas en la app Ajustes, en Notificaciones."
+          }
+        }
+      }
+    },
+    "OK": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
+          }
+        }
+      }
+    },
+    "Off": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apagada"
+          }
+        }
+      }
+    },
+    "On the web, open the cloud menu and show the QR code.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En la web, abre el menú de la nube y muestra el código QR."
+          }
+        }
+      }
+    },
+    "Open Board": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir tablero"
+          }
+        }
+      }
+    },
+    "Open Synced Board": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir tablero sincronizado"
+          }
+        }
+      }
+    },
+    "Open the synced board on this iPhone?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Abrir el tablero sincronizado en este iPhone?"
+          }
+        }
+      }
+    },
+    "Opens full screen": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se abre en pantalla completa"
+          }
+        }
+      }
+    },
+    "Opens sync settings": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre la configuración de sincronización"
+          }
+        }
+      }
+    },
+    "Paper": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Papel"
+          }
+        }
+      }
+    },
+    "Paste a sync key or link": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pega una clave o enlace de sincronización"
+          }
+        }
+      }
+    },
+    "Pattern": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trama"
+          }
+        }
+      }
+    },
+    "Photo": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto"
+          }
+        }
+      }
+    },
+    "Poster": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Póster"
+          }
+        }
+      }
+    },
+    "Put the photos and words that pull you forward on a board. VisionBoard shows you one of each, every day.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pon en un tablero las fotos y palabras que te impulsan. VisionBoard te muestra una de cada una, todos los días."
+          }
+        }
+      }
+    },
+    "QR code for your sync link": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Código QR de tu enlace de sincronización"
+          }
+        }
+      }
+    },
+    "Random Style": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estilo al azar"
+          }
+        }
+      }
+    },
+    "Redo": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rehacer"
+          }
+        }
+      }
+    },
+    "Reminders": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recordatorios"
+          }
+        }
+      }
+    },
+    "Rename": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Renombrar"
+          }
+        }
+      }
+    },
+    "Rename Board": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Renombrar tablero"
+          }
+        }
+      }
+    },
+    "Replace Board": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reemplazar tablero"
+          }
+        }
+      }
+    },
+    "Rotation": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rotación"
+          }
+        }
+      }
+    },
+    "Save": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardar"
+          }
+        }
+      }
+    },
+    "Save to Photos": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardar en Fotos"
+          }
+        }
+      }
+    },
+    "Saved. In Photos, open it, tap Share, then Use as Wallpaper.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listo. En Fotos, ábrelo, toca Compartir y luego Usar como fondo de pantalla."
+          }
+        }
+      }
+    },
+    "Scan QR Code": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escanear código QR"
+          }
+        }
+      }
+    },
+    "Scan Sync Code": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escanear código de sincronización"
+          }
+        }
+      }
+    },
+    "Scan the code with your other phone's camera, or open the link on a computer, to use the same board there. Anyone with the key can see and edit this board.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escanea el código con la cámara de tu otro teléfono, o abre el enlace en un computador, para usar el mismo tablero ahí. Cualquiera con la clave puede ver y editar este tablero."
+          }
+        }
+      }
+    },
+    "Script": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manuscrita"
+          }
+        }
+      }
+    },
+    "See Your Goals Every Day": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mira tus metas cada día"
+          }
+        }
+      }
+    },
+    "Send a Test": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar una prueba"
+          }
+        }
+      }
+    },
+    "Send to Back": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar atrás"
+          }
+        }
+      }
+    },
+    "Sent. It arrives in a few seconds.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviado. Llega en unos segundos."
+          }
+        }
+      }
+    },
+    "Settings": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajustes"
+          }
+        }
+      }
+    },
+    "Share Sync Link": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compartir enlace de sincronización"
+          }
+        }
+      }
+    },
+    "Size": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tamaño"
+          }
+        }
+      }
+    },
+    "Skip": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Omitir"
+          }
+        }
+      }
+    },
+    "Some photos couldn't be saved to the cloud: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Algunas fotos no se pudieron guardar en la nube: %@"
+          }
+        }
+      }
+    },
+    "Start Blank": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empezar en blanco"
+          }
+        }
+      }
+    },
+    "Start Your Board": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empieza tu tablero"
+          }
+        }
+      }
+    },
+    "Start Your First Board": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empieza tu primer tablero"
+          }
+        }
+      }
+    },
+    "Start from a Template": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empezar con una plantilla"
+          }
+        }
+      }
+    },
+    "Status": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estado"
+          }
+        }
+      }
+    },
+    "Stone": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Piedra"
+          }
+        }
+      }
+    },
+    "Stop Syncing on This iPhone": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dejar de sincronizar en este iPhone"
+          }
+        }
+      }
+    },
+    "Style": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estilo"
+          }
+        }
+      }
+    },
+    "Sync": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sincronización"
+          }
+        }
+      }
+    },
+    "Sync Key": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clave de sincronización"
+          }
+        }
+      }
+    },
+    "Sync Now": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sincronizar ahora"
+          }
+        }
+      }
+    },
+    "Sync for %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sincronización de %@"
+          }
+        }
+      }
+    },
+    "Sync isn't set up in this build.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La sincronización no está configurada en esta versión."
+          }
+        }
+      }
+    },
+    "Syncing…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sincronizando…"
+          }
+        }
+      }
+    },
+    "System": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sistema"
+          }
+        }
+      }
+    },
+    "Take a minute with your vision board today.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tómate un minuto con tu tablero hoy."
+          }
+        }
+      }
+    },
+    "Tap a photo or goal on your board to style it.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toca una foto o meta de tu tablero para darle estilo."
+          }
+        }
+      }
+    },
+    "Template": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plantilla"
+          }
+        }
+      }
+    },
+    "Text": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Texto"
+          }
+        }
+      }
+    },
+    "Text Color": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Color del texto"
+          }
+        }
+      }
+    },
+    "That doesn't look like a sync key. It's the code shown under Sync on your other device.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eso no parece una clave de sincronización. Es el código que aparece en Sincronización en tu otro dispositivo."
+          }
+        }
+      }
+    },
+    "The board from your other device is added as a new board. This one stays as it is.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El tablero de tu otro dispositivo se agrega como un tablero nuevo. Este queda como está."
+          }
+        }
+      }
+    },
+    "The board from your other device opens here.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El tablero de tu otro dispositivo se abre aquí."
+          }
+        }
+      }
+    },
+    "The board paper and the words written on it switch between day and night versions with the appearance.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El papel del tablero y lo escrito sobre él cambian entre versión de día y de noche según la apariencia."
+          }
+        }
+      }
+    },
+    "This Board": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este tablero"
+          }
+        }
+      }
+    },
+    "Time": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hora"
+          }
+        }
+      }
+    },
+    "Today": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hoy"
+          }
+        }
+      }
+    },
+    "Today: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hoy: %@"
+          }
+        }
+      }
+    },
+    "Travel Bucket List": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viajes pendientes"
+          }
+        }
+      }
+    },
+    "Turn On Reminders": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activar recordatorios"
+          }
+        }
+      }
+    },
+    "Turn On Sync": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activar sincronización"
+          }
+        }
+      }
+    },
+    "Undo": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deshacer"
+          }
+        }
+      }
+    },
+    "Up to date": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Al día"
+          }
+        }
+      }
+    },
+    "Version": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Versión"
+          }
+        }
+      }
+    },
+    "VisionBoard can't save to Photos. Turn it on in Settings > Apps > VisionBoard > Photos.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "VisionBoard no puede guardar en Fotos. Actívalo en Ajustes > Apps > VisionBoard > Fotos."
+          }
+        }
+      }
+    },
+    "VisionBoard wallpaper": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fondo de pantalla de VisionBoard"
+          }
+        }
+      }
+    },
+    "Wallpaper": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fondo de pantalla"
+          }
+        }
+      }
+    },
+    "Wallpaper preview": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vista previa del fondo de pantalla"
+          }
+        }
+      }
+    },
+    "White": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blanco"
+          }
+        }
+      }
+    },
+    "Whole Board": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todo el tablero"
+          }
+        }
+      }
+    },
+    "Your board stays on this iPhone, but every other device stops syncing and its photos are removed from the cloud.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu tablero queda en este iPhone, pero los demás dispositivos dejan de sincronizar y sus fotos se borran de la nube."
+          }
+        }
+      }
+    },
+    "Your goal": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu meta"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}
