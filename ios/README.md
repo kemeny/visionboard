@@ -23,6 +23,11 @@ skips the Duo-only APIs. CI does this automatically (`.github/workflows/ios.yml`
 | Today | Today's goal and photo, plus the week ahead. |
 | Settings | Turn on sync, show the QR code and link, join a board by scanning the web app's QR code, daily reminders. |
 
+**Boards.** Tap the board's name at the top to switch, create, rename or delete
+boards. Each board is its own file under `Application Support/VisionBoard/boards/`
+(`Model/BoardLibrary.swift`) and syncs on its own key, so one can be shared and
+another kept private. The share sheet asks which board to add to.
+
 **Share sheet.** VisionBoard shows up in every app's share sheet (WhatsApp,
 Photos, Safari, Instagram). Photos come in as photos, a video as a still from
 the clip, a link as its preview image, and text as a goal with a random style.

@@ -1,8 +1,8 @@
 import Foundation
 import Observation
 
-// The board on this device. Saved as JSON in Application Support after every
-// change; SyncService mirrors it to the cloud when a sync key is set.
+// The board on screen. Saved as JSON in Application Support after every
+// change; SyncService mirrors it to the cloud when that board has a sync key.
 @MainActor
 @Observable
 final class BoardStore {
@@ -12,13 +12,26 @@ final class BoardStore {
     // Called after every change the user makes (not after remote pulls)
     @ObservationIgnored var onEdit: (@MainActor () -> Void)?
 
-    private let fileURL: URL = {
-        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appending(path: "VisionBoard")
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir.appending(path: "board.json")
-    }()
+    // The board being shown; BoardLibrary keeps the list of boards
+    private(set) var boardID: String
+    @ObservationIgnored private var fileURL: URL
 
-    init() {
+    init(boardID: String = BoardLibrary.mainID) {
+        self.boardID = boardID
+        fileURL = BoardLibrary.fileURL(for: boardID)
+        loadFile()
+    }
+
+    // Show another board. The current one is already saved after every change.
+    func open(boardID id: String) {
+        boardID = id
+        fileURL = BoardLibrary.fileURL(for: id)
+        items = []
+        maxZIndex = 1
+        loadFile()
+    }
+
+    private func loadFile() {
         if let data = try? Data(contentsOf: fileURL), let file = try? JSONDecoder().decode(BoardFile.self, from: data) {
             items = file.items
             maxZIndex = file.maxZIndex ?? Double(file.items.count + 1)

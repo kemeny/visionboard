@@ -7,6 +7,7 @@ struct SettingsView: View {
     @Environment(SyncService.self) private var sync
     @Environment(Reminders.self) private var reminders
     @Environment(AppRouter.self) private var router
+    @Environment(BoardLibrary.self) private var library
 
     @State private var keyInput = ""
     @State private var joining = false
@@ -57,9 +58,11 @@ struct SettingsView: View {
                 }
             }
             .confirmationDialog("Open the synced board on this iPhone?", isPresented: $confirmJoin, titleVisibility: .visible) {
-                Button("Replace This Board") { Task { await join(keyInput) } }
+                Button(store.items.isEmpty ? "Open Board" : "Add as New Board") { Task { await join(keyInput) } }
             } message: {
-                Text("The board from your other device replaces the one on this iPhone.")
+                Text(store.items.isEmpty
+                    ? "The board from your other device opens here."
+                    : "The board from your other device is added as a new board. This one stays as it is.")
             }
             .confirmationDialog("Delete the cloud copy?", isPresented: $confirmDelete, titleVisibility: .visible) {
                 Button("Delete from Cloud", role: .destructive) {
@@ -112,7 +115,7 @@ struct SettingsView: View {
                 }
                 Button("Sync Now", systemImage: "arrow.triangle.2.circlepath") { Task { await sync.syncNow() } }
             } header: {
-                Text("Sync")
+                Text(syncHeader)
             } footer: {
                 Text("Scan the code with your other phone's camera, or open the link on a computer, to use the same board there. Anyone with the key can see and edit this board.")
             }
@@ -124,7 +127,7 @@ struct SettingsView: View {
             Section {
                 Button("Turn On Sync", systemImage: "icloud") { Task { await sync.enable() } }
             } header: {
-                Text("Sync")
+                Text(syncHeader)
             } footer: {
                 Text("Keep this board in step with VisionBoard on the web and your other devices.")
             }
@@ -151,6 +154,10 @@ struct SettingsView: View {
         }
     }
 
+    private var syncHeader: String {
+        library.boards.count > 1 ? "Sync for \(library.current?.name ?? "This Board")" : "Sync"
+    }
+
     private var statusText: String {
         switch sync.status {
         case .syncing: "Syncing…"
@@ -163,12 +170,18 @@ struct SettingsView: View {
     private func join(_ input: String) async {
         joining = true
         defer { joining = false }
+        // Keep what's here: a synced board joins as a board of its own
+        var created: BoardLibrary.Board?
+        if !store.items.isEmpty {
+            created = await library.create(named: "Synced Board")
+        }
         do {
             try await sync.connect(input)
             keyInput = ""
             joinError = nil
             router.tab = .board
         } catch {
+            if let created { await library.delete(created.id) }
             joinError = error.localizedDescription
         }
     }

@@ -36,9 +36,11 @@ extension DailyCard: Identifiable {
 
 #Preview {
     let store = BoardStore()
+    let sync = SyncService(store: store)
     RootView()
         .environment(store)
-        .environment(SyncService(store: store))
+        .environment(sync)
+        .environment(BoardLibrary(store: store, sync: sync))
         .environment(Reminders())
         .environment(AppRouter.shared)
 }

@@ -5,6 +5,7 @@ struct BoardView: View {
     @Environment(BoardStore.self) private var store
     @Environment(SyncService.self) private var sync
     @Environment(AppRouter.self) private var router
+    @Environment(BoardLibrary.self) private var library
 
     @State private var selection: String?
     @State private var showStyle = false
@@ -16,6 +17,11 @@ struct BoardView: View {
     @State private var pendingTemplate: BoardTemplate?
     @State private var importError: String?
     @State private var showWallpaper = false
+    @State private var naming: Naming?
+    @State private var boardName = ""
+    @State private var confirmDeleteBoard = false
+
+    enum Naming { case new, rename }
     @AppStorage("canvas-pattern") private var pattern: CanvasPattern = .dots
     @AppStorage("canvas-paper") private var paper: PaperColor = .moleskine
 
@@ -34,7 +40,8 @@ struct BoardView: View {
             .overlay {
                 if store.items.isEmpty { emptyState }
             }
-            .navigationTitle("Board")
+            .navigationTitle(library.current?.name ?? "Board")
+            .toolbarTitleMenu { boardMenu }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { toolbar }
             .boardOverflowMenu { overflowMenu }
@@ -49,6 +56,24 @@ struct BoardView: View {
                 guard !items.isEmpty else { return }
                 pickedPhotos = []
                 Task { await importPhotos(items) }
+            }
+            .alert(naming == .new ? "New Board" : "Rename Board", isPresented: Binding(get: { naming != nil }, set: { if !$0 { naming = nil } })) {
+                TextField("Name", text: $boardName)
+                Button("Cancel", role: .cancel) {}
+                Button(naming == .new ? "Create" : "Save") { saveBoardName() }
+            } message: {
+                if naming == .new { Text("For example 2027, Career or Travel.") }
+            }
+            .confirmationDialog("Delete \u{201C}\(library.current?.name ?? "this board")\u{201D}?", isPresented: $confirmDeleteBoard, titleVisibility: .visible) {
+                Button("Delete Board", role: .destructive) {
+                    Task {
+                        selection = nil
+                        await library.delete(library.currentID)
+                        fitBoard()
+                    }
+                }
+            } message: {
+                Text("Its photos and goals are removed from this iPhone. If the board syncs, the cloud copy stays for your other devices.")
             }
             .sheet(isPresented: $showWallpaper) {
                 WallpaperSheet(items: store.sortedItems, paper: paper)
@@ -219,6 +244,26 @@ struct BoardView: View {
     private func importShared() async {
         let pending = ShareInbox.take()
         guard !pending.isEmpty else { return }
+        // Each share names the board picked in the share sheet. Open that board
+        // first so the new things land where you can see them.
+        var groups: [(board: String?, items: [ShareInbox.Pending])] = []
+        for item in pending {
+            if let last = groups.last, last.board == item.boardID {
+                groups[groups.count - 1].items.append(item)
+            } else {
+                groups.append((item.boardID, [item]))
+            }
+        }
+        for group in groups {
+            if let board = group.board, board != store.boardID, library.boards.contains(where: { $0.id == board }) {
+                await library.open(board)
+                selection = nil
+            }
+            await place(group.items)
+        }
+    }
+
+    private func place(_ pending: [ShareInbox.Pending]) async {
         var center = visibleCenter
         var last: BoardItem?
         for item in pending {
@@ -242,6 +287,57 @@ struct BoardView: View {
             center.y += 30
         }
         selection = last?.id
+    }
+
+    // MARK: Boards
+
+    @ViewBuilder
+    private var boardMenu: some View {
+        Picker("Board", selection: Binding(get: { library.currentID }, set: { id in Task { await openBoard(id) } })) {
+            ForEach(library.boards) { board in
+                Text(board.name).tag(board.id)
+            }
+        }
+        Divider()
+        Button("New Board", systemImage: "plus.rectangle.on.rectangle") {
+            boardName = ""
+            naming = .new
+        }
+        Button("Rename", systemImage: "pencil") {
+            boardName = library.current?.name ?? ""
+            naming = .rename
+        }
+        if library.boards.count > 1 {
+            Button("Delete Board", systemImage: "trash", role: .destructive) { confirmDeleteBoard = true }
+        }
+    }
+
+    private func openBoard(_ id: String) async {
+        selection = nil
+        showStyle = false
+        await library.open(id)
+        fitBoard()
+    }
+
+    private func saveBoardName() {
+        let name = boardName
+        switch naming {
+        case .new:
+            Task {
+                selection = nil
+                await library.create(named: name)
+                camera = CanvasCamera()
+            }
+        case .rename:
+            library.rename(library.currentID, to: name)
+        case nil:
+            break
+        }
+        naming = nil
+    }
+
+    private func fitBoard() {
+        withAnimation(.snappy) { camera = .fitting(store.items, in: viewport) }
     }
 
     private func apply(_ template: BoardTemplate) {

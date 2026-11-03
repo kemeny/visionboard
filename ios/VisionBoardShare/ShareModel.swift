@@ -23,6 +23,8 @@ final class ShareModel {
     var phase: Phase = .loading
     var things: [Thing] = []
     var caption = ""
+    var boards: [ShareInbox.BoardChoice] = []
+    var board: String?
 
     private let context: NSExtensionContext?
     private static let maxItems = 10
@@ -44,6 +46,9 @@ final class ShareModel {
             phase = .failed("VisionBoard can't reach its board from here. Open the app once, then try again.")
             return
         }
+        let saved = ShareInbox.loadBoards()
+        boards = saved.boards
+        board = saved.current ?? saved.boards.first?.id
         let providers = (context?.inputItems as? [NSExtensionItem] ?? []).flatMap { $0.attachments ?? [] }
         for provider in providers.prefix(Self.maxItems) {
             if let thing = await Self.thing(from: provider) {
@@ -70,7 +75,7 @@ final class ShareModel {
         let words = caption.trimmingCharacters(in: .whitespacesAndNewlines)
         if !words.isEmpty { items.append(.text(words)) }
         do {
-            try ShareInbox.write(items)
+            try ShareInbox.write(items, board: board)
             context?.completeRequest(returningItems: nil)
         } catch {
             phase = .failed("Couldn't save to your board: \(error.localizedDescription)")
