@@ -45,13 +45,14 @@ enum PaperColor: String, CaseIterable, Identifiable {
     case moleskine, cream, gray, stone, white
     var id: String { rawValue }
     var label: String { rawValue.capitalized }
+    // Each paper has a night version, so the board follows Dark Mode like the bars around it
     var color: Color {
         switch self {
-        case .moleskine: Color(css: "#f5f0e8")!
-        case .cream: Color(css: "#faf6ef")!
-        case .gray: Color(css: "#f0f0ee")!
-        case .stone: Color(css: "#eae6df")!
-        case .white: .white
+        case .moleskine: Color(light: "#f5f0e8", dark: "#1f1c18")
+        case .cream: Color(light: "#faf6ef", dark: "#24201a")
+        case .gray: Color(light: "#f0f0ee", dark: "#1c1c1e")
+        case .stone: Color(light: "#eae6df", dark: "#2a2622")
+        case .white: Color(light: "#ffffff", dark: "#000000")
         }
     }
 }
@@ -153,7 +154,7 @@ private struct PaperBackground: View {
             guard spacing >= 6 else { return }
             let startX = camera.offset.width.truncatingRemainder(dividingBy: spacing) - spacing
             let startY = camera.offset.height.truncatingRemainder(dividingBy: spacing) - spacing
-            let ink = Color.black.opacity(pattern == .dots ? 0.16 : 0.06)
+            let ink = Color(light: "#000000", dark: "#ffffff").opacity(pattern == .dots ? 0.16 : 0.07)
             if pattern == .dots {
                 let r = max(1, 1.2 * camera.zoom)
                 var path = Path()
@@ -293,7 +294,7 @@ struct ClippingView: View {
                 .font(style.font(size: size))
                 .tracking(style.trackingEm * size)
                 .lineSpacing(max(0, (style.lineHeight - 1.2) * size))
-                .foregroundStyle(Color(css: item.color) ?? Color(css: "#1a1a1a")!)
+                .foregroundStyle(Self.textColor(item, onBackground: background != nil))
                 .multilineTextAlignment(.center)
                 .minimumScaleFactor(0.4)
                 .padding(16)
@@ -303,15 +304,29 @@ struct ClippingView: View {
     }
 }
 
+extension ClippingView {
+    // Words written straight on the paper in the default ink (or white) flip
+    // with the paper, so they stay readable in both modes. Text on its own
+    // colored background, and any other ink color, keeps the color chosen.
+    static func textColor(_ item: BoardItem, onBackground: Bool) -> Color {
+        let css = item.color?.lowercased() ?? Palette.ink
+        if !onBackground && css == Palette.ink { return Color(light: Palette.ink, dark: "#f2ede4") }
+        if !onBackground && css == "#ffffff" { return Color(light: "#ffffff", dark: Palette.ink) }
+        return Color(css: css) ?? Color(css: Palette.ink)!
+    }
+}
+
 struct BoardImage: View {
     let content: String
     var mode: ContentMode = .fill
+    @Environment(\.preloadedImages) private var preloaded
     @State private var image: UIImage?
     @State private var failed = false
 
     var body: some View {
         ZStack {
-            if let image {
+            // ImageRenderer draws in one pass, so wallpapers hand over their photos up front
+            if let image = image ?? preloaded[content] {
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: mode)
@@ -328,10 +343,15 @@ struct BoardImage: View {
             }
         }
         .task(id: content) {
+            guard preloaded[content] == nil else { return }
             image = await ImageStore.shared.image(for: content)
             failed = image == nil
         }
     }
+}
+
+extension EnvironmentValues {
+    @Entry var preloadedImages: [String: UIImage] = [:]
 }
 
 // Shared by the context menu, VoiceOver actions and the inspector
@@ -344,6 +364,9 @@ struct ItemActions: View {
     var body: some View {
         if item.type == .text {
             Button("Edit Text", systemImage: "character.cursor.ibeam", action: onEditText)
+            Button("Random Style", systemImage: "dice") {
+                withAnimation(.snappy) { store.update(item.id) { $0.applyRandomLook() } }
+            }
         }
         Button("Style", systemImage: "paintbrush", action: onShowStyle)
         Button(item.isLiked ? "Unlike" : "Like", systemImage: item.isLiked ? "heart.slash" : "heart") {

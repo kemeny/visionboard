@@ -23,6 +23,21 @@ skips the Duo-only APIs. CI does this automatically (`.github/workflows/ios.yml`
 | Today | Today's goal and photo, plus the week ahead. |
 | Settings | Turn on sync, show the QR code and link, join a board by scanning the web app's QR code, daily reminders. |
 
+**Share sheet.** VisionBoard shows up in every app's share sheet (WhatsApp,
+Photos, Safari, Instagram). Photos come in as photos, a video as a still from
+the clip, a link as its preview image, and text as a goal with a random style.
+The extension (`VisionBoardShare/`) can't open the app, so it writes into the
+App Group `group.com.kemenystudio.visionboard` (see `Shared/ShareInbox.swift`)
+and the app puts everything on the board the next time it comes to the front.
+
+**Widget.** "Today's Goal" for the Home Screen (small, medium, large) and the
+Lock Screen (rectangular, inline). The app writes two weeks of goals and
+photos into the App Group (`Shared/WidgetSnapshot.swift`) whenever the board
+changes, so the widget turns the page each day on its own.
+
+**Wallpaper.** Board menu > Make Wallpaper renders the whole board below the
+Lock Screen clock, or today's photo and goal, at this iPhone's screen size.
+
 Reminders are local notifications scheduled two weeks ahead on the device, so
 they need no server and work offline.
 

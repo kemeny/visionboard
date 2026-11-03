@@ -103,6 +103,7 @@ enum TextStyle: String, CaseIterable, Identifiable {
 }
 
 enum Palette {
+    static let ink = "#1a1a1a"
     static let textColors = ["#1a1a1a", "#6b7280", "#ef4444", "#f97316", "#eab308", "#22c55e", "#3b82f6", "#8b5cf6", "#ec4899", "#ffffff"]
     static let backgrounds = [
         "transparent", "rgba(255,255,255,0.85)", "rgba(0,0,0,0.75)", "rgba(239,68,68,0.85)", "rgba(59,130,246,0.85)",
@@ -140,5 +141,14 @@ extension Color {
         if raw == "white" { self = .white; return }
         if raw == "black" { self = .black; return }
         return nil
+    }
+}
+
+extension Color {
+    // A color that switches with Light and Dark Mode
+    init(light: String, dark: String) {
+        let lightColor = UIColor(Color(css: light) ?? .white)
+        let darkColor = UIColor(Color(css: dark) ?? .black)
+        self.init(UIColor { $0.userInterfaceStyle == .dark ? darkColor : lightColor })
     }
 }
