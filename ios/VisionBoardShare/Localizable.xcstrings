@@ -1,0 +1,96 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "Add": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agregar"
+          }
+        }
+      }
+    },
+    "Add a goal to go with it": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agrega una meta para acompañarlo"
+          }
+        }
+      }
+    },
+    "Add to Board": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agregar al tablero"
+          }
+        }
+      }
+    },
+    "Board": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tablero"
+          }
+        }
+      }
+    },
+    "Can't Add This": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se puede agregar"
+          }
+        }
+      }
+    },
+    "Cancel": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancelar"
+          }
+        }
+      }
+    },
+    "Getting it ready…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preparando…"
+          }
+        }
+      }
+    },
+    "It shows up on your board the next time you open VisionBoard.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aparecerá en tu tablero la próxima vez que abras VisionBoard."
+          }
+        }
+      }
+    },
+    "Videos go on the board as a still from the clip.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los videos se agregan al tablero como una imagen fija del clip."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

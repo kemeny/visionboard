@@ -1,0 +1,56 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "One goal and one photo from your board, new each day.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Una meta y una foto de tu tablero, nuevas cada día."
+          }
+        }
+      }
+    },
+    "Open VisionBoard to start your board.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre VisionBoard para empezar tu tablero."
+          }
+        }
+      }
+    },
+    "TODAY": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HOY"
+          }
+        }
+      }
+    },
+    "Today": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hoy"
+          }
+        }
+      }
+    },
+    "Today's Goal": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meta de hoy"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

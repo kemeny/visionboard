@@ -90,7 +90,7 @@ struct SettingsView: View {
                 LabeledContent("Status") {
                     HStack(spacing: 6) {
                         if sync.status == .syncing { ProgressView() }
-                        Text(statusText)
+                        Text(LocalizedStringKey(statusText))
                     }
                 }
                 if let error = sync.errorMessage {
@@ -155,7 +155,7 @@ struct SettingsView: View {
     }
 
     private var syncHeader: String {
-        library.boards.count > 1 ? "Sync for \(library.current?.name ?? "This Board")" : "Sync"
+        library.boards.count > 1 ? String(localized: "Sync for \(library.current?.name ?? String(localized: "This Board"))") : "Sync"
     }
 
     private var statusText: String {

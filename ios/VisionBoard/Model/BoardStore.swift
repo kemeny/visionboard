@@ -12,6 +12,15 @@ final class BoardStore {
     // Called after every change the user makes (not after remote pulls)
     @ObservationIgnored var onEdit: (@MainActor () -> Void)?
 
+    // Undo history for this board. A burst of changes (a slider drag) counts as one step.
+    private struct Snapshot { var items: [BoardItem]; var maxZIndex: Double }
+    @ObservationIgnored private var undoStack: [Snapshot] = []
+    @ObservationIgnored private var redoStack: [Snapshot] = []
+    @ObservationIgnored private var lastSnapshotAt: Date = .distantPast
+    private(set) var canUndo = false
+    private(set) var canRedo = false
+    private static let historyLimit = 50
+
     // The board being shown; BoardLibrary keeps the list of boards
     private(set) var boardID: String
     @ObservationIgnored private var fileURL: URL
@@ -29,6 +38,7 @@ final class BoardStore {
         items = []
         maxZIndex = 1
         loadFile()
+        clearHistory()
     }
 
     private func loadFile() {
@@ -49,6 +59,7 @@ final class BoardStore {
 
     @discardableResult
     func addText(at center: CGPoint, content: String = "New goal") -> BoardItem {
+        remember()
         let item = BoardItem(
             id: BoardItem.newID(), type: .text,
             x: center.x - 110, y: center.y - 50, width: 220, height: 100,
@@ -62,6 +73,7 @@ final class BoardStore {
 
     @discardableResult
     func addImage(content: String, aspect: Double, at center: CGPoint) -> BoardItem {
+        remember()
         let width = 300.0
         let height = (width / max(aspect, 0.1)).rounded()
         let item = BoardItem(
@@ -76,22 +88,23 @@ final class BoardStore {
 
     func update(_ id: String, _ change: (inout BoardItem) -> Void) {
         guard let index = items.firstIndex(where: { $0.id == id }) else { return }
+        remember()
         change(&items[index])
         commit()
     }
 
     func delete(_ id: String) {
-        guard let removed = items.first(where: { $0.id == id }) else { return }
+        guard items.contains(where: { $0.id == id }) else { return }
+        remember()
+        // The photo file stays so Undo can bring the clipping back
         items.removeAll { $0.id == id }
-        if ImageStore.isLocal(removed.content) {
-            Task { await ImageStore.shared.deleteLocal(removed.content) }
-        }
         commit()
     }
 
     @discardableResult
     func duplicate(_ id: String) -> BoardItem? {
         guard var copy = item(id) else { return nil }
+        remember()
         copy.id = BoardItem.newID()
         copy.x += 24
         copy.y += 24
@@ -117,6 +130,7 @@ final class BoardStore {
     }
 
     func replaceBoard(with file: BoardFile) {
+        remember()
         items = file.items
         maxZIndex = file.maxZIndex ?? Double(file.items.count + 1)
         commit()
@@ -128,6 +142,7 @@ final class BoardStore {
     func applyRemote(items remote: [BoardItem], maxZIndex z: Double) {
         items = remote
         maxZIndex = z
+        clearHistory()
         save()
     }
 
@@ -156,6 +171,51 @@ final class BoardStore {
         onEdit?()
     }
 
+    // MARK: Undo
+
+    func undo() {
+        guard let previous = undoStack.popLast() else { return }
+        redoStack.append(Snapshot(items: items, maxZIndex: maxZIndex))
+        restore(previous)
+    }
+
+    func redo() {
+        guard let next = redoStack.popLast() else { return }
+        undoStack.append(Snapshot(items: items, maxZIndex: maxZIndex))
+        restore(next)
+    }
+
+    private func restore(_ snapshot: Snapshot) {
+        items = snapshot.items
+        maxZIndex = snapshot.maxZIndex
+        lastSnapshotAt = .distantPast
+        updateFlags()
+        commit()
+    }
+
+    // Called before each user change
+    private func remember() {
+        let now = Date()
+        defer { lastSnapshotAt = now }
+        guard now.timeIntervalSince(lastSnapshotAt) > 0.6 else { return }
+        undoStack.append(Snapshot(items: items, maxZIndex: maxZIndex))
+        if undoStack.count > Self.historyLimit { undoStack.removeFirst() }
+        redoStack.removeAll()
+        updateFlags()
+    }
+
+    private func clearHistory() {
+        undoStack.removeAll()
+        redoStack.removeAll()
+        lastSnapshotAt = .distantPast
+        updateFlags()
+    }
+
+    private func updateFlags() {
+        canUndo = !undoStack.isEmpty
+        canRedo = !redoStack.isEmpty
+    }
+
     private func save() {
         guard let data = try? JSONEncoder().encode(boardFile) else { return }
         try? data.write(to: fileURL, options: .atomic)
@@ -168,10 +228,10 @@ struct BoardTemplate: Identifiable {
     let symbol: String
 
     static let all = [
-        BoardTemplate(id: "demo-goals-2026", name: "Goals 2026", symbol: "target"),
-        BoardTemplate(id: "demo-morning-routine", name: "Morning Routine", symbol: "sunrise"),
-        BoardTemplate(id: "demo-travel-bucket", name: "Travel Bucket List", symbol: "airplane"),
-        BoardTemplate(id: "demo-creative-studio", name: "Creative Studio", symbol: "paintpalette"),
+        BoardTemplate(id: "demo-goals-2026", name: String(localized: "Goals 2026"), symbol: "target"),
+        BoardTemplate(id: "demo-morning-routine", name: String(localized: "Morning Routine"), symbol: "sunrise"),
+        BoardTemplate(id: "demo-travel-bucket", name: String(localized: "Travel Bucket List"), symbol: "airplane"),
+        BoardTemplate(id: "demo-creative-studio", name: String(localized: "Creative Studio"), symbol: "paintpalette"),
     ]
 
     func load() -> BoardFile? {

@@ -24,7 +24,7 @@ final class Reminders {
         do {
             let granted = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
             guard granted else {
-                errorMessage = "Notifications are off for VisionBoard. Turn them on in Settings."
+                errorMessage = String(localized: "Notifications are off for VisionBoard. Turn them on in Settings.")
                 isEnabled = false
                 return
             }
@@ -87,11 +87,11 @@ final class Reminders {
         case .notDetermined:
             let granted = (try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])) ?? false
             guard granted else {
-                errorMessage = "Notifications are off for VisionBoard. Turn them on in Settings."
+                errorMessage = String(localized: "Notifications are off for VisionBoard. Turn them on in Settings.")
                 return
             }
         default:
-            errorMessage = "Notifications are off for VisionBoard. Turn them on in the Settings app, under Notifications."
+            errorMessage = String(localized: "Notifications are off for VisionBoard. Turn them on in the Settings app, under Notifications.")
             return
         }
         let card = DailyCard.pick(from: items)
@@ -105,9 +105,9 @@ final class Reminders {
         do {
             try await Self.add(content, id: "test-\(UUID().uuidString)", trigger: UNTimeIntervalNotificationTrigger(timeInterval: 3, repeats: false))
             errorMessage = nil
-            testMessage = "Sent. It arrives in a few seconds."
+            testMessage = String(localized: "Sent. It arrives in a few seconds.")
         } catch {
-            errorMessage = "Couldn't send the test: \(error.localizedDescription)"
+            errorMessage = String(localized: "Couldn't send the test: \(error.localizedDescription)")
         }
     }
 

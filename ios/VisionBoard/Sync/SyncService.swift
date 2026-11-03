@@ -107,10 +107,10 @@ final class SyncService {
     func connect(_ input: String) async throws {
         let newKey = SyncAPI.normalizeKey(input)
         guard newKey.count >= 20 else {
-            throw SyncAPI.Failure(message: "That doesn't look like a sync key. It's the code shown under Sync on your other device.", status: 0)
+            throw SyncAPI.Failure(message: String(localized: "That doesn't look like a sync key. It's the code shown under Sync on your other device."), status: 0)
         }
         guard let remote = try await SyncAPI.fetchBoard(key: newKey) else {
-            throw SyncAPI.Failure(message: "No board found for that key. Check it and try again.", status: 404)
+            throw SyncAPI.Failure(message: String(localized: "No board found for that key. Check it and try again."), status: 404)
         }
         KeyStore.write(newKey, board: store.boardID)
         key = newKey
@@ -175,7 +175,7 @@ final class SyncService {
             dirty = store.items.contains { ImageStore.isLocal($0.content) }
             if let imageError {
                 status = .error
-                errorMessage = "Some photos couldn't be saved to the cloud: \(imageError)"
+                errorMessage = String(localized: "Some photos couldn't be saved to the cloud: \(imageError)")
             } else {
                 status = .synced
                 errorMessage = nil

@@ -151,6 +151,14 @@ struct BoardView: View {
 
     @ViewBuilder
     private var overflowMenu: some View {
+        ControlGroup {
+            Button("Undo", systemImage: "arrow.uturn.backward") { withAnimation(.snappy) { store.undo() } }
+                .disabled(!store.canUndo)
+                .keyboardShortcut("z", modifiers: .command)
+            Button("Redo", systemImage: "arrow.uturn.forward") { withAnimation(.snappy) { store.redo() } }
+                .disabled(!store.canRedo)
+                .keyboardShortcut("z", modifiers: [.command, .shift])
+        }
         Picker(selection: $pattern) {
             ForEach(CanvasPattern.allCases) { Text($0.label).tag($0) }
         } label: {

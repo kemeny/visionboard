@@ -91,7 +91,7 @@ struct DailyCard: Equatable, Hashable {
             .filter { $0.type == .image && (ImageStore.isCloud($0.content) || ImageStore.isLocal($0.content)) }
             .map(\.content)
         return DailyCard(
-            text: texts.isEmpty ? "Take a minute with your vision board today." : texts[day % texts.count],
+            text: texts.isEmpty ? String(localized: "Take a minute with your vision board today.") : texts[day % texts.count],
             image: images.isEmpty ? nil : images[day % images.count]
         )
     }

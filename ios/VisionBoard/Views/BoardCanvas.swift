@@ -38,13 +38,13 @@ struct CanvasCamera: Equatable {
 enum CanvasPattern: String, CaseIterable, Identifiable {
     case dots, grid, blank
     var id: String { rawValue }
-    var label: String { rawValue.capitalized }
+    var label: String { String(localized: String.LocalizationValue(rawValue.capitalized)) }
 }
 
 enum PaperColor: String, CaseIterable, Identifiable {
     case moleskine, cream, gray, stone, white
     var id: String { rawValue }
-    var label: String { rawValue.capitalized }
+    var label: String { String(localized: String.LocalizationValue(rawValue.capitalized)) }
     // Each paper has a night version, so the board follows Dark Mode like the bars around it
     var color: Color {
         switch self {

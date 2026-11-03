@@ -46,7 +46,7 @@ final class BoardLibrary {
         currentID = store.boardID
         boards = Self.loadList()
         if !boards.contains(where: { $0.id == currentID }) {
-            boards.insert(Board(id: currentID, name: "My Board", created: .now), at: 0)
+            boards.insert(Board(id: currentID, name: String(localized: "My Board"), created: .now), at: 0)
             saveList()
         }
         publishForShareSheet()
@@ -69,7 +69,7 @@ final class BoardLibrary {
 
     @discardableResult
     func create(named name: String) async -> Board {
-        let board = Board(id: BoardItem.newID(), name: Self.clean(name, fallback: "New Board"), created: .now)
+        let board = Board(id: BoardItem.newID(), name: Self.clean(name, fallback: String(localized: "New Board")), created: .now)
         let empty = BoardFile(version: 1, items: [], maxZIndex: 1)
         if let data = try? JSONEncoder().encode(empty) {
             try? data.write(to: Self.fileURL(for: board.id), options: .atomic)

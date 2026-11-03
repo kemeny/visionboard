@@ -6,6 +6,9 @@ import SwiftUI
 // as the Duo guidelines ask.
 struct RootView: View {
     @Environment(AppRouter.self) private var router
+    @Environment(BoardStore.self) private var store
+    @AppStorage("onboarded") private var onboarded = false
+    @State private var showOnboarding = false
 
     var body: some View {
         @Bindable var router = router
@@ -26,6 +29,17 @@ struct RootView: View {
         .tabViewStyle(.sidebarAdaptable)
         .fullScreenCover(item: $router.todayCard) { card in
             TodayFullScreen(card: card)
+        }
+        .sheet(isPresented: $showOnboarding) {
+            OnboardingView {
+                onboarded = true
+                showOnboarding = false
+            }
+        }
+        .onAppear {
+            guard !onboarded else { return }
+            // People who already have a board don't need the tour
+            if store.items.isEmpty { showOnboarding = true } else { onboarded = true }
         }
     }
 }
