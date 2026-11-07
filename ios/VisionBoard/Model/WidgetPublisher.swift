@@ -23,7 +23,7 @@ enum WidgetPublisher {
             var file: String?
             if let content = card.image {
                 let name = fileName(for: content)
-                if written.contains(name) || FileManager.default.fileExists(atPath: folder.appending(path: name).path()) {
+                if written.contains(name) || FileManager.default.fileExists(atPath: folder.appending(path: name).path(percentEncoded: false)) {
                     file = name
                 } else if let image = await ImageStore.shared.image(for: content), let jpeg = shrink(image) {
                     try? jpeg.write(to: folder.appending(path: name), options: .atomic)
@@ -36,7 +36,7 @@ enum WidgetPublisher {
         try? WidgetSnapshot(days: entries).save()
 
         // Drop photos no day uses any more
-        let stale = (try? FileManager.default.contentsOfDirectory(atPath: folder.path())) ?? []
+        let stale = (try? FileManager.default.contentsOfDirectory(atPath: folder.path(percentEncoded: false))) ?? []
         for name in stale where name.hasSuffix(".jpg") && !written.contains(name) {
             try? FileManager.default.removeItem(at: folder.appending(path: name))
         }

@@ -42,7 +42,7 @@ actor ImageStore {
 
     func image(for content: String) async -> UIImage? {
         if let hit = memory.object(forKey: content as NSString) { return hit }
-        guard let url = await fileURL(for: content), let image = UIImage(contentsOfFile: url.path()) else { return nil }
+        guard let url = await fileURL(for: content), let image = UIImage(contentsOfFile: url.path(percentEncoded: false)) else { return nil }
         memory.setObject(image, forKey: content as NSString)
         return image
     }
@@ -51,18 +51,18 @@ actor ImageStore {
     func fileURL(for content: String) async -> URL? {
         if content.hasPrefix(Self.localPrefix) {
             let url = localDir.appending(path: String(content.dropFirst(Self.localPrefix.count)))
-            return FileManager.default.fileExists(atPath: url.path()) ? url : nil
+            return FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) ? url : nil
         }
         if content.hasPrefix("data:") {
             guard let comma = content.firstIndex(of: ","), let data = Data(base64Encoded: String(content[content.index(after: comma)...])) else {
                 return nil
             }
             let url = cacheDir.appending(path: Self.hash(content))
-            if !FileManager.default.fileExists(atPath: url.path()) { try? data.write(to: url) }
+            if !FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) { try? data.write(to: url) }
             return url
         }
         let cached = cacheDir.appending(path: Self.hash(content))
-        if FileManager.default.fileExists(atPath: cached.path()) { return cached }
+        if FileManager.default.fileExists(atPath: cached.path(percentEncoded: false)) { return cached }
         guard let remote = SyncAPI.absoluteURL(for: content) else { return nil }
         do {
             let (data, response) = try await URLSession.shared.data(from: remote)
