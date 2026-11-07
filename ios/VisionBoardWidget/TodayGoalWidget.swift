@@ -86,7 +86,7 @@ struct TodayGoalView: View {
     }
 
     private var photo: UIImage? {
-        entry.imageURL.flatMap { UIImage(contentsOfFile: $0.path()) }
+        entry.imageURL.flatMap { UIImage(contentsOfFile: $0.path(percentEncoded: false)) }
     }
 
     @ViewBuilder

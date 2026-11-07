@@ -137,7 +137,7 @@ enum ShareInbox {
 
         var finished: [URL] = []
         for folder in folders {
-            if FileManager.default.fileExists(atPath: folder.appending(path: "manifest.json").path()) {
+            if FileManager.default.fileExists(atPath: folder.appending(path: "manifest.json").path(percentEncoded: false)) {
                 finished.append(folder)
             } else if let created = try? folder.resourceValues(forKeys: [.creationDateKey]).creationDate,
                       created < Date().addingTimeInterval(-3600) {
