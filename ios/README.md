@@ -18,7 +18,7 @@ skips the Duo-only APIs. CI does this automatically (`.github/workflows/ios.yml`
 
 | Tab | What it does |
 | --- | --- |
-| Board | The collage. Drag paper to pan, pinch to zoom. Drag, pinch or twist a clipping to move, resize or rotate it. Long-press for actions, Style for fonts and colors. |
+| Board | The collage. Drag paper to pan (flick to glide), pinch to zoom around your fingers, double-tap paper to zoom in or back to the whole board. Drag any clipping to move it; pinch or twist the selected one to resize or rotate (twists snap straight). A bar at the bottom holds the selected clipping's actions, or Undo, Redo and Fit Board. |
 | Feed | One clipping per page, endless, ranked like the web feed. Double-tap to like. |
 | Today | Today's goal and photo, plus the week ahead. |
 | Settings | Turn on sync, show the QR code and link, join a board by scanning the web app's QR code, daily reminders. |
