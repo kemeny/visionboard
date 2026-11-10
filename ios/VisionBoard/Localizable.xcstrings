@@ -581,12 +581,32 @@
         }
       }
     },
+    "Like": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Me gusta"
+          }
+        }
+      }
+    },
     "Liked": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Me gusta"
+          }
+        }
+      }
+    },
+    "Lock": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bloquear"
           }
         }
       }
@@ -861,6 +881,16 @@
         }
       }
     },
+    "Pinch to resize, twist to rotate": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pellizca para cambiar el tamaño, gira para rotar"
+          }
+        }
+      }
+    },
     "Poster": {
       "localizations": {
         "es": {
@@ -1037,6 +1067,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mira tus metas cada día"
+          }
+        }
+      }
+    },
+    "Selects this goal. Double-tap twice to edit it.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selecciona esta meta. Tócala dos veces para editarla."
+          }
+        }
+      }
+    },
+    "Selects this photo.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selecciona esta foto."
           }
         }
       }
@@ -1437,6 +1487,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Deshacer"
+          }
+        }
+      }
+    },
+    "Unlike": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quitar me gusta"
+          }
+        }
+      }
+    },
+    "Unlock": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desbloquear"
           }
         }
       }

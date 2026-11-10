@@ -57,8 +57,11 @@ enum PaperColor: String, CaseIterable, Identifiable {
     }
 }
 
-// The pannable, zoomable board. Drag empty paper to pan, pinch to zoom; drag
-// a clipping to move it, pinch or twist it to resize or rotate.
+// The pannable, zoomable board. Drag empty paper to pan (it keeps gliding
+// when flicked), pinch to zoom around your fingers, double-tap paper to zoom
+// in or back out to the whole board. Drag any clipping to move it; pinch or
+// twist the selected one to resize or rotate it. Pinching a clipping that
+// isn't selected zooms the board, so a photo never gets resized by accident.
 struct BoardCanvas: View {
     @Environment(BoardStore.self) private var store
     @Binding var selection: String?
@@ -69,8 +72,15 @@ struct BoardCanvas: View {
     var onEditText: (String) -> Void
     var onShowStyle: () -> Void
 
+    private struct Pinch: Equatable {
+        var scale: CGFloat = 1
+        var anchor: CGPoint?
+    }
+
     @GestureState private var pan: CGSize = .zero
-    @GestureState private var pinch: CGFloat = 1
+    @GestureState private var pinch = Pinch()
+    // A pinch that started on a clipping that isn't selected
+    @State private var itemPinch: CGFloat = 1
     @State private var didInitialFit = false
 
     var body: some View {
@@ -80,6 +90,7 @@ struct BoardCanvas: View {
             ZStack(alignment: .topLeading) {
                 PaperBackground(pattern: pattern, paper: paper, camera: live)
                     .contentShape(Rectangle())
+                    .onTapGesture(count: 2) { location in zoomStep(at: location, in: geo.size) }
                     .onTapGesture { selection = nil }
                     .accessibilityHidden(true)
 
@@ -94,6 +105,11 @@ struct BoardCanvas: View {
                             onShowStyle: {
                                 selection = item.id
                                 onShowStyle()
+                            },
+                            onBoardPinch: { itemPinch = $0 },
+                            onBoardPinchEnded: { scale in
+                                camera = camera.zoomed(by: scale, around: center)
+                                itemPinch = 1
                             }
                         )
                     }
@@ -107,15 +123,15 @@ struct BoardCanvas: View {
                 SimultaneousGesture(
                     DragGesture(minimumDistance: 6)
                         .updating($pan) { value, state, _ in state = value.translation }
-                        .onEnded { value in
-                            camera.offset.width += value.translation.width
-                            camera.offset.height += value.translation.height
-                        },
+                        .onEnded { value in glide(value) },
                     MagnifyGesture()
-                        .updating($pinch) { value, state, _ in state = value.magnification }
-                        .onEnded { value in camera = camera.zoomed(by: value.magnification, around: center) }
+                        .updating($pinch) { value, state, _ in
+                            state = Pinch(scale: value.magnification, anchor: value.startLocation)
+                        }
+                        .onEnded { value in camera = camera.zoomed(by: value.magnification, around: value.startLocation) }
                 )
             )
+            .sensoryFeedback(.selection, trigger: selection) { _, new in new != nil }
             .onAppear {
                 viewport = geo.size
                 if !didInitialFit {
@@ -134,17 +150,53 @@ struct BoardCanvas: View {
     }
 
     private func liveCamera(center: CGPoint) -> CanvasCamera {
-        var cam = camera.zoomed(by: pinch, around: center)
+        var cam = camera.zoomed(by: pinch.scale, around: pinch.anchor ?? center)
+        if itemPinch != 1 { cam = cam.zoomed(by: itemPinch, around: center) }
         cam.offset.width += pan.width
         cam.offset.height += pan.height
         return cam
     }
+
+    // A flick keeps the paper moving and slowing down, like a scroll view
+    private func glide(_ value: DragGesture.Value) {
+        let flingX = (value.predictedEndTranslation.width - value.translation.width) * 0.6
+        let flingY = (value.predictedEndTranslation.height - value.translation.height) * 0.6
+        if hypot(flingX, flingY) > 30 {
+            withAnimation(.easeOut(duration: 0.5)) {
+                camera.offset.width += value.translation.width + flingX
+                camera.offset.height += value.translation.height + flingY
+            }
+        } else {
+            camera.offset.width += value.translation.width
+            camera.offset.height += value.translation.height
+        }
+    }
+
+    // Double-tap paper: zoom in on that spot, or when already close, show the whole board
+    private func zoomStep(at location: CGPoint, in size: CGSize) {
+        withAnimation(.snappy) {
+            if camera.zoom < 1.9 {
+                camera = camera.zoomed(by: min(2, 2.5 / camera.zoom), around: location)
+            } else {
+                camera = .fitting(store.items, in: size)
+            }
+        }
+    }
 }
 
-private struct PaperBackground: View {
+// Animatable so the dots glide with the clippings when the camera animates
+private struct PaperBackground: View, Animatable {
     var pattern: CanvasPattern
     var paper: PaperColor
     var camera: CanvasCamera
+
+    var animatableData: AnimatablePair<CGFloat, AnimatablePair<CGFloat, CGFloat>> {
+        get { AnimatablePair(camera.zoom, AnimatablePair(camera.offset.width, camera.offset.height)) }
+        set {
+            camera.zoom = newValue.first
+            camera.offset = CGSize(width: newValue.second.first, height: newValue.second.second)
+        }
+    }
 
     var body: some View {
         Canvas { context, size in
@@ -180,6 +232,26 @@ private struct PaperBackground: View {
     }
 }
 
+private typealias ManipulationValue = SimultaneousGesture<DragGesture, SimultaneousGesture<MagnifyGesture, RotateGesture>>.Value
+
+// What the fingers are doing to one clipping right now
+private struct LiveTransform: Equatable {
+    var translation: CGSize = .zero
+    var magnification: CGFloat = 1
+    var rotation: Angle = .zero
+    // Two fingers are down (a pinch or a twist)
+    var pinched = false
+
+    init() {}
+
+    init(_ value: ManipulationValue) {
+        translation = value.first?.translation ?? .zero
+        magnification = value.second?.first?.magnification ?? 1
+        rotation = value.second?.second?.rotation ?? .zero
+        pinched = value.second?.first != nil || value.second?.second != nil
+    }
+}
+
 struct BoardItemView: View {
     @Environment(BoardStore.self) private var store
     let item: BoardItem
@@ -188,18 +260,29 @@ struct BoardItemView: View {
     var onSelect: () -> Void
     var onEditText: () -> Void
     var onShowStyle: () -> Void
+    var onBoardPinch: (CGFloat) -> Void = { _ in }
+    var onBoardPinchEnded: (CGFloat) -> Void = { _ in }
 
-    @GestureState private var drag: CGSize = .zero
-    @GestureState private var scale: CGFloat = 1
-    @GestureState private var spin: Angle = .zero
+    @GestureState private var live = LiveTransform()
+    @State private var drops = 0
+    @State private var lockedTaps = 0
 
     private static let minSide: Double = 40
+    // A twist this close to straight (or a quarter turn) lands exactly on it
+    private static let snapDegrees: Double = 4
 
     var body: some View {
-        let width = CGFloat(max(item.width * Double(scale), Self.minSide))
-        let height = CGFloat(max(item.height * Double(scale), Self.minSide))
+        // Pinching a clipping that isn't selected zooms the board instead
+        let boardPinch = !isSelected && live.pinched
+        let translation = boardPinch ? .zero : live.translation
+        let scale = isSelected ? clampedScale(live.magnification) : 1
+        let rawRotation = (item.rotation ?? 0) + (isSelected ? live.rotation.degrees : 0)
+        let rotation = Self.snapped(rawRotation)
+        let snappedTo: Double? = isSelected && live.rotation != .zero && rotation != rawRotation ? rotation : nil
+        let lifted = translation != .zero || (isSelected && live.pinched)
+
         ClippingView(item: item)
-            .frame(width: width, height: height)
+            .frame(width: CGFloat(item.width), height: CGFloat(item.height))
             .overlay {
                 if isSelected {
                     RoundedRectangle(cornerRadius: 14)
@@ -217,62 +300,88 @@ struct BoardItemView: View {
                         .offset(x: 10 / zoom, y: -10 / zoom)
                 }
             }
-            .rotationEffect(.degrees((item.rotation ?? 0) + spin.degrees))
+            // Picked up: a little bigger, with a deeper shadow, above everything else
+            .animation(.snappy(duration: 0.2)) { content in
+                content
+                    .scaleEffect(lifted ? 1.03 : 1)
+                    .shadow(color: .black.opacity(lifted ? 0.22 : 0), radius: 18, y: 12)
+            }
+            .scaleEffect(scale)
+            .rotationEffect(.degrees(rotation))
             .offset(
-                x: CGFloat(item.x) - (width - CGFloat(item.width)) / 2 + drag.width / zoom,
-                y: CGFloat(item.y) - (height - CGFloat(item.height)) / 2 + drag.height / zoom
+                x: CGFloat(item.x) + translation.width / zoom,
+                y: CGFloat(item.y) + translation.height / zoom
             )
+            .zIndex(lifted ? 1 : 0)
             .gesture(manipulation, including: item.isLocked ? .subviews : .all)
             .onTapGesture(count: 2) {
                 onSelect()
-                if item.type == .text && !item.isLocked { onEditText() }
+                // A locked goal can't be edited; a buzz says so, and the bar offers Unlock
+                if item.isLocked { lockedTaps += 1 } else if item.type == .text { onEditText() }
             }
             .onTapGesture { onSelect() }
+            .onChange(of: boardPinch ? live.magnification : 1) { _, scale in onBoardPinch(scale) }
+            .sensoryFeedback(.alignment, trigger: snappedTo) { _, new in new != nil }
+            .sensoryFeedback(.impact(weight: .light), trigger: drops)
+            .sensoryFeedback(.warning, trigger: lockedTaps)
             .contextMenu { ItemActions(item: item, onEditText: onEditText, onShowStyle: onShowStyle) }
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(item.type == .text ? item.content : "Photo")
-            .accessibilityHint(item.type == .text ? "Double-tap to select. Double-tap twice to edit." : "Double-tap to select.")
+            .accessibilityLabel(item.type == .text ? item.content : String(localized: "Photo"))
+            .accessibilityHint(item.type == .text ? String(localized: "Selects this goal. Double-tap twice to edit it.") : String(localized: "Selects this photo."))
             .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
             .accessibilityAction { onSelect() }
             .accessibilityActions { ItemActions(item: item, onEditText: onEditText, onShowStyle: onShowStyle) }
     }
 
+    static func snapped(_ degrees: Double) -> Double {
+        let nearest = (degrees / 90).rounded() * 90
+        return abs(degrees - nearest) < snapDegrees ? nearest : degrees
+    }
+
+    // Keeps the shorter side at least minSide points
+    private func clampedScale(_ factor: CGFloat) -> CGFloat {
+        let shorter = CGFloat(min(item.width, item.height))
+        guard shorter > 0 else { return factor }
+        return max(factor, CGFloat(Self.minSide) / shorter)
+    }
+
     private var manipulation: some Gesture {
         let id = item.id
-        let move = DragGesture(minimumDistance: 4, coordinateSpace: .global)
-            .updating($drag) { value, state, _ in state = value.translation }
+        let selected = isSelected
+        let zoom = zoom
+        return DragGesture(minimumDistance: 4, coordinateSpace: .global)
+            .simultaneously(with: MagnifyGesture().simultaneously(with: RotateGesture()))
+            .updating($live) { value, state, _ in state = LiveTransform(value) }
             .onEnded { value in
-                onSelect()
-                store.update(id) {
-                    $0.x += Double(value.translation.width / zoom)
-                    $0.y += Double(value.translation.height / zoom)
+                let done = LiveTransform(value)
+                if !selected && done.pinched {
+                    onBoardPinchEnded(done.magnification)
+                    return
                 }
-            }
-        let resize = MagnifyGesture()
-            .updating($scale) { value, state, _ in state = value.magnification }
-            .onEnded { value in
-                let factor = Double(value.magnification)
+                let factor = selected ? Double(clampedScale(done.magnification)) : 1
+                onSelect()
+                drops += 1
                 store.update(id) { item in
-                    let newWidth = max(item.width * factor, Self.minSide)
-                    let newHeight = max(item.height * factor, Self.minSide)
-                    item.x -= (newWidth - item.width) / 2
-                    item.y -= (newHeight - item.height) / 2
-                    item.width = newWidth.rounded()
-                    item.height = newHeight.rounded()
-                    if item.type == .text, let size = item.fontSize {
-                        item.fontSize = min(max((size * factor).rounded(), 10), 160)
+                    item.x += Double(done.translation.width / zoom)
+                    item.y += Double(done.translation.height / zoom)
+                    guard selected else { return }
+                    if factor != 1 {
+                        let newWidth = max(item.width * factor, Self.minSide)
+                        let newHeight = max(item.height * factor, Self.minSide)
+                        item.x -= (newWidth - item.width) / 2
+                        item.y -= (newHeight - item.height) / 2
+                        item.width = newWidth.rounded()
+                        item.height = newHeight.rounded()
+                        if item.type == .text, let size = item.fontSize {
+                            item.fontSize = min(max((size * factor).rounded(), 10), 160)
+                        }
+                    }
+                    if done.rotation != .zero {
+                        let degrees = Self.snapped((item.rotation ?? 0) + done.rotation.degrees)
+                        item.rotation = (degrees * 10).rounded() / 10
                     }
                 }
             }
-        let rotate = RotateGesture()
-            .updating($spin) { value, state, _ in state = value.rotation }
-            .onEnded { value in
-                store.update(id) { item in
-                    let degrees = (item.rotation ?? 0) + value.rotation.degrees
-                    item.rotation = (degrees * 10).rounded() / 10
-                }
-            }
-        return move.simultaneously(with: resize.simultaneously(with: rotate))
     }
 }
 
@@ -369,13 +478,13 @@ struct ItemActions: View {
             }
         }
         Button("Style", systemImage: "paintbrush", action: onShowStyle)
-        Button(item.isLiked ? "Unlike" : "Like", systemImage: item.isLiked ? "heart.slash" : "heart") {
+        Button(item.isLiked ? String(localized: "Unlike") : String(localized: "Like"), systemImage: item.isLiked ? "heart.slash" : "heart") {
             store.toggleLike(item.id)
         }
         Button("Bring to Front", systemImage: "square.3.layers.3d.top.filled") { store.bringToFront(item.id) }
         Button("Send to Back", systemImage: "square.3.layers.3d.bottom.filled") { store.sendToBack(item.id) }
         Button("Duplicate", systemImage: "plus.square.on.square") { store.duplicate(item.id) }
-        Button(item.isLocked ? "Unlock" : "Lock", systemImage: item.isLocked ? "lock.open" : "lock") {
+        Button(item.isLocked ? String(localized: "Unlock") : String(localized: "Lock"), systemImage: item.isLocked ? "lock.open" : "lock") {
             store.update(item.id) { $0.locked = $0.isLocked ? nil : true }
         }
         Button("Delete", systemImage: "trash", role: .destructive) { store.delete(item.id) }

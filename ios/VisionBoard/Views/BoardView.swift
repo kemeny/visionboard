@@ -37,6 +37,16 @@ struct BoardView: View {
                 onShowStyle: { showStyle = true }
             )
             .ignoresSafeArea(edges: .bottom)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if !store.items.isEmpty {
+                    BoardActionBar(
+                        selection: $selection,
+                        onEditText: { editingTextID = $0 },
+                        onShowStyle: { showStyle = true },
+                        onFit: fitBoard
+                    )
+                }
+            }
             .overlay {
                 if store.items.isEmpty { emptyState }
             }
@@ -125,12 +135,6 @@ struct BoardView: View {
         }
         ToolbarItemGroup(placement: .primaryAction) {
             addMenu
-            if selection != nil {
-                Button("Style", systemImage: "paintbrush") { showStyle.toggle() }
-            }
-            Button("Fit Board", systemImage: "arrow.up.left.and.arrow.down.right") {
-                withAnimation(.snappy) { camera = .fitting(store.items, in: viewport) }
-            }
         }
     }
 
@@ -159,6 +163,9 @@ struct BoardView: View {
                 .disabled(!store.canRedo)
                 .keyboardShortcut("z", modifiers: [.command, .shift])
         }
+        Button("Fit Board", systemImage: "arrow.up.left.and.arrow.down.right", action: fitBoard)
+            .keyboardShortcut("0", modifiers: .command)
+            .disabled(store.items.isEmpty)
         Picker(selection: $pattern) {
             ForEach(CanvasPattern.allCases) { Text($0.label).tag($0) }
         } label: {
