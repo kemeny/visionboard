@@ -14,6 +14,7 @@ struct BoardView: View {
     @State private var pickedPhotos: [PhotosPickerItem] = []
     @State private var camera = CanvasCamera()
     @State private var viewport: CGSize = .zero
+    @State private var bottomInset: CGFloat = 0
     @State private var pendingTemplate: BoardTemplate?
     @State private var importError: String?
     @State private var showWallpaper = false
@@ -31,6 +32,7 @@ struct BoardView: View {
                 selection: $selection,
                 camera: $camera,
                 viewport: $viewport,
+                bottomInset: $bottomInset,
                 pattern: pattern,
                 paper: paper,
                 onEditText: { editingTextID = $0 },
@@ -230,7 +232,7 @@ struct BoardView: View {
     }
 
     private var visibleCenter: CGPoint {
-        camera.toCanvas(CGPoint(x: viewport.width / 2, y: viewport.height / 2))
+        camera.toCanvas(CGPoint(x: viewport.width / 2, y: (viewport.height - bottomInset) / 2))
     }
 
     private func addText() {
@@ -352,7 +354,7 @@ struct BoardView: View {
     }
 
     private func fitBoard() {
-        withAnimation(.snappy) { camera = .fitting(store.items, in: viewport) }
+        withAnimation(.snappy) { camera = .fitting(store.items, in: viewport, bottomInset: bottomInset) }
     }
 
     private func apply(_ template: BoardTemplate) {
@@ -360,7 +362,7 @@ struct BoardView: View {
         store.replaceBoard(with: file)
         selection = nil
         pendingTemplate = nil
-        withAnimation(.snappy) { camera = .fitting(file.items, in: viewport) }
+        withAnimation(.snappy) { camera = .fitting(file.items, in: viewport, bottomInset: bottomInset) }
     }
 }
 

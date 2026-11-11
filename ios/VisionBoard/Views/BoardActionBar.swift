@@ -11,7 +11,10 @@ struct BoardActionBar: View {
     var onFit: () -> Void
 
     @State private var deletes = 0
-    @AppStorage("board-gesture-tip-seen") private var tipSeen = false
+    // The tip shows for the first few clippings picked, or until it's tapped away
+    @AppStorage("board-gesture-tip-shows") private var tipShows = 0
+    private static let tipLimit = 3
+    private var tipSeen: Bool { tipShows >= Self.tipLimit }
 
     var body: some View {
         VStack(spacing: 8) {
@@ -35,20 +38,19 @@ struct BoardActionBar: View {
         .padding(.bottom, 8)
         .animation(.snappy(duration: 0.25), value: selection)
         .sensoryFeedback(.impact(weight: .medium), trigger: deletes)
-        // The tip shows the first time a clipping is picked; it goes once that clipping is let go
         .onChange(of: selection) { old, _ in
-            if old != nil { tipSeen = true }
+            if old != nil, !tipSeen { tipShows += 1 }
         }
     }
 
     private var tip: some View {
-        Label("Pinch to resize, twist to rotate", systemImage: "hand.pinch")
+        Label("Drag the corner to resize and turn, or pinch and twist", systemImage: "hand.pinch")
             .font(.footnote.weight(.medium))
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
             .modifier(BarBackground())
             .transition(.opacity.combined(with: .move(edge: .bottom)))
-            .onTapGesture { tipSeen = true }
+            .onTapGesture { tipShows = Self.tipLimit }
     }
 
     @ViewBuilder

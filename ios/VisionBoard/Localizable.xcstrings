@@ -881,12 +881,12 @@
         }
       }
     },
-    "Pinch to resize, twist to rotate": {
+    "Drag the corner to resize and turn, or pinch and twist": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pellizca para cambiar el tamaño, gira para rotar"
+            "value": "Arrastra la esquina para cambiar el tamaño y girar, o pellizca y gira"
           }
         }
       }
