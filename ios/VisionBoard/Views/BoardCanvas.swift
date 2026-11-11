@@ -2,7 +2,7 @@ import SwiftUI
 
 // Where the board is looked at from: canvas points times zoom, plus offset, gives screen points
 struct CanvasCamera: Equatable {
-    static let zoomRange: ClosedRange<CGFloat> = 0.15...4
+    static let zoomRange: ClosedRange<CGFloat> = 0.05...4
 
     var zoom: CGFloat = 1
     var offset: CGSize = .zero
@@ -59,12 +59,12 @@ enum PaperColor: String, CaseIterable, Identifiable {
     }
 }
 
-// The pannable, zoomable board. Drag empty paper to pan (it keeps gliding
-// when flicked), pinch to zoom around your fingers, double-tap paper to zoom
-// in and again to go back. Drag any clipping to move it; drag the corner
-// handle of the selected one, or pinch and twist it, to resize or rotate it.
-// Pinching a clipping that isn't selected zooms the board, so a photo never
-// gets resized by accident.
+// The board. Moving around is a UIScrollView (BoardInput): one finger drags
+// the board, even across clippings, two fingers pinch and move it at once,
+// flicks glide and the edges rubber-band like any iOS scroll view. A tap
+// selects a clipping, a tap on paper lets it go, double-tap paper zooms in and
+// again goes back. The selected clipping moves with one finger, and its
+// corner handle resizes and turns it.
 struct BoardCanvas: View {
     @Environment(BoardStore.self) private var store
     @Binding var selection: String?
@@ -77,36 +77,18 @@ struct BoardCanvas: View {
     var onEditText: (String) -> Void
     var onShowStyle: () -> Void
 
-    private struct Pinch: Equatable {
-        var scale: CGFloat = 1
-        var anchor: CGPoint?
-    }
-
-    @GestureState private var pan: CGSize = .zero
-    @GestureState private var pinch = Pinch()
-    // A pinch that started on a clipping that isn't selected
-    @State private var itemPinch = Pinch()
     @State private var didInitialFit = false
-    // The paper gliding after a flick; any new touch stops it
-    @State private var glideTask: Task<Void, Never>?
     // Where a double-tap zoomed in from, so the next one goes back there
     @State private var zoomReturn: CanvasCamera?
-
-    static let space = "board"
+    // The clipping being moved, resized or turned right now
+    @State private var live: ItemGesture?
+    @State private var drops = 0
+    @State private var lockedTaps = 0
 
     var body: some View {
         GeometryReader { geo in
-            let center = CGPoint(x: geo.size.width / 2, y: geo.size.height / 2)
-            let live = liveCamera(center: center)
-            let origin = geo.frame(in: .global).origin
             ZStack(alignment: .topLeading) {
-                PaperBackground(pattern: pattern, paper: paper, camera: live)
-                    .contentShape(Rectangle())
-                    // A single tap acts at once; the double tap is an extra on top of it
-                    .onTapGesture { selection = nil }
-                    .simultaneousGesture(
-                        SpatialTapGesture(count: 2).onEnded { zoomStep(at: $0.location, in: geo.size) }
-                    )
+                PaperBackground(pattern: pattern, paper: paper, camera: camera)
                     .accessibilityHidden(true)
 
                 ZStack(alignment: .topLeading) {
@@ -114,53 +96,48 @@ struct BoardCanvas: View {
                         BoardItemView(
                             item: item,
                             isSelected: selection == item.id,
-                            camera: live,
+                            zoom: camera.zoom,
+                            live: live?.id == item.id ? live : nil,
                             onSelect: { selection = item.id },
                             onEditText: { onEditText(item.id) },
                             onShowStyle: {
                                 selection = item.id
                                 onShowStyle()
-                            },
-                            onBoardPinch: { scale, finger in
-                                itemPinch = Pinch(scale: scale, anchor: finger.map { CGPoint(x: $0.x - origin.x, y: $0.y - origin.y) })
-                            },
-                            onBoardPinchEnded: { scale, finger in
-                                let anchor = finger.map { CGPoint(x: $0.x - origin.x, y: $0.y - origin.y) } ?? center
-                                camera = camera.zoomed(by: scale, around: anchor)
-                                itemPinch = Pinch()
-                                zoomReturn = nil
                             }
                         )
+                        .equatable()
                     }
                 }
                 .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)
-                .scaleEffect(live.zoom, anchor: .topLeading)
-                .offset(live.offset)
+                .scaleEffect(camera.zoom, anchor: .topLeading)
+                .offset(camera.offset)
+                .allowsHitTesting(false)
+
+                BoardInput(
+                    camera: camera,
+                    itemBounds: itemBounds,
+                    target: target(at:),
+                    onCamera: { moved in
+                        if zoomReturn != nil { zoomReturn = nil }
+                        var instant = Transaction()
+                        instant.disablesAnimations = true
+                        withTransaction(instant) { camera = moved }
+                    },
+                    onTap: tapped,
+                    onDoubleTap: { target, point in doubleTapped(target, at: point, in: geo.size) },
+                    onDrag: dragged,
+                    menu: menu(for:),
+                    outline: outline(of:)
+                )
             }
             .clipped()
-            .coordinateSpace(.named(Self.space))
-            .gesture(
-                SimultaneousGesture(
-                    DragGesture(minimumDistance: 6)
-                        .updating($pan) { value, state, _ in state = value.translation }
-                        .onEnded { value in glide(value) },
-                    MagnifyGesture()
-                        .updating($pinch) { value, state, _ in
-                            state = Pinch(scale: value.magnification, anchor: value.startLocation)
-                        }
-                        .onEnded { value in
-                            camera = camera.zoomed(by: value.magnification, around: value.startLocation)
-                            zoomReturn = nil
-                        }
-                )
-            )
-            // A finger landing anywhere stops the paper, like catching a scroll view
-            .simultaneousGesture(DragGesture(minimumDistance: 0).onChanged { _ in stopGlide() })
             // A clipping removed from a menu or by Undo can't stay selected
             .onChange(of: store.items.count) {
                 if selection != nil, store.item(selection) == nil { selection = nil }
             }
             .sensoryFeedback(.selection, trigger: selection) { _, new in new != nil }
+            .sensoryFeedback(.impact(weight: .light), trigger: drops)
+            .sensoryFeedback(.warning, trigger: lockedTaps)
             .onAppear {
                 viewport = geo.size
                 bottomInset = geo.safeAreaInsets.bottom
@@ -170,7 +147,6 @@ struct BoardCanvas: View {
                 }
             }
             .onChange(of: geo.safeAreaInsets.bottom) { _, new in bottomInset = new }
-            .onDisappear { stopGlide() }
             // Opening or folding iPhone Duo resizes the board. Keep the same
             // spot in the middle rather than jumping, so nothing is lost.
             .onChange(of: geo.size) { old, new in
@@ -181,52 +157,144 @@ struct BoardCanvas: View {
         }
     }
 
-    private func liveCamera(center: CGPoint) -> CanvasCamera {
-        var cam = camera.zoomed(by: pinch.scale, around: pinch.anchor ?? center)
-        if itemPinch.scale != 1 { cam = cam.zoomed(by: itemPinch.scale, around: itemPinch.anchor ?? center) }
-        cam.offset.width += pan.width
-        cam.offset.height += pan.height
-        return cam
+    private var itemBounds: CGRect? {
+        store.items.map { CGRect(x: $0.x, y: $0.y, width: $0.width, height: $0.height) }.reduce(nil) { $0?.union($1) ?? $1 }
     }
 
-    // A flick keeps the paper moving and slowing down at the rate a scroll
-    // view does. It runs frame by frame so a touch can stop it where it is.
-    private func glide(_ value: DragGesture.Value) {
-        camera.offset.width += value.translation.width
-        camera.offset.height += value.translation.height
-        zoomReturn = nil
-        let flick = value.velocity
-        guard hypot(flick.width, flick.height) > 120 else { return }
-        stopGlide()
-        glideTask = Task { @MainActor in
-            var velocity = flick
-            let clock = ContinuousClock()
-            var last = clock.now
-            while !Task.isCancelled, hypot(velocity.width, velocity.height) > 12 {
-                try? await Task.sleep(for: .milliseconds(8))
-                guard !Task.isCancelled else { return }
-                let now = clock.now
-                let elapsed = now - last
-                last = now
-                let dt = min(Double(elapsed.components.seconds) + Double(elapsed.components.attoseconds) / 1e18, 0.05)
-                camera.offset.width += velocity.width * dt
-                camera.offset.height += velocity.height * dt
-                let decay = pow(0.998, dt * 1000)
-                velocity.width *= decay
-                velocity.height *= decay
-            }
+    // MARK: Hit testing
+
+    private func target(at point: CGPoint) -> BoardTarget {
+        let zoom = camera.zoom
+        if let id = selection, let item = store.item(id), !item.isLocked {
+            let corner = Self.rotate(
+                CGPoint(x: item.width / 2 - 5 / zoom, y: item.height / 2 - 5 / zoom),
+                by: Self.shownRotation(item)
+            )
+            let handle = screen(CGPoint(x: item.x + item.width / 2 + corner.x, y: item.y + item.height / 2 + corner.y))
+            if hypot(point.x - handle.x, point.y - handle.y) <= 26 { return .handle(id) }
+        }
+        let canvas = camera.toCanvas(point)
+        for item in store.sortedItems.reversed() where Self.contains(item, canvas, slop: 4 / zoom) {
+            return item.id == selection && !item.isLocked ? .movable(item.id) : .item(item.id)
+        }
+        return .paper
+    }
+
+    private func screen(_ canvas: CGPoint) -> CGPoint {
+        CGPoint(x: canvas.x * camera.zoom + camera.offset.width, y: canvas.y * camera.zoom + camera.offset.height)
+    }
+
+    static func shownRotation(_ item: BoardItem) -> Double { BoardItemView.snapped(item.rotation ?? 0) }
+
+    static func rotate(_ point: CGPoint, by degrees: Double) -> CGPoint {
+        let r = degrees * .pi / 180
+        return CGPoint(x: point.x * cos(r) - point.y * sin(r), y: point.x * sin(r) + point.y * cos(r))
+    }
+
+    private static func contains(_ item: BoardItem, _ point: CGPoint, slop: CGFloat) -> Bool {
+        let local = rotate(
+            CGPoint(x: point.x - (item.x + item.width / 2), y: point.y - (item.y + item.height / 2)),
+            by: -shownRotation(item)
+        )
+        return abs(local.x) <= item.width / 2 + slop && abs(local.y) <= item.height / 2 + slop
+    }
+
+    // The clipping's on-screen bounding box
+    private func outline(of id: String) -> CGRect? {
+        guard let item = store.item(id) else { return nil }
+        let corners = [(-1.0, -1.0), (1, -1), (1, 1), (-1, 1)].map { sx, sy in
+            let p = Self.rotate(CGPoint(x: sx * item.width / 2, y: sy * item.height / 2), by: Self.shownRotation(item))
+            return screen(CGPoint(x: item.x + item.width / 2 + p.x, y: item.y + item.height / 2 + p.y))
+        }
+        let xs = corners.map(\.x), ys = corners.map(\.y)
+        return CGRect(x: xs.min()!, y: ys.min()!, width: xs.max()! - xs.min()!, height: ys.max()! - ys.min()!)
+    }
+
+    // MARK: Touches
+
+    private func tapped(_ target: BoardTarget, _ point: CGPoint) {
+        selection = target.itemID
+    }
+
+    private func doubleTapped(_ target: BoardTarget, at point: CGPoint, in size: CGSize) {
+        guard let id = target.itemID, let item = store.item(id) else {
+            zoomStep(at: point, in: size)
+            return
+        }
+        selection = id
+        // A locked goal can't be edited; a buzz says so, and the bar offers Unlock
+        if item.isLocked { lockedTaps += 1 } else if item.type == .text { onEditText(id) }
+    }
+
+    private func dragged(_ drag: BoardDrag) {
+        guard let id = drag.target.itemID, let item = store.item(id) else { return }
+        let change: ItemGesture
+        switch drag.target {
+        case .movable:
+            change = ItemGesture(id: id, translation: CGSize(width: drag.location.x - drag.start.x, height: drag.location.y - drag.start.y))
+        case .handle:
+            change = handleChange(item, from: drag.start, to: drag.location)
+        default:
+            return
+        }
+        switch drag.phase {
+        case .changed:
+            live = change
+        case .ended:
+            live = nil
+            commit(change, resize: drag.target == .handle(id))
+        case .cancelled:
+            live = nil
         }
     }
 
-    private func stopGlide() {
-        glideTask?.cancel()
-        glideTask = nil
+    // How far from the middle of the clipping the finger is sets its size,
+    // and the angle around the middle sets its tilt
+    private func handleChange(_ item: BoardItem, from start: CGPoint, to location: CGPoint) -> ItemGesture {
+        let center = screen(CGPoint(x: item.x + item.width / 2, y: item.y + item.height / 2))
+        let from = CGPoint(x: start.x - center.x, y: start.y - center.y)
+        let to = CGPoint(x: location.x - center.x, y: location.y - center.y)
+        let startDistance = hypot(from.x, from.y)
+        guard startDistance > 1 else { return ItemGesture(id: item.id) }
+        var radians = atan2(to.y, to.x) - atan2(from.y, from.x)
+        if radians > .pi { radians -= 2 * .pi }
+        if radians < -.pi { radians += 2 * .pi }
+        return ItemGesture(id: item.id, scale: hypot(to.x, to.y) / startDistance, rotation: .radians(radians))
+    }
+
+    // Writes a finished move, resize or turn to the board as one undo step
+    private func commit(_ change: ItemGesture, resize: Bool) {
+        guard let item = store.item(change.id) else { return }
+        let zoom = camera.zoom
+        let factor = resize ? Double(BoardItemView.clampedScale(change.scale, for: item)) : 1
+        selection = change.id
+        drops += 1
+        store.update(change.id) { item in
+            item.x += Double(change.translation.width / zoom)
+            item.y += Double(change.translation.height / zoom)
+            guard resize else { return }
+            if factor != 1 {
+                let newWidth = max(item.width * factor, BoardItemView.minSide)
+                let newHeight = max(item.height * factor, BoardItemView.minSide)
+                item.x -= (newWidth - item.width) / 2
+                item.y -= (newHeight - item.height) / 2
+                item.width = newWidth.rounded()
+                item.height = newHeight.rounded()
+                if item.type == .text, let size = item.fontSize {
+                    item.fontSize = min(max((size * factor).rounded(), 10), 160)
+                }
+            }
+            if change.rotation != .zero {
+                var degrees = BoardItemView.snapped((item.rotation ?? 0) + change.rotation.degrees)
+                degrees = degrees.truncatingRemainder(dividingBy: 360)
+                item.rotation = (degrees * 10).rounded() / 10
+            }
+        }
     }
 
     // Double-tap paper: zoom in on that spot. Double-tap again to go back to
     // where you were, or to the whole board if you've moved since.
     private func zoomStep(at location: CGPoint, in size: CGSize) {
-        stopGlide()
         withAnimation(.snappy) {
             if let back = zoomReturn {
                 camera = back
@@ -239,6 +307,47 @@ struct BoardCanvas: View {
                 camera = .fitting(store.items, in: size, bottomInset: bottomInset)
             }
         }
+    }
+
+    // MARK: Long-press menu
+
+    private func menu(for id: String) -> UIMenu? {
+        guard let item = store.item(id) else { return nil }
+        let store = store
+        func action(_ title: String, _ symbol: String, destructive: Bool = false, _ run: @escaping () -> Void) -> UIAction {
+            UIAction(title: title, image: UIImage(systemName: symbol), attributes: destructive ? .destructive : []) { _ in run() }
+        }
+        var edit: [UIMenuElement] = []
+        if item.type == .text {
+            edit.append(action(String(localized: "Edit Text"), "character.cursor.ibeam") { onEditText(id) })
+            edit.append(action(String(localized: "Random Style"), "dice") {
+                withAnimation(.snappy) { store.update(id) { $0.applyRandomLook() } }
+            })
+        }
+        edit.append(action(String(localized: "Style"), "paintbrush") {
+            selection = id
+            onShowStyle()
+        })
+        edit.append(action(item.isLiked ? String(localized: "Unlike") : String(localized: "Like"), item.isLiked ? "heart.slash" : "heart") {
+            store.toggleLike(id)
+        })
+        let arrange: [UIMenuElement] = [
+            action(String(localized: "Bring to Front"), "square.3.layers.3d.top.filled") { store.bringToFront(id) },
+            action(String(localized: "Send to Back"), "square.3.layers.3d.bottom.filled") { store.sendToBack(id) },
+            action(String(localized: "Duplicate"), "plus.square.on.square") { selection = store.duplicate(id)?.id },
+            action(item.isLocked ? String(localized: "Unlock") : String(localized: "Lock"), item.isLocked ? "lock.open" : "lock") {
+                store.update(id) { $0.locked = $0.isLocked ? nil : true }
+            },
+        ]
+        let delete = action(String(localized: "Delete"), "trash", destructive: true) {
+            if selection == id { selection = nil }
+            store.delete(id)
+        }
+        return UIMenu(children: [
+            UIMenu(options: .displayInline, children: edit),
+            UIMenu(options: .displayInline, children: arrange),
+            delete,
+        ])
     }
 }
 
@@ -256,103 +365,102 @@ private struct PaperBackground: View, Animatable {
         }
     }
 
+    // The grid moves and scales with the board, but stays between 20 and 40
+    // points apart on screen: zooming out, every other line fades away and
+    // the spacing doubles; zooming in, finer lines fade in between.
+    private static let base: CGFloat = 24
+    private static let closest: CGFloat = 20
+
     var body: some View {
         Canvas { context, size in
             context.fill(Path(CGRect(origin: .zero, size: size)), with: .color(paper.color))
-            guard pattern != .blank else { return }
-            let spacing = 24 * camera.zoom
-            guard spacing >= 6 else { return }
-            let startX = camera.offset.width.truncatingRemainder(dividingBy: spacing) - spacing
-            let startY = camera.offset.height.truncatingRemainder(dividingBy: spacing) - spacing
-            let ink = Color(light: "#000000", dark: "#ffffff").opacity(pattern == .dots ? 0.16 : 0.07)
+            guard pattern != .blank, camera.zoom > 0 else { return }
+            let onScreen = Self.base * camera.zoom
+            let level = ceil(log2(Self.closest / onScreen))
+            let fine = onScreen * pow(2, level)
+            // The in-between lines are fully there at 40 points and gone at 20
+            let fade = min(max((fine - Self.closest) / Self.closest, 0), 1)
+            let firstX = Int(floor(-camera.offset.width / fine))
+            let firstY = Int(floor(-camera.offset.height / fine))
+            let columns = Int(size.width / fine) + 2
+            let rows = Int(size.height / fine) + 2
+            func x(_ i: Int) -> CGFloat { CGFloat(i) * fine + camera.offset.width }
+            func y(_ j: Int) -> CGFloat { CGFloat(j) * fine + camera.offset.height }
+            let ink = Color(light: "#000000", dark: "#ffffff")
+            var main = Path()
+            var between = Path()
+
             if pattern == .dots {
-                let r = max(1, 1.2 * camera.zoom)
-                var path = Path()
-                for x in stride(from: startX, through: size.width, by: spacing) {
-                    for y in stride(from: startY, through: size.height, by: spacing) {
-                        path.addEllipse(in: CGRect(x: x - r / 2, y: y - r / 2, width: r, height: r))
+                let d: CGFloat = 2.4
+                for i in firstX..<(firstX + columns) {
+                    for j in firstY..<(firstY + rows) {
+                        let dot = CGRect(x: x(i) - d / 2, y: y(j) - d / 2, width: d, height: d)
+                        if i.isMultiple(of: 2) && j.isMultiple(of: 2) {
+                            main.addEllipse(in: dot)
+                        } else {
+                            between.addEllipse(in: dot)
+                        }
                     }
                 }
-                context.fill(path, with: .color(ink))
+                context.fill(main, with: .color(ink.opacity(0.2)))
+                if fade > 0.01 { context.fill(between, with: .color(ink.opacity(0.2 * fade))) }
             } else {
-                var path = Path()
-                for x in stride(from: startX, through: size.width, by: spacing) {
-                    path.move(to: CGPoint(x: x, y: 0))
-                    path.addLine(to: CGPoint(x: x, y: size.height))
+                for i in firstX..<(firstX + columns) {
+                    var line = Path()
+                    line.move(to: CGPoint(x: x(i), y: 0))
+                    line.addLine(to: CGPoint(x: x(i), y: size.height))
+                    if i.isMultiple(of: 2) { main.addPath(line) } else { between.addPath(line) }
                 }
-                for y in stride(from: startY, through: size.height, by: spacing) {
-                    path.move(to: CGPoint(x: 0, y: y))
-                    path.addLine(to: CGPoint(x: size.width, y: y))
+                for j in firstY..<(firstY + rows) {
+                    var line = Path()
+                    line.move(to: CGPoint(x: 0, y: y(j)))
+                    line.addLine(to: CGPoint(x: size.width, y: y(j)))
+                    if j.isMultiple(of: 2) { main.addPath(line) } else { between.addPath(line) }
                 }
-                context.stroke(path, with: .color(ink), lineWidth: 1)
+                context.stroke(main, with: .color(ink.opacity(0.09)), lineWidth: 1)
+                if fade > 0.01 { context.stroke(between, with: .color(ink.opacity(0.09 * fade)), lineWidth: 1) }
             }
         }
     }
 }
 
-private typealias ManipulationValue = SimultaneousGesture<DragGesture, SimultaneousGesture<MagnifyGesture, RotateGesture>>.Value
-
-// What the fingers are doing to one clipping right now
-private struct LiveTransform: Equatable {
+// A clipping being moved (translation in screen points), or resized and
+// turned by its corner handle
+struct ItemGesture: Equatable {
+    var id: String
     var translation: CGSize = .zero
-    var magnification: CGFloat = 1
-    var rotation: Angle = .zero
-    // Two fingers are down (a pinch or a twist)
-    var pinched = false
-    // Where the first finger landed, in screen points
-    var finger: CGPoint?
-
-    init() {}
-
-    init(_ value: ManipulationValue) {
-        translation = value.first?.translation ?? .zero
-        finger = value.first?.startLocation
-        magnification = value.second?.first?.magnification ?? 1
-        rotation = value.second?.second?.rotation ?? .zero
-        pinched = value.second?.first != nil || value.second?.second != nil
-    }
-}
-
-// The corner handle being dragged: how far from the middle of the clipping
-// the finger is sets its size, and the angle sets its tilt
-private struct HandleDrag: Equatable {
     var scale: CGFloat = 1
     var rotation: Angle = .zero
-    var active = false
 }
 
-struct BoardItemView: View {
+// One clipping on the board. It takes no touches itself: BoardInput decides
+// what a touch means, and BoardCanvas passes the live change in.
+struct BoardItemView: View, Equatable {
     @Environment(BoardStore.self) private var store
     let item: BoardItem
     let isSelected: Bool
-    let camera: CanvasCamera
+    let zoom: CGFloat
+    let live: ItemGesture?
     var onSelect: () -> Void
     var onEditText: () -> Void
     var onShowStyle: () -> Void
-    // Scale so far, and where the first finger landed on screen
-    var onBoardPinch: (CGFloat, CGPoint?) -> Void = { _, _ in }
-    var onBoardPinchEnded: (CGFloat, CGPoint?) -> Void = { _, _ in }
 
-    @GestureState private var live = LiveTransform()
-    @GestureState private var handle = HandleDrag()
-    private var zoom: CGFloat { camera.zoom }
-    @State private var drops = 0
-    @State private var lockedTaps = 0
-
-    private static let minSide: Double = 40
+    static let minSide: Double = 40
     // A twist this close to straight (or a quarter turn) lands exactly on it
     private static let snapDegrees: Double = 4
 
+    nonisolated static func == (a: BoardItemView, b: BoardItemView) -> Bool {
+        a.item == b.item && a.isSelected == b.isSelected && a.zoom == b.zoom && a.live == b.live
+    }
+
     var body: some View {
-        // Pinching a clipping that isn't selected zooms the board instead
-        let boardPinch = !isSelected && live.pinched
-        let translation = boardPinch ? .zero : live.translation
-        let scale = isSelected ? clampedScale(live.magnification * handle.scale) : 1
-        let turning = Angle.degrees(live.rotation.degrees + handle.rotation.degrees)
-        let rawRotation = (item.rotation ?? 0) + (isSelected ? turning.degrees : 0)
+        let translation = live?.translation ?? .zero
+        let scale = isSelected ? Self.clampedScale(live?.scale ?? 1, for: item) : 1
+        let turning = live?.rotation ?? .zero
+        let rawRotation = (item.rotation ?? 0) + turning.degrees
         let rotation = Self.snapped(rawRotation)
-        let snappedTo: Double? = isSelected && turning != .zero && rotation != rawRotation ? rotation : nil
-        let lifted = translation != .zero || (isSelected && live.pinched) || handle.active
+        let snappedTo: Double? = turning != .zero && rotation != rawRotation ? rotation : nil
+        let lifted = live != nil
 
         ClippingView(item: item)
             .frame(width: CGFloat(item.width), height: CGFloat(item.height))
@@ -389,21 +497,7 @@ struct BoardItemView: View {
                 y: CGFloat(item.y) + translation.height / zoom
             )
             .zIndex(lifted ? 1 : 0)
-            .gesture(manipulation, including: item.isLocked ? .subviews : .all)
-            // A single tap selects at once; the double tap is an extra on top of it
-            .onTapGesture { onSelect() }
-            .simultaneousGesture(
-                TapGesture(count: 2).onEnded {
-                    onSelect()
-                    // A locked goal can't be edited; a buzz says so, and the bar offers Unlock
-                    if item.isLocked { lockedTaps += 1 } else if item.type == .text { onEditText() }
-                }
-            )
-            .onChange(of: boardPinch ? live.magnification : 1) { _, scale in onBoardPinch(scale, live.finger) }
             .sensoryFeedback(.alignment, trigger: snappedTo) { _, new in new != nil }
-            .sensoryFeedback(.impact(weight: .light), trigger: drops)
-            .sensoryFeedback(.warning, trigger: lockedTaps)
-            .contextMenu { ItemActions(item: item, onEditText: onEditText, onShowStyle: onShowStyle) }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(item.type == .text ? item.content : String(localized: "Photo"))
             .accessibilityHint(item.type == .text ? String(localized: "Selects this goal. Double-tap twice to edit it.") : String(localized: "Selects this photo."))
@@ -417,8 +511,14 @@ struct BoardItemView: View {
         return abs(degrees - nearest) < snapDegrees ? nearest : degrees
     }
 
-    // One finger on the corner resizes and turns the clipping around its
-    // middle, which is easier than a pinch on something small
+    // Keeps the shorter side at least minSide points
+    static func clampedScale(_ factor: CGFloat, for item: BoardItem) -> CGFloat {
+        let shorter = CGFloat(min(item.width, item.height))
+        guard shorter > 0 else { return factor }
+        return max(factor, CGFloat(minSide) / shorter)
+    }
+
+    // Drawn here; BoardCanvas finds it by position when a finger lands on it
     private var resizeHandle: some View {
         Image(systemName: "arrow.up.left.and.arrow.down.right")
             .font(.system(size: 11 / zoom, weight: .bold))
@@ -427,87 +527,9 @@ struct BoardItemView: View {
             .background(Color.accentColor, in: Circle())
             .overlay(Circle().stroke(.white, lineWidth: 2 / zoom))
             .shadow(color: .black.opacity(0.2), radius: 3 / zoom, y: 1 / zoom)
-            // A 44 point target on screen, whatever the zoom
             .frame(width: 44 / zoom, height: 44 / zoom)
-            .contentShape(Rectangle())
             .offset(x: 17 / zoom, y: 17 / zoom)
-            .gesture(
-                DragGesture(minimumDistance: 0, coordinateSpace: .named(BoardCanvas.space))
-                    .updating($handle) { value, state, _ in state = handleDrag(value) }
-                    .onEnded { value in
-                        let done = handleDrag(value)
-                        guard done.active else { return }
-                        commit(translation: .zero, magnification: done.scale, rotation: done.rotation, resize: true)
-                    }
-            )
             .accessibilityHidden(true)
-    }
-
-    private func handleDrag(_ value: DragGesture.Value) -> HandleDrag {
-        // The middle of the clipping in the board's screen space
-        let center = CGPoint(
-            x: CGFloat(item.x + item.width / 2) * zoom + camera.offset.width,
-            y: CGFloat(item.y + item.height / 2) * zoom + camera.offset.height
-        )
-        let from = CGPoint(x: value.startLocation.x - center.x, y: value.startLocation.y - center.y)
-        let to = CGPoint(x: value.location.x - center.x, y: value.location.y - center.y)
-        let startDistance = hypot(from.x, from.y)
-        guard startDistance > 1 else { return HandleDrag() }
-        var radians = atan2(to.y, to.x) - atan2(from.y, from.x)
-        if radians > .pi { radians -= 2 * .pi }
-        if radians < -.pi { radians += 2 * .pi }
-        return HandleDrag(scale: hypot(to.x, to.y) / startDistance, rotation: .radians(radians), active: true)
-    }
-
-    // Writes a finished move, resize or turn to the board as one undo step
-    private func commit(translation: CGSize, magnification: CGFloat, rotation: Angle, resize: Bool) {
-        let factor = resize ? Double(clampedScale(magnification)) : 1
-        let zoom = self.zoom
-        onSelect()
-        drops += 1
-        store.update(item.id) { item in
-            item.x += Double(translation.width / zoom)
-            item.y += Double(translation.height / zoom)
-            guard resize else { return }
-            if factor != 1 {
-                let newWidth = max(item.width * factor, Self.minSide)
-                let newHeight = max(item.height * factor, Self.minSide)
-                item.x -= (newWidth - item.width) / 2
-                item.y -= (newHeight - item.height) / 2
-                item.width = newWidth.rounded()
-                item.height = newHeight.rounded()
-                if item.type == .text, let size = item.fontSize {
-                    item.fontSize = min(max((size * factor).rounded(), 10), 160)
-                }
-            }
-            if rotation != .zero {
-                var degrees = Self.snapped((item.rotation ?? 0) + rotation.degrees)
-                degrees = degrees.truncatingRemainder(dividingBy: 360)
-                item.rotation = (degrees * 10).rounded() / 10
-            }
-        }
-    }
-
-    // Keeps the shorter side at least minSide points
-    private func clampedScale(_ factor: CGFloat) -> CGFloat {
-        let shorter = CGFloat(min(item.width, item.height))
-        guard shorter > 0 else { return factor }
-        return max(factor, CGFloat(Self.minSide) / shorter)
-    }
-
-    private var manipulation: some Gesture {
-        let selected = isSelected
-        return DragGesture(minimumDistance: 4, coordinateSpace: .global)
-            .simultaneously(with: MagnifyGesture().simultaneously(with: RotateGesture()))
-            .updating($live) { value, state, _ in state = LiveTransform(value) }
-            .onEnded { value in
-                let done = LiveTransform(value)
-                if !selected && done.pinched {
-                    onBoardPinchEnded(done.magnification, done.finger)
-                    return
-                }
-                commit(translation: done.translation, magnification: done.magnification, rotation: done.rotation, resize: selected)
-            }
     }
 }
 
@@ -518,7 +540,10 @@ struct ClippingView: View {
     var body: some View {
         switch item.type {
         case .image:
-            BoardImage(content: item.content)
+            // Filled and cropped to the clipping's own frame, like object-fit: cover
+            // on the web. A photo never spills past the box you select and drag.
+            Color.clear
+                .overlay { BoardImage(content: item.content) }
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .shadow(color: .black.opacity(0.18), radius: 10, y: 6)
         case .text:
