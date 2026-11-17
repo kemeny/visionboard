@@ -11,6 +11,7 @@ struct BoardView: View {
     @State private var showStyle = false
     @State private var editingTextID: String?
     @State private var showPhotoPicker = false
+    @State private var showCamera = false
     @State private var pickedPhotos: [PhotosPickerItem] = []
     @State private var camera = CanvasCamera()
     @State private var viewport: CGSize = .zero
@@ -68,6 +69,12 @@ struct BoardView: View {
                 guard !items.isEmpty else { return }
                 pickedPhotos = []
                 Task { await importPhotos(items) }
+            }
+            .fullScreenCover(isPresented: $showCamera) {
+                CameraCapture { data in
+                    Task { await importCameraPhoto(data) }
+                }
+                .ignoresSafeArea()
             }
             .alert(naming == .new ? "New Board" : "Rename Board", isPresented: Binding(get: { naming != nil }, set: { if !$0 { naming = nil } })) {
                 TextField("Name", text: $boardName)
@@ -143,6 +150,9 @@ struct BoardView: View {
     private var addMenu: some View {
         Menu {
             Button("Photo", systemImage: "photo.on.rectangle") { showPhotoPicker = true }
+            if CameraCapture.isAvailable {
+                Button("Camera", systemImage: "camera") { showCamera = true }
+            }
             Button("Goal", systemImage: "textformat") { addText() }
             Menu {
                 templateButtons
@@ -254,6 +264,16 @@ struct BoardView: View {
             } catch {
                 importError = error.localizedDescription
             }
+        }
+    }
+
+    private func importCameraPhoto(_ data: Data) async {
+        do {
+            let imported = try await ImageStore.shared.importPhoto(data)
+            let item = store.addImage(content: imported.content, aspect: imported.aspect, at: visibleCenter)
+            selection = item.id
+        } catch {
+            importError = error.localizedDescription
         }
     }
 
