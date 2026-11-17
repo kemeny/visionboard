@@ -77,6 +77,7 @@ struct BoardActionBar: View {
             }
         }
         Menu {
+            ShareClippingButton(item: item)
             if item.type == .text && !item.isLocked {
                 Button("Random Style", systemImage: "dice") {
                     withAnimation(.snappy) { store.update(item.id) { $0.applyRandomLook() } }
