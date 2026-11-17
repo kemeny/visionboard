@@ -871,6 +871,16 @@
         }
       }
     },
+    "Camera": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cámara"
+          }
+        }
+      }
+    },
     "Photo": {
       "localizations": {
         "es": {

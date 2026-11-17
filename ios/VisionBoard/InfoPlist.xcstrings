@@ -16,7 +16,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "VisionBoard usa la cámara para escanear el código QR que abre tu tablero sincronizado."
+            "value": "VisionBoard usa la cámara para que tomes fotos para tu tablero y para escanear el código QR que abre tu tablero sincronizado."
           }
         }
       }

@@ -356,7 +356,7 @@
 				INFOPLIST_FILE = Config/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = VisionBoard;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
-				INFOPLIST_KEY_NSCameraUsageDescription = "VisionBoard uses the camera to scan the QR code that opens your synced board.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "VisionBoard uses the camera so you can take photos for your board and scan the QR code that opens your synced board.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "VisionBoard saves the wallpapers you make from your board to Photos.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -392,7 +392,7 @@
 				INFOPLIST_FILE = Config/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = VisionBoard;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
-				INFOPLIST_KEY_NSCameraUsageDescription = "VisionBoard uses the camera to scan the QR code that opens your synced board.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "VisionBoard uses the camera so you can take photos for your board and scan the QR code that opens your synced board.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "VisionBoard saves the wallpapers you make from your board to Photos.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
