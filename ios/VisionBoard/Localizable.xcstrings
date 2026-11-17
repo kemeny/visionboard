@@ -881,12 +881,12 @@
         }
       }
     },
-    "Drag the corner to resize and turn, or pinch and twist": {
+    "Drag it to move it, or drag the corner to resize and turn": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Arrastra la esquina para cambiar el tamaño y girar, o pellizca y gira"
+            "value": "Arrástralo para moverlo, o arrastra la esquina para cambiar el tamaño y girarlo"
           }
         }
       }

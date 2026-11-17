@@ -44,7 +44,7 @@ struct BoardActionBar: View {
     }
 
     private var tip: some View {
-        Label("Drag the corner to resize and turn, or pinch and twist", systemImage: "hand.pinch")
+        Label("Drag it to move it, or drag the corner to resize and turn", systemImage: "hand.draw")
             .font(.footnote.weight(.medium))
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
