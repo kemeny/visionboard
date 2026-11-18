@@ -64,7 +64,8 @@ enum PaperColor: String, CaseIterable, Identifiable {
 // flicks glide and the edges rubber-band like any iOS scroll view. A tap
 // selects a clipping, a tap on paper lets it go, double-tap paper zooms in and
 // again goes back. The selected clipping moves with one finger, and its
-// corner handle resizes and turns it.
+// corner handle resizes and turns it. Press and hold a clipping for the
+// action dial (Share, Like, Lock, Delete).
 struct BoardCanvas: View {
     @Environment(BoardStore.self) private var store
     @Binding var selection: String?
@@ -126,8 +127,7 @@ struct BoardCanvas: View {
                     onTap: tapped,
                     onDoubleTap: { target, point in doubleTapped(target, at: point, in: geo.size) },
                     onDrag: dragged,
-                    menu: menu(for:),
-                    outline: outline(of:)
+                    dial: dial(for:)
                 )
             }
             .clipped()
@@ -197,17 +197,6 @@ struct BoardCanvas: View {
             by: -shownRotation(item)
         )
         return abs(local.x) <= item.width / 2 + slop && abs(local.y) <= item.height / 2 + slop
-    }
-
-    // The clipping's on-screen bounding box
-    private func outline(of id: String) -> CGRect? {
-        guard let item = store.item(id) else { return nil }
-        let corners = [(-1.0, -1.0), (1, -1), (1, 1), (-1, 1)].map { sx, sy in
-            let p = Self.rotate(CGPoint(x: sx * item.width / 2, y: sy * item.height / 2), by: Self.shownRotation(item))
-            return screen(CGPoint(x: item.x + item.width / 2 + p.x, y: item.y + item.height / 2 + p.y))
-        }
-        let xs = corners.map(\.x), ys = corners.map(\.y)
-        return CGRect(x: xs.min()!, y: ys.min()!, width: xs.max()! - xs.min()!, height: ys.max()! - ys.min()!)
     }
 
     // MARK: Touches
@@ -309,45 +298,40 @@ struct BoardCanvas: View {
         }
     }
 
-    // MARK: Long-press menu
+    // MARK: Long-press dial
 
-    private func menu(for id: String) -> UIMenu? {
+    // Hold a clipping: it's picked, so the bar below has everything else,
+    // and the dial offers the four things you do most
+    private func dial(for id: String) -> [DialAction]? {
         guard let item = store.item(id) else { return nil }
         let store = store
-        func action(_ title: String, _ symbol: String, destructive: Bool = false, _ run: @escaping () -> Void) -> UIAction {
-            UIAction(title: title, image: UIImage(systemName: symbol), attributes: destructive ? .destructive : []) { _ in run() }
-        }
-        var edit: [UIMenuElement] = []
-        if item.type == .text {
-            edit.append(action(String(localized: "Edit Text"), "character.cursor.ibeam") { onEditText(id) })
-            edit.append(action(String(localized: "Random Style"), "dice") {
-                withAnimation(.snappy) { store.update(id) { $0.applyRandomLook() } }
-            })
-        }
-        edit.append(action(String(localized: "Style"), "paintbrush") {
-            selection = id
-            onShowStyle()
-        })
-        edit.append(action(item.isLiked ? String(localized: "Unlike") : String(localized: "Like"), item.isLiked ? "heart.slash" : "heart") {
-            store.toggleLike(id)
-        })
-        let arrange: [UIMenuElement] = [
-            action(String(localized: "Bring to Front"), "square.3.layers.3d.top.filled") { store.bringToFront(id) },
-            action(String(localized: "Send to Back"), "square.3.layers.3d.bottom.filled") { store.sendToBack(id) },
-            action(String(localized: "Duplicate"), "plus.square.on.square") { selection = store.duplicate(id)?.id },
-            action(item.isLocked ? String(localized: "Unlock") : String(localized: "Lock"), item.isLocked ? "lock.open" : "lock") {
+        selection = id
+        return [
+            DialAction(id: "share", title: String(localized: "Share"), symbol: "square.and.arrow.up") {
+                Task { await ClippingShare.share(item) }
+            },
+            DialAction(
+                id: "like",
+                title: item.isLiked ? String(localized: "Unlike") : String(localized: "Like"),
+                symbol: item.isLiked ? "heart.slash" : "heart",
+                tint: .pink
+            ) {
+                store.toggleLike(id)
+            },
+            DialAction(
+                id: "lock",
+                title: item.isLocked ? String(localized: "Unlock") : String(localized: "Lock"),
+                symbol: item.isLocked ? "lock.open" : "lock"
+            ) {
                 store.update(id) { $0.locked = $0.isLocked ? nil : true }
             },
+            DialAction(id: "delete", title: String(localized: "Delete"), symbol: "trash", tint: .red) {
+                withAnimation(.snappy) {
+                    if selection == id { selection = nil }
+                    store.delete(id)
+                }
+            },
         ]
-        let delete = action(String(localized: "Delete"), "trash", destructive: true) {
-            if selection == id { selection = nil }
-            store.delete(id)
-        }
-        return UIMenu(children: [
-            UIMenu(options: .displayInline, children: edit),
-            UIMenu(options: .displayInline, children: arrange),
-            delete,
-        ])
     }
 }
 

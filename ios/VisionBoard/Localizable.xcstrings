@@ -551,6 +551,26 @@
         }
       }
     },
+    "Hidden from Feed": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oculto del feed"
+          }
+        }
+      }
+    },
+    "Hide from Feed": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ocultar del feed"
+          }
+        }
+      }
+    },
     "Its photos and goals are removed from this iPhone. If the board syncs, the cloud copy stays for your other devices.": {
       "localizations": {
         "es": {
@@ -1157,6 +1177,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Compartir enlace de sincronización"
+          }
+        }
+      }
+    },
+    "Show Hidden Clippings": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar recortes ocultos"
+          }
+        }
+      }
+    },
+    "Show on Board": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver en el tablero"
           }
         }
       }

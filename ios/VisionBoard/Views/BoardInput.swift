@@ -42,9 +42,8 @@ struct BoardInput: UIViewRepresentable {
     var onTap: (BoardTarget, CGPoint) -> Void
     var onDoubleTap: (BoardTarget, CGPoint) -> Void
     var onDrag: (BoardDrag) -> Void
-    var menu: (String) -> UIMenu?
-    // A clipping's outline on screen, for the long-press menu's preview
-    var outline: (String) -> CGRect?
+    // The long-press dial's actions for a clipping
+    var dial: (String) -> [DialAction]?
 
     func makeUIView(context: Context) -> BoardInputView {
         let view = BoardInputView()
@@ -58,7 +57,7 @@ struct BoardInput: UIViewRepresentable {
     }
 }
 
-final class BoardInputView: UIView, UIScrollViewDelegate, UIGestureRecognizerDelegate, UIContextMenuInteractionDelegate {
+final class BoardInputView: UIView, UIScrollViewDelegate, UIGestureRecognizerDelegate {
     var config: BoardInput?
 
     private let scroll = BoardScrollView()
@@ -72,6 +71,7 @@ final class BoardInputView: UIView, UIScrollViewDelegate, UIGestureRecognizerDel
 
     private var tap: UITapGestureRecognizer!
     private var move: UIPanGestureRecognizer!
+    private var hold: UILongPressGestureRecognizer!
     private(set) var touchDown: (point: CGPoint, target: BoardTarget)?
 
     override init(frame: CGRect) {
@@ -100,11 +100,13 @@ final class BoardInputView: UIView, UIScrollViewDelegate, UIGestureRecognizerDel
         tap = UITapGestureRecognizer(target: self, action: #selector(tapped(_:)))
         move = UIPanGestureRecognizer(target: self, action: #selector(moved(_:)))
         move.maximumNumberOfTouches = 1
-        for recognizer in [tap!, move!] {
+        hold = UILongPressGestureRecognizer(target: self, action: #selector(held(_:)))
+        hold.minimumPressDuration = 0.35
+        hold.allowableMovement = 12
+        for recognizer in [tap!, move!, hold!] {
             recognizer.delegate = self
             scroll.addGestureRecognizer(recognizer)
         }
-        scroll.addInteraction(UIContextMenuInteraction(delegate: self))
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
@@ -267,7 +269,11 @@ final class BoardInputView: UIView, UIScrollViewDelegate, UIGestureRecognizerDel
     }
 
     override func gestureRecognizerShouldBegin(_ recognizer: UIGestureRecognizer) -> Bool {
-        if recognizer === move { return touchStartsMove }
+        if recognizer === move { return touchStartsMove && !holding }
+        // Only a clipping opens the dial; held paper does nothing
+        if recognizer === hold, let config {
+            return config.target(recognizer.location(in: self)).itemID != nil
+        }
         return super.gestureRecognizerShouldBegin(recognizer)
     }
 
@@ -278,35 +284,33 @@ final class BoardInputView: UIView, UIScrollViewDelegate, UIGestureRecognizerDel
         }
     }
 
-    // MARK: Long-press menu
+    // MARK: Long-press dial
 
-    func contextMenuInteraction(_ interaction: UIContextMenuInteraction, configurationForMenuAtLocation location: CGPoint) -> UIContextMenuConfiguration? {
-        // The location comes in the scroll view's (scrolled) coordinates
-        let point = convert(location, from: interaction.view)
-        guard let config, let id = config.target(point).itemID, config.menu(id) != nil else { return nil }
-        return UIContextMenuConfiguration(identifier: id as NSString, previewProvider: nil) { [weak self] _ in
-            self?.config?.menu(id)
+    // While the dial is open the finger picks an action, so it moves nothing
+    private(set) var holding = false
+
+    @objc private func held(_ recognizer: UILongPressGestureRecognizer) {
+        let dial = ActionDial.shared
+        let point = recognizer.location(in: nil)
+        switch recognizer.state {
+        case .began:
+            guard let config, let window,
+                  let id = config.target(recognizer.location(in: self)).itemID,
+                  let actions = config.dial(id)
+            else { return }
+            holding = true
+            dial.begin(at: point, in: window.bounds, actions: actions)
+        case .changed:
+            dial.move(to: point)
+        case .ended:
+            holding = false
+            dial.end(at: point)
+        case .cancelled, .failed:
+            holding = false
+            dial.cancel()
+        default:
+            break
         }
-    }
-
-    func contextMenuInteraction(_ interaction: UIContextMenuInteraction, configuration: UIContextMenuConfiguration, highlightPreviewForItemWithIdentifier identifier: any NSCopying) -> UITargetedPreview? {
-        preview(for: configuration)
-    }
-
-    func contextMenuInteraction(_ interaction: UIContextMenuInteraction, configuration: UIContextMenuConfiguration, dismissalPreviewForItemWithIdentifier identifier: any NSCopying) -> UITargetedPreview? {
-        preview(for: configuration)
-    }
-
-    // The clippings are drawn by SwiftUI below this view, so the lifted
-    // preview is a snapshot of that spot on screen
-    private func preview(for configuration: UIContextMenuConfiguration) -> UITargetedPreview? {
-        guard let id = configuration.identifier as? String, let rect = config?.outline(id), let window,
-              let snapshot = window.resizableSnapshotView(from: convert(rect, to: window), afterScreenUpdates: false, withCapInsets: .zero)
-        else { return nil }
-        let parameters = UIPreviewParameters()
-        parameters.backgroundColor = .clear
-        parameters.visiblePath = UIBezierPath(roundedRect: snapshot.bounds, cornerRadius: 12)
-        return UITargetedPreview(view: snapshot, parameters: parameters, target: UIPreviewTarget(container: self, center: CGPoint(x: rect.midX, y: rect.midY)))
     }
 }
 
@@ -315,7 +319,7 @@ final class BoardScrollView: UIScrollView {
     weak var owner: BoardInputView?
 
     override func gestureRecognizerShouldBegin(_ recognizer: UIGestureRecognizer) -> Bool {
-        if recognizer === panGestureRecognizer, recognizer.numberOfTouches < 2, owner?.touchStartsMove == true {
+        if recognizer === panGestureRecognizer, recognizer.numberOfTouches < 2, owner?.touchStartsMove == true || owner?.holding == true {
             return false
         }
         return super.gestureRecognizerShouldBegin(recognizer)
