@@ -49,7 +49,7 @@ export const PRIVACY: Record<Lang, LegalDoc> = {
   en: {
     title: 'Privacy Policy',
     intro:
-      'VisionBoard is made by Kemeny Studio. This policy explains what the iPhone app and the web app at visionboard.kemenystudio.com collect, why, and how you can control it. There is no account and no sign up.',
+      'VisionBoard is made by Kemeny Studio. This policy explains what the iPhone app and the web app at visionboard.kemenystudio.com collect, why, and how you can control it. You never need an account. Signing in with Apple on iPhone is optional and only used for backup.',
     sections: [
       {
         heading: 'Your board',
@@ -57,6 +57,14 @@ export const PRIVACY: Record<Lang, LegalDoc> = {
           'Your goals, photos and board layout stay on your device by default. On the web they live in your browser. On iPhone they live in the app.',
           'If you turn on Sync, a copy of the board and its photos is stored on our servers so your other devices can open it. Board data is kept in a Cloudflare D1 database and photos in Cloudflare R2 storage. The copy is tied to a random sync key, not to your name or email. Anyone with the key or the sync link can open the board, so share it only with people you trust.',
           'Things you share into VisionBoard from other apps are added to your board and handled the same way.',
+        ],
+      },
+      {
+        heading: 'Optional account',
+        body: [
+          'On iPhone you can sign in with Apple to back up your boards. We then store the stable user ID Apple gives us for VisionBoard, the email Apple shares (if you choose to share it, often a private relay address), and the list of your boards: each board\'s name and sync key. That list is encrypted on our servers. Signing in also turns on Sync for every board.',
+          'We use this only to bring your boards back on a new device. We never email you for marketing.',
+          'To delete it, go to Settings > Account > Delete Account in the app. This deletes the account and the backed-up list, and can also delete the cloud copy of every board. You can also stop using Sign in with Apple for VisionBoard in your iPhone\'s Apple Account settings.',
         ],
       },
       {
@@ -97,7 +105,7 @@ export const PRIVACY: Record<Lang, LegalDoc> = {
   es: {
     title: 'Política de privacidad',
     intro:
-      'VisionBoard es un producto de Kemeny Studio. Esta política explica qué datos recogen la app de iPhone y la app web en visionboard.kemenystudio.com, para qué, y cómo puedes controlarlos. No hay cuentas ni registro.',
+      'VisionBoard es un producto de Kemeny Studio. Esta política explica qué datos recogen la app de iPhone y la app web en visionboard.kemenystudio.com, para qué, y cómo puedes controlarlos. Nunca necesitas una cuenta. Iniciar sesión con Apple en iPhone es opcional y solo sirve para respaldar.',
     sections: [
       {
         heading: 'Tu tablero',
@@ -105,6 +113,14 @@ export const PRIVACY: Record<Lang, LegalDoc> = {
           'Tus metas, fotos y el diseño del tablero se guardan en tu dispositivo. En la web viven en tu navegador. En iPhone viven en la app.',
           'Si activas la sincronización, una copia del tablero y sus fotos se guarda en nuestros servidores para que tus otros dispositivos puedan abrirlo. Los datos del tablero se guardan en una base de datos Cloudflare D1 y las fotos en Cloudflare R2. La copia está ligada a una clave de sincronización aleatoria, no a tu nombre ni a tu correo. Cualquiera con la clave o el enlace puede abrir el tablero, así que compártelo solo con personas de confianza.',
           'Lo que compartes en VisionBoard desde otras apps se agrega a tu tablero y se trata igual.',
+        ],
+      },
+      {
+        heading: 'Cuenta opcional',
+        body: [
+          'En iPhone puedes iniciar sesión con Apple para respaldar tus tableros. En ese caso guardamos el ID de usuario que Apple nos da para VisionBoard, el correo que Apple comparte (si eliges compartirlo, muchas veces una dirección privada de reenvío) y la lista de tus tableros: el nombre y la clave de sincronización de cada uno. Esa lista se guarda cifrada en nuestros servidores. Al iniciar sesión también se activa la sincronización de todos tus tableros.',
+          'Solo usamos esto para recuperar tus tableros en un dispositivo nuevo. Nunca te enviamos correos de marketing.',
+          'Para borrarla, ve a Ajustes > Cuenta > Borrar cuenta en la app. Se borran la cuenta y la lista respaldada, y también puedes borrar la copia en la nube de cada tablero. Además puedes dejar de usar Iniciar sesión con Apple para VisionBoard en los ajustes de tu cuenta de Apple en el iPhone.',
         ],
       },
       {

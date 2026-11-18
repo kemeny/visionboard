@@ -24,6 +24,7 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 syncSection
+                AccountSection()
                 remindersSection
                 Section {
                     Picker(selection: $appearance) {

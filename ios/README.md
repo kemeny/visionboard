@@ -21,7 +21,7 @@ skips the Duo-only APIs. CI does this automatically (`.github/workflows/ios.yml`
 | Board | The collage. Moving around is a native scroll view: drag with one finger anywhere (even across photos) to pan, flick to glide, pinch with two fingers to zoom and move at once, and the edges rubber-band. Double-tap paper to zoom in, again to go back. Tap a clipping to select it; drag the selected one to move it and its corner handle to resize and turn it (turns snap straight). Long-press a clipping for its menu. The dot or line grid scales with the board and fades between levels so it stays readable at any zoom. A bar at the bottom holds the selected clipping's actions, or Undo, Redo and Fit Board. |
 | Feed | One clipping per page, endless, ranked like the web feed. Double-tap to like. |
 | Today | Today's goal and photo, plus the week ahead. |
-| Settings | Turn on sync, show the QR code and link, join a board by scanning the web app's QR code, daily reminders. |
+| Settings | Turn on sync, show the QR code and link, join a board by scanning the web app's QR code, an optional Apple account for backup, daily reminders. |
 
 **Boards.** Tap the board's name at the top to switch, create, rename or delete
 boards. Each board is its own file under `Application Support/VisionBoard/boards/`
@@ -42,6 +42,18 @@ changes, so the widget turns the page each day on its own.
 
 **Wallpaper.** Board menu > Make Wallpaper renders the whole board below the
 Lock Screen clock, or today's photo and goal, at this iPhone's screen size.
+
+**Account (optional).** Settings > Account signs in with Apple
+(`Account/AccountService.swift`). It is only for backup and never required.
+Signing in turns on sync for every board and backs up the list of boards
+(name and sync key) to the Worker, encrypted there (see `worker/README.md`).
+The list is uploaded again whenever a board is created, renamed or deleted or
+a sync key changes. On a new iPhone, Settings shows "Restore from Your Apple
+Account": signing in connects each backed-up board by its key. Signing out
+keeps the boards and their sync. Delete Account removes the account and,
+if asked, every board's cloud copy. If the Apple Account stops using the app
+(revoked), the app signs out on the next launch. Once a board has 5 or more
+things on it, a one-time banner suggests backing up.
 
 Reminders are local notifications scheduled two weeks ahead on the device, so
 they need no server and work offline.

@@ -53,6 +53,9 @@ struct BoardView: View {
             .overlay {
                 if store.items.isEmpty { emptyState }
             }
+            .overlay(alignment: .top) {
+                BackupBanner()
+            }
             .navigationTitle(library.current?.name ?? "Board")
             .toolbarTitleMenu { boardMenu }
             .navigationBarTitleDisplayMode(.inline)

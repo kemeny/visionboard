@@ -9,6 +9,7 @@ struct VisionBoardApp: App {
     @State private var store: BoardStore
     @State private var sync: SyncService
     @State private var library: BoardLibrary
+    @State private var account: AccountService
     @State private var reminders = Reminders()
     @State private var router = AppRouter.shared
     @AppStorage("appearance") private var appearance: Appearance = .system
@@ -20,7 +21,13 @@ struct VisionBoardApp: App {
         store.onEdit = { sync.localEdit() }
         _store = State(initialValue: store)
         _sync = State(initialValue: sync)
-        _library = State(initialValue: BoardLibrary(store: store, sync: sync))
+        let library = BoardLibrary(store: store, sync: sync)
+        let account = AccountService(library: library, sync: sync, store: store)
+        // The account backup follows every board and key change
+        library.onListChange = { account.scheduleBackup() }
+        sync.onKeyChange = { account.scheduleBackup() }
+        _library = State(initialValue: library)
+        _account = State(initialValue: account)
     }
 
     var body: some Scene {
@@ -29,6 +36,7 @@ struct VisionBoardApp: App {
                 .environment(store)
                 .environment(sync)
                 .environment(library)
+                .environment(account)
                 .environment(reminders)
                 .environment(router)
                 .environment(ProAccess.shared)
@@ -41,6 +49,8 @@ struct VisionBoardApp: App {
                     default: break
                     }
                 }
+                // Sign out here if this Apple Account stopped using the app
+                .task { await account.checkCredentialState() }
                 .task(id: scenePhase) {
                     guard scenePhase == .active else { return }
                     await sync.pull()
