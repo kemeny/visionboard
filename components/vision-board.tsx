@@ -5,6 +5,7 @@ import {
   Plus,
   Type,
   ImageIcon,
+  Search,
   Trash2,
   RotateCcw,
   Minus as MinusIcon,
@@ -78,6 +79,7 @@ import { BoardItemComponent } from "./board-item"
 import { SyncDialog } from "./sync-dialog"
 import { TodayCard } from "./today-card"
 import { PhotoCredit } from "./photo-credit"
+import { PhotoSearchDialog, type PickedPhoto } from "./photo-search-dialog"
 import { FeedView } from "./feed-view"
 import { useBoardSync } from "@/hooks/use-board-sync"
 import {
@@ -141,6 +143,7 @@ export function VisionBoard() {
   itemCountRef.current = items.length
   const [showBackupReminder, setShowBackupReminder] = useState(false)
   const [syncOpen, setSyncOpen] = useState(false)
+  const [photoSearchOpen, setPhotoSearchOpen] = useState(false)
   const [linkKey, setLinkKey] = useState<string | null>(null)
   const [todayCard, setTodayCard] = useState<TodayCardData | null>(null)
   const [feedOpen, setFeedOpen] = useState(false)
@@ -396,6 +399,38 @@ export function VisionBoard() {
         finishOnboarding("blank")
       }
       reader.readAsDataURL(file)
+    },
+    [maxZIndex, finishOnboarding]
+  )
+
+  // Unsplash photos from Search photos: hotlinked, with the photographer's credit
+  const addSearchPhotos = useCallback(
+    (photos: PickedPhoto[]) => {
+      if (!photos.length) return
+      const baseX = 100 + Math.random() * 200
+      const baseY = 100 + Math.random() * 200
+      const newItems: BoardItem[] = photos.map((photo, i) => {
+        const width = 300
+        return {
+          id: generateId(),
+          type: "image",
+          x: baseX + i * 30,
+          y: baseY + i * 30,
+          width,
+          height: Math.round(width / Math.max(photo.aspect, 0.1)),
+          content: photo.imageUrl,
+          zIndex: maxZIndex + i,
+          rotation: 0,
+          ...(photo.credit && { credit: photo.credit }),
+        }
+      })
+      setItems((prev) => [...prev, ...newItems])
+      setMaxZIndex((prev) => prev + newItems.length)
+      setSelectedIds(new Set([newItems[newItems.length - 1].id]))
+      newItems.forEach((_, i) =>
+        track("item_added", { source: "photo_search", board_item_count: itemCountRef.current + i + 1 })
+      )
+      finishOnboarding("blank")
     },
     [maxZIndex, finishOnboarding]
   )
@@ -1059,8 +1094,18 @@ export function VisionBoard() {
               <ImageIcon className="mr-2 h-4 w-4" />
               {t("toolbar.image")}
             </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                setPhotoSearchOpen(true)
+                track("photo_search_opened", { surface: "board" })
+              }}
+            >
+              <Search className="mr-2 h-4 w-4" />
+              {t("toolbar.searchPhotos")}
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        <PhotoSearchDialog open={photoSearchOpen} onOpenChange={setPhotoSearchOpen} onAdd={addSearchPhotos} />
         <input
           ref={fileInputRef}
           type="file"

@@ -3560,6 +3560,156 @@
           }
         }
       }
+    },
+    "Search Photos": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar fotos"
+          }
+        }
+      }
+    },
+    "Show More": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver más"
+          }
+        }
+      }
+    },
+    "Beach house, marathon, Tokyo…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Casa en la playa, maratón, Tokio…"
+          }
+        }
+      }
+    },
+    "Add %lld": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agregar %lld"
+          }
+        }
+      }
+    },
+    "beach house": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "casa en la playa"
+          }
+        }
+      }
+    },
+    "running": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "correr"
+          }
+        }
+      }
+    },
+    "Japan": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Japón"
+          }
+        }
+      }
+    },
+    "healthy food": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "comida sana"
+          }
+        }
+      }
+    },
+    "home office": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "oficina en casa"
+          }
+        }
+      }
+    },
+    "mountains": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "montañas"
+          }
+        }
+      }
+    },
+    "Free photos from Unsplash. Try one of these:": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotos gratis de Unsplash. Prueba con una de estas:"
+          }
+        }
+      }
+    },
+    "Your search words are sent to Unsplash to find photos.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tus palabras de búsqueda se envían a Unsplash para buscar fotos."
+          }
+        }
+      }
+    },
+    "You've searched a lot this hour. Try again a bit later.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hiciste muchas búsquedas en esta hora. Intenta de nuevo en un rato."
+          }
+        }
+      }
+    },
+    "Photo search isn't available right now.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La búsqueda de fotos no está disponible ahora."
+          }
+        }
+      }
+    },
+    "Couldn't search right now. Check your connection and try again.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No pudimos buscar. Revisa tu conexión e intenta de nuevo."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

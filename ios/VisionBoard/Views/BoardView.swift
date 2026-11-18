@@ -25,6 +25,7 @@ struct BoardView: View {
     @State private var boardName = ""
     @State private var confirmDeleteBoard = false
     @State private var showAIBoard = false
+    @State private var showPhotoSearch = false
     @State private var aiBoardSource = "board_menu"
 
     enum Naming { case new, rename }
@@ -112,6 +113,12 @@ struct BoardView: View {
                     withAnimation(.snappy) { camera = .fitting(added, in: viewport, bottomInset: bottomInset) }
                 }
             }
+            .sheet(isPresented: $showPhotoSearch) {
+                PhotoSearchView(center: visibleCenter) { added in
+                    // They land in the middle of what's on screen, so the view stays put
+                    if let last = added.last { selection = last.id }
+                }
+            }
             .task(id: router.sharedArrivals) {
                 guard router.sharedArrivals > 0 else { return }
                 await importShared()
@@ -172,6 +179,7 @@ struct BoardView: View {
             if CameraCapture.isAvailable {
                 Button("Camera", systemImage: "camera") { showCamera = true }
             }
+            Button("Search Photos", systemImage: "magnifyingglass") { openPhotoSearch(from: "board_menu") }
             Button("Goal", systemImage: "textformat") { addText() }
             Button("Create with AI", systemImage: "sparkles") { openAIBoard(from: "board_menu") }
             Menu {
@@ -236,6 +244,7 @@ struct BoardView: View {
         } actions: {
             Button("Add Photos", systemImage: "photo.on.rectangle") { showPhotoPicker = true }
                 .buttonStyle(.borderedProminent)
+            Button("Search Photos", systemImage: "magnifyingglass") { openPhotoSearch(from: "empty_board") }
             Button("Add a Goal", systemImage: "textformat") { addText() }
             Button("Create with AI", systemImage: "sparkles") { openAIBoard(from: "empty_board") }
             Menu {
@@ -273,6 +282,12 @@ struct BoardView: View {
         guard ProAccess.shared.requirePro(from: "ai_board") else { return }
         aiBoardSource = source
         showAIBoard = true
+    }
+
+    // Free for everyone, so people fill a board fast before they ever see a paywall
+    private func openPhotoSearch(from source: String) {
+        Analytics.capture("photo_search_opened", ["surface": source])
+        showPhotoSearch = true
     }
 
     private func logAdded(_ source: String) {
