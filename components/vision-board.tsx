@@ -832,7 +832,7 @@ export function VisionBoard() {
     } finally {
       setSharingImage(false)
     }
-  }, [items, zoom, canvasBgColor, sharingImage, t])
+  }, [items, zoom, canvasBgColor, canvasBgColors, sharingImage, t])
 
   const importBoard = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]

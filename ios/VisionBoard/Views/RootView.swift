@@ -82,7 +82,7 @@ extension RootView {
         guard pro.noteAppOpen(itemCount: store.items.count) else { return }
         // Let the board settle on screen first
         try? await Task.sleep(for: .seconds(1.5))
-        guard scenePhase == .active, router.paywallSource == nil, router.todayCard == nil, !showOnboarding else { return }
+        guard scenePhase == .active, router.paywallSource == nil, router.todayCard == nil, router.weeklyRecapSource == nil, !showOnboarding else { return }
         pro.markSoftPaywallShown()
         router.paywallSource = "soft"
     }
