@@ -33,6 +33,7 @@ import {
   RotateCw,
   Cloud,
   GalleryVerticalEnd,
+  Share2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -66,6 +67,7 @@ import {
 } from "@/lib/sync"
 import { TEMPLATES } from "@/lib/templates"
 import { track } from "@/lib/analytics"
+import { renderBoardStory, shareOrDownloadImage } from "@/lib/share-image"
 import { BoardItemComponent } from "./board-item"
 import { SyncDialog } from "./sync-dialog"
 import { TodayCard } from "./today-card"
@@ -718,6 +720,33 @@ export function VisionBoard() {
     setShowBackupReminder(false)
   }, [items, maxZIndex])
 
+  // Board menu > Share as image: the clippings in view (or the whole board
+  // when none are) as a 1080 x 1920 story with the VisionBoard mark
+  const [sharingImage, setSharingImage] = useState(false)
+  const shareAsImage = useCallback(async () => {
+    const el = canvasRef.current
+    if (!el || items.length === 0 || sharingImage) return
+    setSharingImage(true)
+    try {
+      const left = el.scrollLeft / zoom
+      const top = el.scrollTop / zoom
+      const right = left + el.clientWidth / zoom
+      const bottom = top + el.clientHeight / zoom
+      const inView = items.filter(
+        (i) => i.x < right && i.x + i.width > left && i.y < bottom && i.y + i.height > top,
+      )
+      const paper = canvasBgColors.find((c) => c.id === canvasBgColor)?.color ?? '#f5f0e8'
+      const blob = await renderBoardStory(inView.length > 0 ? inView : items, paper, { mark: true })
+      if (!blob) return
+      const method = await shareOrDownloadImage(blob, `visionboard-${new Date().toISOString().slice(0, 10)}.png`)
+      if (method) {
+        track("board_shared", { platform: "web", format: "story", method, has_mark: true, board_item_count: items.length })
+      }
+    } finally {
+      setSharingImage(false)
+    }
+  }, [items, zoom, canvasBgColor, sharingImage])
+
   const importBoard = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -943,6 +972,12 @@ export function VisionBoard() {
               <DropdownMenuItem onClick={() => setSyncOpen(true)}>
                 <Cloud className="mr-2 h-4 w-4" />
                 Sync & reminders
+              </DropdownMenuItem>
+            )}
+            {items.length > 0 && (
+              <DropdownMenuItem onClick={shareAsImage} disabled={sharingImage}>
+                <Share2 className="mr-2 h-4 w-4" />
+                Share as image
               </DropdownMenuItem>
             )}
             <DropdownMenuItem onClick={exportBoard}>
