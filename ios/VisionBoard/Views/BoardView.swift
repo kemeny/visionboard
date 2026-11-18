@@ -248,10 +248,10 @@ struct BoardView: View {
 
     private var syncLabel: String {
         switch sync.status {
-        case .unavailable, .off: "Not Synced"
-        case .syncing: "Syncing"
-        case .synced: "Synced"
-        case .error: "Sync Problem"
+        case .unavailable, .off: String(localized: "Not Synced")
+        case .syncing: String(localized: "Syncing")
+        case .synced: String(localized: "Synced")
+        case .error: String(localized: "Sync Problem")
         }
     }
 

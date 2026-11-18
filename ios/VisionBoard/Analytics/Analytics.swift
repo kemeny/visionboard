@@ -26,6 +26,12 @@ enum Analytics {
         AnalyticsEngine.shared.flag(key)
     }
 
+    // False on a first launch until the first flags arrive. Before then a nil
+    // from flag(_:) means "not known yet", not "off".
+    static var flagsKnown: Bool {
+        AnalyticsEngine.shared.areFlagsKnown
+    }
+
     static func isEnabled(_ key: String) -> Bool {
         guard let value = flag(key) else { return false }
         return value != "false"
@@ -287,6 +293,12 @@ final class AnalyticsEngine: @unchecked Sendable {
     }
 
     // MARK: Feature flags
+
+    var areFlagsKnown: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return flagsKnown
+    }
 
     func flag(_ key: String) -> String? {
         lock.lock()

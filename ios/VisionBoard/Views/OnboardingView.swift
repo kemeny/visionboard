@@ -10,6 +10,7 @@ import SwiftUI
 // screen, the daily nudge.
 struct OnboardingView: View {
     @Environment(BoardStore.self) private var store
+    @Environment(SyncService.self) private var sync
     @Environment(Reminders.self) private var reminders
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.displayScale) private var displayScale
@@ -26,11 +27,18 @@ struct OnboardingView: View {
     }
 
     private static let flagKey = "onboarding-goals"
+    // The variant is kept, so a relaunch mid-onboarding (after a trip to
+    // Photos or Settings) shows the same flow and doesn't start it twice
+    private static let variantDefaultsKey = "onboarding-variant"
     private static let controlSteps = ["welcome", "templates", "nudge"]
     private static let placeholders: [LocalizedStringKey] = ["Run a half marathon", "Visit Japan", "Save for a home"]
 
     // Decided once, after the welcome page had a moment to fetch flags
     @State private var variant: Variant?
+    // What analytics records: "control", "test", or "unassigned" when the
+    // flags hadn't arrived yet (those people see the control flow and are
+    // left out of the experiment)
+    @State private var variantLabel = "unassigned"
     // New flow: the page shown and the way back
     @State private var step: Step = .welcome
     @State private var history: [Step] = []
@@ -180,22 +188,44 @@ struct OnboardingView: View {
 
     private func lockVariant() {
         guard variant == nil else { return }
-        let chosen: Variant = Analytics.flag(Self.flagKey) == "control" ? .control : .test
-        variant = chosen
-        Analytics.capture("onboarding_started", ["variant": chosen.rawValue])
+        if let saved = UserDefaults.standard.string(forKey: Self.variantDefaultsKey) {
+            variantLabel = saved
+            variant = saved == Variant.test.rawValue ? .test : .control
+            return
+        }
+        let label: String
+        if !Analytics.flagsKnown {
+            label = "unassigned"
+        } else {
+            // Once flags are known, a missing flag (experiment over) means the new flow
+            label = Analytics.flag(Self.flagKey) == "control" ? Variant.control.rawValue : Variant.test.rawValue
+        }
+        variantLabel = label
+        variant = label == Variant.test.rawValue ? .test : .control
+        UserDefaults.standard.set(label, forKey: Self.variantDefaultsKey)
+        Analytics.capture("onboarding_started", experimentProperties())
+    }
+
+    // Every onboarding event carries the variant, and PostHog's own
+    // $feature/<flag> property when the person is really in the experiment
+    private func experimentProperties(_ extra: [String: Any] = [:]) -> [String: Any] {
+        var properties = extra
+        properties["variant"] = variantLabel
+        if variantLabel != "unassigned" { properties["$feature/\(Self.flagKey)"] = variantLabel }
+        return properties
     }
 
     private func logStep(_ name: String) {
         guard name != lastLoggedStep else { return }
         lastLoggedStep = name
-        Analytics.capture("onboarding_step_viewed", ["step": name])
+        Analytics.capture("onboarding_step_viewed", experimentProperties(["step": name]))
     }
 
     private func skip() {
         guard !didFinish else { return }
         didFinish = true
         lockVariant()
-        Analytics.capture("onboarding_skipped", ["step": currentStepName])
+        Analytics.capture("onboarding_skipped", experimentProperties(["step": currentStepName]))
         onFinish()
     }
 
@@ -203,12 +233,11 @@ struct OnboardingView: View {
         guard !didFinish else { return }
         didFinish = true
         lockVariant()
-        var properties: [String: Any] = [
-            "variant": (variant ?? .test).rawValue,
+        var properties: [String: Any] = experimentProperties([
             "path": path,
             "goals_count": committedGoals.count,
             "reminders": reminders,
-        ]
+        ])
         if let templateID { properties["template"] = templateID }
         Analytics.capture("onboarding_completed", properties)
         onFinish()
@@ -287,7 +316,7 @@ struct OnboardingView: View {
             VStack(spacing: 10) {
                 ForEach(BoardTemplate.all) { template in
                     Button {
-                        if templateID != template.id, let file = template.load() {
+                        if templateID != template.id, !boardHasOutsideContent, let file = template.load() {
                             store.replaceBoard(with: file)
                             templateID = template.id
                             clearOwnGoals()
@@ -512,9 +541,18 @@ struct OnboardingView: View {
             wallpaperStatus = nil
             arrange()
             Analytics.capture("goals_entered", ["count": entered.count])
+            for _ in goalIDs {
+                Analytics.capture("item_added", ["source": "onboarding_goal", "board_item_count": store.items.count])
+            }
         }
         path = "goals"
         go(to: .photos)
+    }
+
+    // A synced board whose cloud copy landed behind this sheet. Onboarding
+    // never replaces content it didn't put there itself.
+    private var boardHasOutsideContent: Bool {
+        sync.isOn && templateID == nil && goalIDs.isEmpty && photoIDs.isEmpty && !store.items.isEmpty
     }
 
     private func clearOwnGoals() {
@@ -548,6 +586,9 @@ struct OnboardingView: View {
         wallpaperStatus = nil
         arrange()
         Analytics.capture("photos_added", ["count": added.count])
+        for _ in added {
+            Analytics.capture("item_added", ["source": "onboarding_photo", "board_item_count": store.items.count])
+        }
     }
 
     // A tidy two-column collage: each goal beside its photo, sides swapping

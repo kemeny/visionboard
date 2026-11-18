@@ -64,7 +64,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Privacy")
                 } footer: {
-                    Text("Helps us see which features people use. Only taps and counts are sent, with a random ID. Your goals and photos are never sent.")
+                    Text("Helps us see which features people use. Only taps, counts and the plan you pick are sent, with a random ID. Your goals and photos are never sent.")
                 }
                 Section {
                     LabeledContent("Version", value: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "")
@@ -230,7 +230,7 @@ struct SettingsView: View {
     }
 
     private var syncHeader: String {
-        library.boards.count > 1 ? String(localized: "Sync for \(library.current?.name ?? String(localized: "This Board"))") : "Sync"
+        library.boards.count > 1 ? String(localized: "Sync for \(library.current?.name ?? String(localized: "This Board"))") : String(localized: "Sync")
     }
 
     private var statusText: String {
@@ -248,7 +248,7 @@ struct SettingsView: View {
         // Keep what's here: a synced board joins as a board of its own
         var created: BoardLibrary.Board?
         if !store.items.isEmpty {
-            created = await library.create(named: "Synced Board")
+            created = await library.create(named: String(localized: "Synced Board"))
         }
         do {
             try await sync.connect(input)
