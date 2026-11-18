@@ -18,7 +18,10 @@ import {
   replaceImageUrls,
   setSyncKey,
   setSyncedAt,
+  SyncError,
+  syncErrorCode,
   uploadInlineImages,
+  type SyncErrorCode,
 } from "@/lib/sync"
 
 export type SyncStatus = "unavailable" | "off" | "syncing" | "synced" | "error"
@@ -38,7 +41,7 @@ interface Options {
 export function useBoardSync({ items, maxZIndex, isLoaded, applyRemote, replaceItems }: Options) {
   const [syncKey, setKey] = useState<string | null>(null)
   const [status, setStatus] = useState<SyncStatus>("off")
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<SyncErrorCode | null>(null)
   // Items arrays we set ourselves (remote pulls, image swaps) are not user edits
   const ownWrite = useRef<BoardItem[] | null>(null)
   const sawInitialItems = useRef(false)
@@ -68,7 +71,7 @@ export function useBoardSync({ items, maxZIndex, isLoaded, applyRemote, replaceI
         return remote
       } catch (e) {
         setStatus("error")
-        setError(e instanceof Error ? e.message : "Sync failed")
+        setError(syncErrorCode(e))
         return null
       }
     },
@@ -101,14 +104,14 @@ export function useBoardSync({ items, maxZIndex, isLoaded, applyRemote, replaceI
         if (imageError) {
           // The rest of the board is saved; only the failed images are missing
           setStatus("error")
-          setError(`Some images couldn't be saved to the cloud: ${imageError}`)
+          setError("imagesFailed")
         } else {
           setStatus("synced")
           setError(null)
         }
       } catch (e) {
         setStatus("error")
-        setError(e instanceof Error ? e.message : "Sync failed")
+        setError(syncErrorCode(e))
       }
     },
     [replaceItems]
@@ -159,7 +162,7 @@ export function useBoardSync({ items, maxZIndex, isLoaded, applyRemote, replaceI
     async (input: string) => {
       const key = normalizeSyncKey(input)
       const remote = await fetchRemoteBoard(key)
-      if (!remote) throw new Error("No board found for that key. Check it and try again.")
+      if (!remote) throw new SyncError("notFound", 404)
       setSyncKey(key)
       setSyncedAt(0)
       dirty.current = false

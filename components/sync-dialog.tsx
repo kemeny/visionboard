@@ -22,11 +22,23 @@ import {
   normalizeSyncKey,
   pushSupported,
   sendTestReminder,
+  syncErrorCode,
   syncLink,
+  type SyncErrorCode,
 } from "@/lib/sync"
 import type { useBoardSync } from "@/hooks/use-board-sync"
 import { track } from "@/lib/analytics"
-import { useT, type Lang } from "@/lib/i18n"
+import { useT, type Lang, type MessageKey } from "@/lib/i18n"
+
+// Sync errors in the person's language. Anything unexpected reads as "Something went wrong".
+const SYNC_ERROR_KEYS: Record<SyncErrorCode, MessageKey> = {
+  notFound: "sync.err.notFound",
+  tooLarge: "sync.err.tooLarge",
+  notifBlocked: "sync.err.notifBlocked",
+  noReminder: "sync.err.noReminder",
+  imagesFailed: "sync.err.imagesFailed",
+  failed: "sync.generic",
+}
 
 type Sync = ReturnType<typeof useBoardSync>
 
@@ -79,7 +91,7 @@ export function SyncDialog({ open, onOpenChange, sync, hasLocalItems, linkKey, o
       await fn()
       return true
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : t("sync.generic"))
+      setMessage(t(SYNC_ERROR_KEYS[syncErrorCode(e)]))
       return false
     } finally {
       setBusy(null)
@@ -339,7 +351,9 @@ export function SyncDialog({ open, onOpenChange, sync, hasLocalItems, linkKey, o
             </section>
 
             {notice && <p className="text-xs text-emerald-700">{notice}</p>}
-            {(message || sync.error) && <p className="text-xs text-destructive">{message || sync.error}</p>}
+            {(message || sync.error) && (
+              <p className="text-xs text-destructive">{message || (sync.error && t(SYNC_ERROR_KEYS[sync.error]))}</p>
+            )}
           </div>
         )}
       </DialogContent>

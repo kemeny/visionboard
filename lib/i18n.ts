@@ -1,11 +1,13 @@
 'use client'
 
-import { useCallback, useEffect, useSyncExternalStore } from 'react'
+import { createContext, createElement, useCallback, useContext, useEffect, useSyncExternalStore, type ReactNode } from 'react'
 
 // Tiny dictionary i18n for the web app (English and Spanish).
 // Language: ?lang=es|en in the address, else the saved choice ('vb-lang'),
 // else the browser language (es* -> Spanish), else English.
-// The server always renders English; the client switches after hydration.
+// The server renders English unless the page passes ?lang=es through
+// LangProvider (the home page does), so crawlers and link previews of
+// /?lang=es get Spanish. Otherwise the client switches after hydration.
 
 export type Lang = 'en' | 'es'
 
@@ -59,6 +61,7 @@ const en = {
 
   // New clippings
   'item.newText': 'Click to style, triple-click to edit',
+  'item.imageAlt': 'Vision board image',
 
   // Welcome overlay
   'welcome.title': 'What do you want in 2027?',
@@ -158,6 +161,11 @@ const en = {
   'sync.testSent': 'Test sent. It should arrive in a few seconds.',
   'sync.shareTitle': 'My vision board',
   'sync.generic': 'Something went wrong',
+  'sync.err.notFound': 'No board found for that key. Check it and try again.',
+  'sync.err.tooLarge': 'This board is too large to sync. Try removing a few photos.',
+  'sync.err.notifBlocked': 'Notifications are blocked for this site. Allow them in your browser settings.',
+  'sync.err.noReminder': 'Reminders are not set up on this device yet.',
+  'sync.err.imagesFailed': "Some images couldn't be saved to the cloud. They'll try again on the next change.",
   'sync.iosAfterJoin':
     'Board opened. For daily reminders: tap Copy key below, then Share and "Add to Home Screen", open it from there and tap Paste.',
   'sync.alreadyOpen': 'This board is already open on this device.',
@@ -212,6 +220,7 @@ const es: Record<MessageKey, string> = {
   'legal.support': 'Ayuda',
 
   'item.newText': 'Toca para dar estilo, triple toque para editar',
+  'item.imageAlt': 'Imagen del tablero',
 
   'welcome.title': '¿Qué quieres para 2027?',
   'welcome.subtitle': 'Escribe tres cosas. Las convertimos en tu tablero de visión.',
@@ -305,6 +314,11 @@ const es: Record<MessageKey, string> = {
   'sync.testSent': 'Prueba enviada. Debería llegar en unos segundos.',
   'sync.shareTitle': 'Mi tablero de visión',
   'sync.generic': 'Algo salió mal',
+  'sync.err.notFound': 'No encontramos un tablero con esa clave. Revísala e intenta de nuevo.',
+  'sync.err.tooLarge': 'Este tablero es demasiado grande para sincronizarlo. Prueba quitando algunas fotos.',
+  'sync.err.notifBlocked': 'Las notificaciones están bloqueadas para este sitio. Permítelas en los ajustes del navegador.',
+  'sync.err.noReminder': 'Los recordatorios aún no están configurados en este dispositivo.',
+  'sync.err.imagesFailed': 'Algunas imágenes no se pudieron guardar en la nube. Se volverá a intentar con el próximo cambio.',
   'sync.iosAfterJoin':
     'Tablero abierto. Para los recordatorios diarios: toca Copiar clave abajo, luego Compartir y "Agregar a inicio", ábrelo desde ahí y toca Pegar.',
   'sync.alreadyOpen': 'Este tablero ya está abierto en este dispositivo.',
@@ -357,8 +371,17 @@ function subscribe(cb: () => void) {
   return () => { listeners.delete(cb) }
 }
 
+// The language the server rendered with. Hydration reads the same value, so
+// the first paint matches the server's HTML.
+const ServerLangContext = createContext<Lang>('en')
+
+export function LangProvider({ lang, children }: { lang: Lang; children: ReactNode }) {
+  return createElement(ServerLangContext.Provider, { value: lang }, children)
+}
+
 export function useT() {
-  const lang = useSyncExternalStore(subscribe, getLang, () => 'en' as Lang)
+  const serverLang = useContext(ServerLangContext)
+  const lang = useSyncExternalStore(subscribe, getLang, () => serverLang)
   useEffect(() => {
     document.documentElement.lang = lang
   }, [lang])

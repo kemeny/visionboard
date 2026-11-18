@@ -1,4 +1,4 @@
-import { BoardItem } from './types'
+import { BoardItem, isUnsplashImage } from './types'
 
 // Proxied to the Cloudflare Worker by next.config.mjs
 const API = '/api/sync'
@@ -11,10 +11,24 @@ export interface RemoteBoard {
   maxZIndex: number
 }
 
+// What went wrong, as a code the UI turns into words in the person's
+// language (sync-dialog.tsx). Server error text is never shown as is.
+export type SyncErrorCode = 'notFound' | 'tooLarge' | 'notifBlocked' | 'noReminder' | 'imagesFailed' | 'failed'
+
 export class SyncError extends Error {
-  constructor(message: string, public status: number) {
-    super(message)
+  constructor(public code: SyncErrorCode, public status: number) {
+    super(code)
   }
+}
+
+export function syncErrorCode(e: unknown): SyncErrorCode {
+  return e instanceof SyncError ? e.code : 'failed'
+}
+
+function codeForStatus(status: number): SyncErrorCode {
+  if (status === 404) return 'notFound'
+  if (status === 413) return 'tooLarge'
+  return 'failed'
 }
 
 // 20 random bytes as base32, grouped for easy copying: "k3fa-9qzt-..."
@@ -69,7 +83,7 @@ async function api<T>(path: string, key: string | null, init: RequestInit = {}):
   if (key) headers.set('Authorization', `Bearer ${key}`)
   const res = await fetch(API + path, { ...init, headers })
   const body = await res.json().catch(() => ({}))
-  if (!res.ok) throw new SyncError(body.error || `Request failed (${res.status})`, res.status)
+  if (!res.ok) throw new SyncError(codeForStatus(res.status), res.status)
   return body as T
 }
 
@@ -231,6 +245,8 @@ export function isIos(): boolean {
 export interface TodayCard {
   text: string
   image?: string
+  // The photographer, for an Unsplash photo
+  credit?: string
 }
 
 // Read a "#today&text=…&image=…" link from a reminder and remove it from the
@@ -242,7 +258,10 @@ export function takeTodayFromUrl(): TodayCard | null {
   const text = params.get('text') || ''
   const image = params.get('image') || ''
   if (!text && !image) return null
-  return { text, image: image.startsWith('/api/sync/images/') ? image : undefined }
+  const credit = params.get('credit')?.slice(0, 100) || undefined
+  if (image.startsWith('/api/sync/images/')) return { text, image }
+  if (isUnsplashImage(image)) return { text, image, credit }
+  return { text }
 }
 
 // A reminder tapped while the app was in the background, parked by public/sw.js.
@@ -297,7 +316,7 @@ async function getSubscription(create: boolean): Promise<PushSubscription | null
 
 export async function enableReminders(key: string, hour: number): Promise<void> {
   const permission = await Notification.requestPermission()
-  if (permission !== 'granted') throw new SyncError('Notifications are blocked for this site in your browser settings', 403)
+  if (permission !== 'granted') throw new SyncError('notifBlocked', 403)
   const subscription = await getSubscription(true)
   await api('/push/subscribe', key, {
     method: 'POST',
@@ -326,6 +345,6 @@ export async function disableReminders(key: string | null): Promise<void> {
 
 export async function sendTestReminder(key: string): Promise<void> {
   const subscription = await getSubscription(false)
-  if (!subscription) throw new SyncError('Reminders are not set up on this device', 400)
+  if (!subscription) throw new SyncError('noReminder', 400)
   await api('/push/test', key, { method: 'POST', body: JSON.stringify({ endpoint: subscription.endpoint }) })
 }

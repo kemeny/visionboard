@@ -3,6 +3,7 @@
 import { X } from "lucide-react"
 import type { TodayCard as TodayCardData } from "@/lib/sync"
 import { useT } from "@/lib/i18n"
+import { PhotoCredit } from "./photo-credit"
 
 // Full-screen view of today's reminder: the photo with the goal over it.
 // Tapping anywhere goes back to the board.
@@ -35,6 +36,12 @@ export function TodayCard({ card, onClose }: { card: TodayCardData; onClose: () 
           <p className="text-3xl font-bold leading-tight tracking-tight sm:text-5xl">{card.text}</p>
         )}
         <p className="mt-6 text-sm text-white/60">{t("today.tap")}</p>
+        {card.image && card.credit && (
+          <PhotoCredit
+            credit={{ name: card.credit, source: "unsplash" }}
+            className="mt-2 block text-xs text-white/60"
+          />
+        )}
       </div>
     </div>
   )

@@ -7,6 +7,7 @@ import { buildFeedRound, loadFeedStats, recordView, saveFeedStats, type FeedStat
 import { getTextStyle } from "./board-item"
 import { cn } from "@/lib/utils"
 import { useT } from "@/lib/i18n"
+import { PhotoCredit } from "./photo-credit"
 
 type Tab = "foryou" | "liked"
 
@@ -168,6 +169,13 @@ export function FeedView({ items, onToggleLike, onToggleAchieved, onClose }: Pro
                   <BadgeCheck className="h-3.5 w-3.5" />
                   {t("progress.done")}
                 </div>
+              )}
+
+              {item.type === "image" && item.credit && (
+                <PhotoCredit
+                  credit={item.credit}
+                  className="absolute bottom-[max(1.5rem,env(safe-area-inset-bottom))] left-4 max-w-[calc(100%-6rem)] truncate rounded-full bg-black/40 px-3 py-1 text-xs text-white backdrop-blur"
+                />
               )}
 
               <div className="absolute bottom-[max(1.5rem,env(safe-area-inset-bottom))] right-4 flex flex-col items-center gap-1">

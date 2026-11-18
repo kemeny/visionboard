@@ -41,7 +41,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
-import { BoardItem, TEXT_COLORS, FONT_SIZES, TEXT_STYLES, FontStyle, UNSPLASH_REFERRAL_URL } from "@/lib/types"
+import { BoardItem, TEXT_COLORS, FONT_SIZES, TEXT_STYLES, FontStyle } from "@/lib/types"
 import { daysSinceCreated } from "@/lib/progress"
 
 const LEGACY_STYLE_MAP: Record<string, FontStyle> = {
@@ -77,6 +77,7 @@ import { renderBoardStory, shareOrDownloadImage } from "@/lib/share-image"
 import { BoardItemComponent } from "./board-item"
 import { SyncDialog } from "./sync-dialog"
 import { TodayCard } from "./today-card"
+import { PhotoCredit } from "./photo-credit"
 import { FeedView } from "./feed-view"
 import { useBoardSync } from "@/hooks/use-board-sync"
 import {
@@ -319,7 +320,10 @@ export function VisionBoard() {
     setMaxZIndex(newItems.length + 1)
     setSelectedIds(new Set())
     setZoom(1)
-    track("template_loaded", { template: templateId, surface: "board" })
+    // Same meaning as on iOS: blank paper is blank_started, an example is template_loaded
+    const surface = onboardingActive.current ? "onboarding" : "board"
+    if (templateId === "blank") track("blank_started", { surface })
+    else track("template_loaded", { template: templateId, surface })
     finishOnboarding(templateId === "blank" ? "blank" : "template")
   }, [lang, finishOnboarding])
 
@@ -363,7 +367,7 @@ export function VisionBoard() {
     setMaxZIndex(1)
     setSelectedIds(new Set())
     setZoom(1)
-    track("blank_started", { surface: "board" })
+    track("board_reset", { surface: "board" })
   }, [t])
 
   const handleImageUpload = useCallback(
@@ -1663,24 +1667,7 @@ export function VisionBoard() {
           )}
 
           {selectedItem.credit && (
-            <span className="whitespace-nowrap px-2 text-xs text-muted-foreground">
-              {t("credit.photoBy")}{" "}
-              {selectedItem.credit.url ? (
-                <a href={selectedItem.credit.url} target="_blank" rel="noopener noreferrer" className="underline">
-                  {selectedItem.credit.name}
-                </a>
-              ) : (
-                selectedItem.credit.name
-              )}
-              {selectedItem.credit.source === "unsplash" && (
-                <>
-                  {" "}{t("credit.on")}{" "}
-                  <a href={UNSPLASH_REFERRAL_URL} target="_blank" rel="noopener noreferrer" className="underline">
-                    Unsplash
-                  </a>
-                </>
-              )}
-            </span>
+            <PhotoCredit credit={selectedItem.credit} className="px-2 text-xs text-muted-foreground" />
           )}
 
           <div className="mx-1 h-5 w-px bg-border" />

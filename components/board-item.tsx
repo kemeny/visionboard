@@ -336,7 +336,7 @@ export function BoardItemComponent({
       {item.type === "image" ? (
         <img
           src={item.content}
-          alt="Vision board item"
+          alt={t("item.imageAlt")}
           className="h-full w-full rounded-xl object-cover shadow-lg"
           draggable={false}
         />
