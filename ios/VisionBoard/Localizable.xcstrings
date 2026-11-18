@@ -1,6 +1,16 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "%@ free": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ gratis"
+          }
+        }
+      }
+    },
     "%@ per month": {
       "localizations": {
         "es": {
@@ -137,6 +147,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Un empujón diario"
+          }
+        }
+      }
+    },
+    "A photo is missing from this iPhone.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Falta una foto en este iPhone."
           }
         }
       }
@@ -371,6 +391,16 @@
         }
       }
     },
+    "Before You Start": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Antes de empezar"
+          }
+        }
+      }
+    },
     "Begin with an example you can change, or with blank paper.": {
       "localizations": {
         "es": {
@@ -381,12 +411,32 @@
         }
       }
     },
+    "Black": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Negro"
+          }
+        }
+      }
+    },
     "Blank": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Liso"
+          }
+        }
+      }
+    },
+    "Blue": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Azul"
           }
         }
       }
@@ -551,6 +601,16 @@
         }
       }
     },
+    "Couldn't reach Apple to finish deleting your account. Try again in a moment.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No pudimos conectar con Apple para terminar de borrar tu cuenta. Intenta de nuevo en un momento."
+          }
+        }
+      }
+    },
     "Couldn't reach the App Store. Check your connection and try again.": {
       "localizations": {
         "es": {
@@ -647,6 +707,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Estudio creativo"
+          }
+        }
+      }
+    },
+    "Custom color": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Color personalizado"
           }
         }
       }
@@ -971,12 +1041,42 @@
         }
       }
     },
+    "Free for %@, then %@ per year.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gratis por %@, luego %@ al año."
+          }
+        }
+      }
+    },
     "Free for 7 days, then %@ per year.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Gratis por 7 días, luego %@ al año."
+          }
+        }
+      }
+    },
+    "Free trial": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prueba gratis"
+          }
+        }
+      }
+    },
+    "Free trial, then %@ per year.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prueba gratis, luego %@ al año."
           }
         }
       }
@@ -1061,6 +1161,16 @@
         }
       }
     },
+    "Green": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verde"
+          }
+        }
+      }
+    },
     "Grid": {
       "localizations": {
         "es": {
@@ -1101,6 +1211,16 @@
         }
       }
     },
+    "Helps us see which features people use. Only taps, counts and the plan you pick are sent, with a random ID. Your goals and photos are never sent.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nos ayuda a ver qué funciones se usan. Solo se envían toques, conteos y el plan que eliges, con un ID aleatorio. Tus metas y fotos nunca se envían."
+          }
+        }
+      }
+    },
     "Here's to the next one.": {
       "localizations": {
         "es": {
@@ -1127,6 +1247,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Quiero correr una media maratón, cocinar más en casa y llevar a mi mamá a Japón."
+          }
+        }
+      }
+    },
+    "Ink": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tinta"
           }
         }
       }
@@ -1481,12 +1611,32 @@
         }
       }
     },
+    "None": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ninguno"
+          }
+        }
+      }
+    },
     "Not Now": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Ahora no"
+          }
+        }
+      }
+    },
+    "Not Synced": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin sincronizar"
           }
         }
       }
@@ -1641,6 +1791,16 @@
         }
       }
     },
+    "Orange": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Naranja"
+          }
+        }
+      }
+    },
     "Paper": {
       "localizations": {
         "es": {
@@ -1721,6 +1881,16 @@
         }
       }
     },
+    "Pink": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rosa"
+          }
+        }
+      }
+    },
     "Poster": {
       "localizations": {
         "es": {
@@ -1761,6 +1931,16 @@
         }
       }
     },
+    "Purple": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Morado"
+          }
+        }
+      }
+    },
     "Put It on Your Screen": {
       "localizations": {
         "es": {
@@ -1797,6 +1977,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Estilo al azar"
+          }
+        }
+      }
+    },
+    "Red": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rojo"
           }
         }
       }
@@ -2421,6 +2611,16 @@
         }
       }
     },
+    "Sync Problem": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Problema al sincronizar"
+          }
+        }
+      }
+    },
     "Sync for %@": {
       "localizations": {
         "es": {
@@ -2447,6 +2647,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "La sincronización no está configurada en esta versión."
+          }
+        }
+      }
+    },
+    "Synced": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sincronizado"
+          }
+        }
+      }
+    },
+    "Synced Board": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tablero sincronizado"
+          }
+        }
+      }
+    },
+    "Syncing": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sincronizando"
           }
         }
       }
@@ -2617,6 +2847,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "El App Store no pudo confirmar esta compra. Inténtalo de nuevo o toca Restaurar compras."
+          }
+        }
+      }
+    },
+    "The App Store couldn't confirm your Pro plan. Try Restore Purchases in Settings.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El App Store no pudo confirmar tu plan Pro. Prueba Restaurar compras en Ajustes."
           }
         }
       }
@@ -3011,6 +3251,16 @@
         }
       }
     },
+    "What you write here is sent to Anthropic to write your goals. Search words go to Unsplash to find photos.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lo que escribes aquí se envía a Anthropic para escribir tus metas. Las palabras de búsqueda van a Unsplash para buscar fotos."
+          }
+        }
+      }
+    },
     "What's one step for next week?": {
       "localizations": {
         "es": {
@@ -3067,6 +3317,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Anual"
+          }
+        }
+      }
+    },
+    "Yellow": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Amarillo"
           }
         }
       }
@@ -3237,6 +3497,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tu semana en VisionBoard"
+          }
+        }
+      }
+    },
+    "Your words are sent to Anthropic to write your goals, and search words to Unsplash to find photos. Nothing else from your board is sent.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tus palabras se envían a Anthropic para escribir tus metas, y las palabras de búsqueda a Unsplash para buscar fotos. No se envía nada más de tu tablero."
           }
         }
       }
