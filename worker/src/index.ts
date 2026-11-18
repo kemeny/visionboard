@@ -63,7 +63,8 @@ const isReminderImage = (content: string) =>
 const MAX_BOARD_BYTES = 2 * 1024 * 1024
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024
 const MIN_KEY_LENGTH = 20
-const PLACEHOLDER_TEXT = 'Click to style, triple-click to edit'
+// Kept in step with lib/feed.ts: the hint a new text clipping starts with, in English and Spanish
+const PLACEHOLDER_TEXTS = new Set(['Click to style, triple-click to edit', 'Toca para dar estilo, triple toque para editar'])
 
 const json = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } })
@@ -97,7 +98,7 @@ async function getVapidKeys(env: Env): Promise<VapidKeys> {
 // unless every goal is done. Done photos come round 3 times in 10. The iOS app
 // (DailyCard.pick) uses the same rotation, so phone and web agree.
 export function pickReminder(items: BoardItem[], day: number) {
-  const allTexts = items.filter((i) => i.type === 'text' && i.content.trim() && i.content !== PLACEHOLDER_TEXT)
+  const allTexts = items.filter((i) => i.type === 'text' && i.content.trim() && !PLACEHOLDER_TEXTS.has(i.content.trim()))
   const openTexts = allTexts.filter((i) => !i.achievedAt)
   const texts = (openTexts.length ? openTexts : allTexts).map((i) => i.content.trim())
   const imageItems = items.filter((i) => i.type === 'image' && typeof i.content === 'string' && isReminderImage(i.content))
@@ -340,16 +341,25 @@ async function handleAccount(path: string, method: string, request: Request, env
       if (e instanceof TokenError) return error(`Sign in failed: ${e.message}`, 401)
       throw e
     }
-    // Apple's refresh token, so deleting the account can revoke it. A
-    // failed exchange doesn't stop sign-in; a token from before is kept.
+    // Apple's refresh token, so deleting the account can revoke it. Every
+    // account must hold one: a failed exchange only falls back to the token
+    // an existing account already has, and a new account isn't created
+    // without it (the app shows the error and the person can try again).
     const client = appleClient(env)
+    if (!client) return error('Sign in with Apple is not set up on this server', 503)
     let refreshCiphertext: string | null = null
-    if (client && typeof body.authorizationCode === 'string' && body.authorizationCode) {
+    if (typeof body.authorizationCode === 'string' && body.authorizationCode) {
       const refreshToken = await exchangeAppleCode(body.authorizationCode, client).catch((e) => {
         console.error('apple token exchange failed', e)
         return null
       })
       if (refreshToken) refreshCiphertext = await encryptAppleToken(refreshToken, secret, identity.sub)
+    }
+    if (!refreshCiphertext) {
+      const existing = await env.DB.prepare('SELECT apple_refresh_ciphertext FROM accounts WHERE id = ?')
+        .bind(identity.sub)
+        .first<{ apple_refresh_ciphertext: string | null }>()
+      if (!existing?.apple_refresh_ciphertext) return error('Sign in with Apple could not be completed. Please try again.', 502)
     }
     const now = Date.now()
     // Apple only sends the email when it was shared, so keep the one we have

@@ -80,6 +80,12 @@ struct BoardFile: Codable {
 // The web app's starter text for a new note. Never shown in the feed or reminders.
 let placeholderText = "Click to style, triple-click to edit"
 
+// The web writes the hint in the board's language, so a synced board can hold either
+func isPlaceholderText(_ text: String) -> Bool {
+    let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+    return trimmed == placeholderText || trimmed == "Toca para dar estilo, triple toque para editar"
+}
+
 enum TextStyle: String, CaseIterable, Identifiable {
     case clean, editorial, loud, elegant, mono, handwritten, compact, poster
 

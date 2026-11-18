@@ -58,9 +58,24 @@ final class Reminders {
         Task { await Self.removePending() }
     }
 
+    // Reschedules run one after another, so an older one can never finish
+    // its adds after a newer one and leave a stale reminder behind
+    @ObservationIgnored private var lastReschedule: Task<Void, Never>?
+
     func reschedule(items: [BoardItem]) async {
         generation += 1
         let mine = generation
+        let previous = lastReschedule
+        let task = Task { @MainActor in
+            await previous?.value
+            await self.run(items: items, mine: mine)
+        }
+        lastReschedule = task
+        await task.value
+    }
+
+    private func run(items: [BoardItem], mine: Int) async {
+        guard generation == mine else { return }
         await Self.removePending()
         guard isEnabled, generation == mine else { return }
         let center = UNUserNotificationCenter.current()

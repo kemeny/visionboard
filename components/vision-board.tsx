@@ -265,7 +265,8 @@ export function VisionBoard() {
     saveMaxZDB(maxZIndex).catch(() => {})
   }, [maxZIndex, isLoaded])
 
-  const generateId = () => Math.random().toString(36).substring(2, 9)
+  // Millisecond prefix, like iOS ids, so both apps can tell when an item was added
+  const generateId = () => `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
 
   // The welcome overlay is onboarding: count it once per visit when it shows
   const showWelcome = isLoaded && items.length === 0

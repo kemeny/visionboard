@@ -34,7 +34,7 @@ enum Feed {
     static func isFeedItem(_ item: BoardItem) -> Bool {
         switch item.type {
         case .image: !item.content.isEmpty
-        case .text: !item.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && item.content != placeholderText
+        case .text: !item.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isPlaceholderText(item.content)
         }
     }
 

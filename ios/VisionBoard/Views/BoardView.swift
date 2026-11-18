@@ -477,7 +477,7 @@ struct TextEditSheet: View {
         .presentationDetents([.medium, .large])
         .onAppear {
             let current = store.item(itemID)?.content ?? ""
-            text = current == placeholderText ? "" : current
+            text = isPlaceholderText(current) ? "" : current
             focused = true
         }
     }

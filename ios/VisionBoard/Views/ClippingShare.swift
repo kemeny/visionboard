@@ -47,7 +47,7 @@ enum ClippingShare {
             var shared: [Any] = []
             if let card = renderCard(item) { shared.append(card) }
             let words = item.content.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !words.isEmpty && words != placeholderText { shared.append(words) }
+            if !words.isEmpty && !isPlaceholderText(words) { shared.append(words) }
             return shared.isEmpty ? nil : shared
         }
     }
