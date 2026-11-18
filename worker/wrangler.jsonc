@@ -19,5 +19,10 @@
   "vars": {
     "VAPID_SUBJECT": "mailto:francisco@kemeny.cl"
   },
+  // Secrets, set with `wrangler secret put <NAME>` (never written here):
+  //   ANTHROPIC_API_KEY    Claude Messages API, for POST /api/sync/ai/board
+  //   UNSPLASH_ACCESS_KEY  Unsplash access key, for photo search and download tracking
+  // Without them the AI routes answer 503 {"error":"ai_unavailable"} and
+  // everything else keeps working. Locally, put them in worker/.dev.vars.
   "observability": { "enabled": true }
 }
