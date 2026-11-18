@@ -33,7 +33,8 @@ struct TodayView: View {
             .fullScreenCover(isPresented: Binding(get: { yearShown != nil }, set: { if !$0 { yearShown = nil } })) {
                 YearRecapView(year: yearShown ?? Calendar.current.component(.year, from: .now))
             }
-            .onAppear { Analytics.capture("today_viewed", ["surface": "tab"]) }
+            // today_viewed for the tab fires in RootView on tab selection:
+            // onAppear also runs again when a full-screen cover closes
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Your Week", systemImage: "calendar") { router.weeklyRecapSource = "today" }

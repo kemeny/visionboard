@@ -7,6 +7,7 @@ import SwiftUI
 struct RootView: View {
     @Environment(AppRouter.self) private var router
     @Environment(BoardStore.self) private var store
+    @Environment(SyncService.self) private var sync
     @Environment(ProAccess.self) private var pro
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("onboarded") private var onboarded = false
@@ -53,6 +54,10 @@ struct RootView: View {
         )) {
             PaywallView(source: router.paywallSource ?? "unknown")
         }
+        // Once per visit to the tab, not again when a full-screen card closes
+        .onChange(of: router.tab, initial: true) { _, tab in
+            if tab == .today { Analytics.capture("today_viewed", ["surface": "tab"]) }
+        }
         .onChange(of: scenePhase, initial: true) { _, phase in
             switch phase {
             case .active:
@@ -67,8 +72,11 @@ struct RootView: View {
         }
         .onAppear {
             guard !onboarded else { return }
-            // People who already have a board don't need the tour
-            if store.items.isEmpty { showOnboarding = true } else { onboarded = true }
+            // People who already have a board don't need the tour. A board
+            // that already syncs (its key survives a reinstall in the
+            // Keychain) may be empty only until the first pull lands, and
+            // onboarding's template or goals would then overwrite the cloud copy.
+            if store.items.isEmpty && !sync.isOn { showOnboarding = true } else { onboarded = true }
         }
     }
 }

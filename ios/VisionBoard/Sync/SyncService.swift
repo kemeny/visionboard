@@ -152,8 +152,11 @@ final class SyncService {
         await runPush(key: newKey, board: boardID)
     }
 
-    // Join an existing board: the cloud copy replaces what's on this device
-    func connect(_ input: String) async throws {
+    // Join an existing board: the cloud copy replaces what's on this device.
+    // Returns false, joining nothing, when another board was opened while the
+    // cloud copy was loading.
+    @discardableResult
+    func connect(_ input: String) async throws -> Bool {
         let newKey = SyncAPI.normalizeKey(input)
         guard newKey.count >= 20 else {
             throw SyncAPI.Failure(message: String(localized: "That doesn't look like a sync key. It's the code shown under Sync on your other device."), status: 0)
@@ -163,7 +166,7 @@ final class SyncService {
             throw SyncAPI.Failure(message: String(localized: "No board found for that key. Check it and try again."), status: 404)
         }
         // Another board was opened while this was loading; join nothing
-        guard store.boardID == boardID else { return }
+        guard store.boardID == boardID else { return false }
         KeyStore.write(newKey, board: boardID)
         key = newKey
         dirty = false
@@ -173,6 +176,7 @@ final class SyncService {
         errorMessage = nil
         Analytics.capture("board_joined", ["board_item_count": store.items.count])
         onKeyChange?()
+        return true
     }
 
     // Stop syncing here; the board stays on this device and in the cloud
@@ -198,8 +202,11 @@ final class SyncService {
     // Turns on sync for a board that isn't on screen: a new key, its photos
     // uploaded and the board pushed, straight from its file. If the upload
     // fails the board stays marked as changed, so it goes up when opened.
+    // `store` is the board on screen: if someone opens this board while the
+    // photos upload, their new cloud paths go into it rather than only into
+    // the file, so its next save can't write the old local paths back.
     @discardableResult
-    static func enableStored(board boardID: String) async -> String {
+    static func enableStored(board boardID: String, store: BoardStore? = nil) async -> String {
         if let existing = KeyStore.read(board: boardID) { return existing }
         let key = SyncAPI.generateKey()
         KeyStore.write(key, board: boardID)
@@ -217,14 +224,25 @@ final class SyncService {
             }
         }
         var uploaded: [String: String] = [:]
+        var permanentlyFailed = Set<String>()
         for local in pending {
-            guard let upload = await ImageStore.shared.uploadData(for: local) else { continue }
-            if let path = try? await SyncAPI.uploadImage(key: key, data: upload.0, contentType: upload.1) {
+            guard let upload = await ImageStore.shared.uploadData(for: local) else {
+                permanentlyFailed.insert(local)
+                continue
+            }
+            do {
+                let path = try await SyncAPI.uploadImage(key: key, data: upload.0, contentType: upload.1)
                 await ImageStore.shared.adopt(local: local, as: path)
                 uploaded[local] = path
+            } catch {
+                if isPermanent(error) { permanentlyFailed.insert(local) }
             }
         }
-        if !uploaded.isEmpty {
+        if let store, store.boardID == boardID {
+            // Opened meanwhile: the store holds the newest copy and saves it
+            store.replaceContents(uploaded)
+            file = store.boardFile
+        } else if !uploaded.isEmpty {
             for index in file.items.indices {
                 if let cloud = uploaded[file.items[index].content] { file.items[index].content = cloud }
                 if let original = file.items[index].originalContent, let cloud = uploaded[original] { file.items[index].originalContent = cloud }
@@ -241,10 +259,20 @@ final class SyncService {
             }
         if let updatedAt = try? await SyncAPI.pushBoard(key: key, board: remote) {
             setSyncedAt(updatedAt, board: boardID)
-            let stillLocal = file.items.contains { ImageStore.isLocal($0.content) }
+            // A photo that can never upload must not keep the board dirty, or
+            // every later pull would push this copy over the cloud one
+            let stillLocal = file.items.contains { ImageStore.isLocal($0.content) && !permanentlyFailed.contains($0.content) }
             setDirty(stillLocal, board: boardID)
         }
         return key
+    }
+
+    // An upload that will fail the same way every time: the photo file is
+    // gone or the server refuses it (too large, wrong type). Timeouts and
+    // rate limits are worth another try.
+    private static func isPermanent(_ error: Error) -> Bool {
+        guard let failure = error as? SyncAPI.Failure else { return false }
+        return (400..<500).contains(failure.status) && failure.status != 401 && failure.status != 408 && failure.status != 429
     }
 
     // True while `board` is on screen and still syncs under `key`
@@ -283,6 +311,9 @@ final class SyncService {
             // Upload photos added on this device first, then swap in their cloud paths
             var uploaded: [String: String] = [:]
             var imageError: String?
+            // Photos that can never upload (file missing, refused by the
+            // server). They stay on this device but don't keep the board dirty.
+            var permanentlyFailed = Set<String>()
             var pending = Set<String>()
             for item in snapshot {
                 for content in [item.content, item.originalContent] {
@@ -290,12 +321,17 @@ final class SyncService {
                 }
             }
             for local in pending {
-                guard let upload = await ImageStore.shared.uploadData(for: local) else { continue }
+                guard let upload = await ImageStore.shared.uploadData(for: local) else {
+                    permanentlyFailed.insert(local)
+                    imageError = imageError ?? String(localized: "A photo is missing from this iPhone.")
+                    continue
+                }
                 do {
                     let path = try await SyncAPI.uploadImage(key: key, data: upload.0, contentType: upload.1)
                     await ImageStore.shared.adopt(local: local, as: path)
                     uploaded[local] = path
                 } catch {
+                    if Self.isPermanent(error) { permanentlyFailed.insert(local) }
                     imageError = imageError ?? error.localizedDescription
                 }
             }
@@ -323,8 +359,11 @@ final class SyncService {
                 return
             }
             // An edit made during the upload keeps the board dirty for its own push
+            // Only photos that can still upload keep it dirty. One that never
+            // can would otherwise force a push before every pull, so remote
+            // changes would never come down.
             if editGeneration == generation {
-                dirty = store.items.contains { ImageStore.isLocal($0.content) }
+                dirty = store.items.contains { ImageStore.isLocal($0.content) && !permanentlyFailed.contains($0.content) }
             }
             if let imageError {
                 status = .error
@@ -342,12 +381,20 @@ final class SyncService {
         }
     }
 
-    // Another board opened during the uploads. The photos that made it up are
-    // written into the first board's saved file so they don't upload twice,
-    // and that board stays dirty so it is pushed the next time it is open.
+    // The board on screen or its key changed during the uploads. The photos
+    // that made it up were already moved out of the local folder, so their
+    // cloud paths must replace the local ones wherever the board lives now:
+    // in the store if it is still on screen (a disconnect or a new key), or
+    // in its saved file if another board opened. It stays dirty only while
+    // it still syncs under the same key, so a disconnect or a join that just
+    // ran isn't undone.
     private func abandon(board boardID: String, key: String, uploaded: [String: String]) {
-        Self.setDirty(true, board: boardID)
+        if KeyStore.read(board: boardID) == key { Self.setDirty(true, board: boardID) }
         guard !uploaded.isEmpty else { return }
+        if store.boardID == boardID {
+            store.replaceContents(uploaded)
+            return
+        }
         let url = BoardLibrary.fileURL(for: boardID)
         guard let data = try? Data(contentsOf: url), var file = try? JSONDecoder().decode(BoardFile.self, from: data) else { return }
         for index in file.items.indices {

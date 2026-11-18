@@ -20,6 +20,9 @@ enum Recaps {
     static let weeklyID = "recap-weekly"
     static let winbackID = "winback"
     private static let fallbackHour = 18
+    // Bumped by every reschedule, so one still awaiting stops adding once a
+    // newer one started (for example the one setEnabled(false) runs)
+    @MainActor private static var generation = 0
 
     static var isEnabled: Bool {
         UserDefaults.standard.object(forKey: enabledKey) as? Bool ?? true
@@ -40,10 +43,14 @@ enum Recaps {
 
     @MainActor
     static func reschedule(store: BoardStore, library: BoardLibrary, reminders: Reminders) async {
+        generation += 1
+        let mine = generation
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: [weeklyID, winbackID])
         guard isEnabled else { return }
         let settings = await center.notificationSettings()
+        // Turned off, or rescheduled again, while that was answering
+        guard isEnabled, generation == mine else { return }
         switch settings.authorizationStatus {
         case .authorized, .provisional, .ephemeral:
             break
@@ -63,6 +70,10 @@ enum Recaps {
             content.sound = .default
             try? await center.add(UNNotificationRequest(identifier: weeklyID, content: content, trigger: trigger(for: sunday)))
         }
+        guard isEnabled, generation == mine else {
+            if !isEnabled { center.removePendingNotificationRequests(withIdentifiers: [weeklyID, winbackID]) }
+            return
+        }
 
         if !reminders.isEnabled,
            let day = Calendar.current.date(byAdding: .day, value: 7, to: now),
@@ -76,6 +87,8 @@ enum Recaps {
             content.userInfo = ["text": card.text, "image": card.image ?? ""]
             try? await center.add(UNNotificationRequest(identifier: winbackID, content: content, trigger: trigger(for: fire)))
         }
+        // Turned off while the adds were in flight
+        if !isEnabled { center.removePendingNotificationRequests(withIdentifiers: [weeklyID, winbackID]) }
     }
 
     static func weeklyBody(items: [BoardItem], on date: Date) -> String {

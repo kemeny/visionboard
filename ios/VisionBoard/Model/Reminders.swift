@@ -16,6 +16,11 @@ final class Reminders {
     private static let idPrefix = "daily-"
     private static let daysAhead = 14
 
+    // Bumped by every reschedule and by disable(), so a reschedule that is
+    // still awaiting stops adding once a newer one started or reminders
+    // were turned off
+    @ObservationIgnored private var generation = 0
+
     var isEnabled = UserDefaults.standard.bool(forKey: Reminders.enabledKey)
     var hour: Int = UserDefaults.standard.object(forKey: Reminders.hourKey) as? Int ?? 8
     // Older installs saved only the hour, so they keep firing on the hour
@@ -47,14 +52,17 @@ final class Reminders {
     }
 
     func disable() {
+        generation += 1
         isEnabled = false
         UserDefaults.standard.set(false, forKey: Self.enabledKey)
         Task { await Self.removePending() }
     }
 
     func reschedule(items: [BoardItem]) async {
+        generation += 1
+        let mine = generation
         await Self.removePending()
-        guard isEnabled else { return }
+        guard isEnabled, generation == mine else { return }
         let center = UNUserNotificationCenter.current()
         let calendar = Calendar.current
         let now = Date()
@@ -76,11 +84,18 @@ final class Reminders {
                 content.attachments = [attachment]
             }
             let parts = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: fire)
+            // The awaits above can outlast a toggle off or a newer reschedule
+            guard isEnabled, generation == mine else { return }
             try? await Self.add(
                 content,
                 id: Self.idPrefix + "\(offset)",
                 trigger: UNCalendarNotificationTrigger(dateMatching: parts, repeats: false)
             )
+            // Turned off while that add was in flight: take everything back out
+            if !isEnabled {
+                await Self.removePending()
+                return
+            }
         }
     }
 
