@@ -15,6 +15,7 @@ struct VisionBoardApp: App {
 
     init() {
         Analytics.start()
+        ProAccess.shared.start()
         let store = BoardStore(boardID: BoardLibrary.savedCurrentID)
         let sync = SyncService(store: store)
         store.onEdit = { sync.localEdit() }
@@ -88,6 +89,9 @@ final class AppRouter {
     var incomingSyncKey: String?
     // Bumped when the share sheet left something in the inbox
     var sharedArrivals = 0
+    // Where the paywall was asked for ("board_limit", "ai_board", "settings",
+    // "soft"). RootView shows PaywallView as a sheet while it's set.
+    var paywallSource: String?
 
     func open(_ url: URL) {
         let text = url.absoluteString
