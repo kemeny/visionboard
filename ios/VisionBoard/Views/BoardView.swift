@@ -22,6 +22,8 @@ struct BoardView: View {
     @State private var naming: Naming?
     @State private var boardName = ""
     @State private var confirmDeleteBoard = false
+    @State private var showAIBoard = false
+    @State private var aiBoardSource = "board_menu"
 
     enum Naming { case new, rename }
     @AppStorage("canvas-pattern") private var pattern: CanvasPattern = .dots
@@ -97,6 +99,13 @@ struct BoardView: View {
             .sheet(isPresented: $showWallpaper) {
                 WallpaperSheet(items: store.sortedItems, paper: paper)
             }
+            .sheet(isPresented: $showAIBoard) {
+                AIBoardView(center: visibleCenter, source: aiBoardSource) { added in
+                    selection = nil
+                    guard !added.isEmpty else { return }
+                    withAnimation(.snappy) { camera = .fitting(added, in: viewport, bottomInset: bottomInset) }
+                }
+            }
             .task(id: router.sharedArrivals) {
                 guard router.sharedArrivals > 0 else { return }
                 await importShared()
@@ -154,6 +163,7 @@ struct BoardView: View {
                 Button("Camera", systemImage: "camera") { showCamera = true }
             }
             Button("Goal", systemImage: "textformat") { addText() }
+            Button("Create with AI", systemImage: "sparkles") { openAIBoard(from: "board_menu") }
             Menu {
                 templateButtons
             } label: {
@@ -215,6 +225,7 @@ struct BoardView: View {
             Button("Add Photos", systemImage: "photo.on.rectangle") { showPhotoPicker = true }
                 .buttonStyle(.borderedProminent)
             Button("Add a Goal", systemImage: "textformat") { addText() }
+            Button("Create with AI", systemImage: "sparkles") { openAIBoard(from: "empty_board") }
             Menu {
                 templateButtons
             } label: {
@@ -243,6 +254,13 @@ struct BoardView: View {
 
     private var visibleCenter: CGPoint {
         camera.toCanvas(CGPoint(x: viewport.width / 2, y: (viewport.height - bottomInset) / 2))
+    }
+
+    // A Pro feature: without Pro this shows the paywall instead
+    private func openAIBoard(from source: String) {
+        guard ProAccess.shared.requirePro(from: "ai_board") else { return }
+        aiBoardSource = source
+        showAIBoard = true
     }
 
     private func logAdded(_ source: String) {
