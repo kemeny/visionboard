@@ -43,6 +43,14 @@ changes, so the widget turns the page each day on its own.
 **Wallpaper.** Board menu > Make Wallpaper renders the whole board below the
 Lock Screen clock, or today's photo and goal, at this iPhone's screen size.
 
+**Sharing.** A clipping's Share menu has Share (the photo, or the goal as a
+card) and Share as Story (a 1080 x 1920 picture of the clipping on the board
+paper). Board menu > Share Board fits the whole board into the same story
+frame (`Views/StoryShare.swift`). Free plans get a small "Made with
+VisionBoard" mark on stories and a tiny one on wallpapers; Pro removes both
+through `ProAccess`. Every share also carries
+`https://visionboard.kemenystudio.com/?ref=share` for link previews.
+
 Reminders are local notifications scheduled two weeks ahead on the device, so
 they need no server and work offline.
 
