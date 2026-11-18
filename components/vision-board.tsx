@@ -167,7 +167,11 @@ export function VisionBoard() {
     if (!isLoaded) return
     const check = () => {
       const card = takeTodayFromUrl()
-      if (card) setTodayCard(card)
+      if (card) {
+        setTodayCard(card)
+        track("reminder_opened", { kind: "daily" })
+        track("today_viewed", { surface: "reminder" })
+      }
       const key = takeSyncKeyFromUrl()
       if (!key) return
       setLinkKey(key)
@@ -271,6 +275,7 @@ export function VisionBoard() {
     setMaxZIndex(1)
     setSelectedIds(new Set())
     setZoom(1)
+    track("blank_started", { surface: "board" })
   }, [])
 
   const handleImageUpload = useCallback(

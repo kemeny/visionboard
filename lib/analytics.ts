@@ -8,7 +8,20 @@ import posthog from 'posthog-js'
 // text, photos, board names) in properties; counts and enums only.
 
 const DEFAULT_KEY = 'phc_mrhZ2PzAFJPf57JVGdswQsyujx8qEWgfxWbDDKXYsmxC'
-const KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY || DEFAULT_KEY
+// The production key is the fallback only for production deploys, so local
+// dev and Vercel previews don't send events to the launch project.
+const IS_PROD_DEPLOY = process.env.NODE_ENV === 'production' && process.env.NEXT_PUBLIC_VERCEL_ENV !== 'preview'
+const KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY || (IS_PROD_DEPLOY ? DEFAULT_KEY : '')
+
+// URL fragments carry the sync key (#sync=...) and reminder content
+// (#today&text=...). They must never reach analytics.
+function stripHash(url: unknown): unknown {
+  if (typeof url !== 'string') return url
+  const i = url.indexOf('#')
+  return i === -1 ? url : url.slice(0, i)
+}
+
+const URL_PROPS = ['$current_url', '$referrer', '$initial_current_url', '$session_entry_url', '$initial_referrer']
 
 let started = false
 
@@ -25,6 +38,21 @@ export function initAnalytics(): void {
     autocapture: false,
     disable_session_recording: true,
     respect_dnt: true,
+    disable_capture_url_hashes: true,
+    before_send: (event) => {
+      if (!event) return event
+      const props = event.properties as Record<string, unknown> | undefined
+      if (props) {
+        for (const key of URL_PROPS) {
+          if (key in props) props[key] = stripHash(props[key])
+        }
+        for (const key of URL_PROPS) {
+          const v = props[key]
+          if (typeof v === 'string' && (v.includes('sync=') || v.includes('#today'))) return null
+        }
+      }
+      return event
+    },
     loaded: (ph) => {
       ph.register({ product: 'visionboard', platform: 'web' })
     },
