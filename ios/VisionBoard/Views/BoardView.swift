@@ -113,12 +113,7 @@ struct BoardView: View {
                     withAnimation(.snappy) { camera = .fitting(added, in: viewport, bottomInset: bottomInset) }
                 }
             }
-            .sheet(isPresented: $showPhotoSearch) {
-                PhotoSearchView(center: visibleCenter) { added in
-                    // They land in the middle of what's on screen, so the view stays put
-                    if let last = added.last { selection = last.id }
-                }
-            }
+            .sheet(isPresented: $showPhotoSearch, content: photoSearchSheet)
             .task(id: router.sharedArrivals) {
                 guard router.sharedArrivals > 0 else { return }
                 await importShared()
@@ -282,6 +277,14 @@ struct BoardView: View {
         guard ProAccess.shared.requirePro(from: "ai_board") else { return }
         aiBoardSource = source
         showAIBoard = true
+    }
+
+    // Kept out of body's modifier chain, which is already near the type checker's limit
+    private func photoSearchSheet() -> some View {
+        PhotoSearchView(center: visibleCenter) { added in
+            // They land in the middle of what's on screen, so the view stays put
+            if let last = added.last { selection = last.id }
+        }
     }
 
     // Free for everyone, so people fill a board fast before they ever see a paywall
