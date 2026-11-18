@@ -56,6 +56,14 @@ For local testing the shared scheme runs with `ios/StoreKit/VisionBoardPro.store
 (outside the synced folders, so it never ships in the app). The products must
 also be created in App Store Connect with the same ids before release.
 
+**Sharing.** A clipping's Share menu has Share (the photo, or the goal as a
+card) and Share as Story (a 1080 x 1920 picture of the clipping on the board
+paper). Board menu > Share Board fits the whole board into the same story
+frame (`Views/StoryShare.swift`). Free plans get a small "Made with
+VisionBoard" mark on stories and a tiny one on wallpapers; Pro removes both
+through `ProAccess`. Every share also carries
+`https://visionboard.kemenystudio.com/?ref=share` for link previews.
+
 Reminders are local notifications scheduled two weeks ahead on the device, so
 they need no server and work offline.
 

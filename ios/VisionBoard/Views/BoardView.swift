@@ -20,6 +20,7 @@ struct BoardView: View {
     @State private var pendingTemplate: BoardTemplate?
     @State private var importError: String?
     @State private var showWallpaper = false
+    @State private var sharingBoard = false
     @State private var naming: Naming?
     @State private var boardName = ""
     @State private var confirmDeleteBoard = false
@@ -198,6 +199,8 @@ struct BoardView: View {
         .pickerStyle(.menu)
         Button("Make Wallpaper", systemImage: "iphone.gen3") { showWallpaper = true }
             .disabled(store.items.isEmpty)
+        Button("Share Board", systemImage: "square.and.arrow.up") { shareBoard() }
+            .disabled(store.items.isEmpty || sharingBoard)
         if sync.isOn {
             Button("Sync Now", systemImage: "arrow.triangle.2.circlepath") { Task { await sync.syncNow() } }
         }
@@ -388,6 +391,18 @@ struct BoardView: View {
             break
         }
         naming = nil
+    }
+
+    // The whole board as a story-sized picture, with a link to the web app
+    private func shareBoard() {
+        guard !sharingBoard else { return }
+        sharingBoard = true
+        let items = store.sortedItems
+        let paperColor = self.paper
+        Task {
+            await BoardShare.share(items, paper: paperColor)
+            sharingBoard = false
+        }
     }
 
     private func fitBoard() {
