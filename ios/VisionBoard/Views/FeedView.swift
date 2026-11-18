@@ -57,7 +57,10 @@ struct FeedView: View {
                 }
             }
         }
-        .onAppear(perform: rebuild)
+        .onAppear {
+            rebuild()
+            Analytics.capture("feed_viewed", ["filter": filter == .liked ? "liked" : "for_you", "board_item_count": store.items.count])
+        }
         .onChange(of: filter) { rebuild() }
         .onDisappear { logView(position) }
     }

@@ -8,6 +8,9 @@ struct OnboardingView: View {
     var onFinish: () -> Void
 
     @State private var page = 0
+    // What the person picked on the starter page, for analytics
+    @State private var templateID: String?
+    @State private var startedBlank = false
 
     var body: some View {
         TabView(selection: $page) {
@@ -18,10 +21,26 @@ struct OnboardingView: View {
         .tabViewStyle(.page(indexDisplayMode: .always))
         .indexViewStyle(.page(backgroundDisplayMode: .always))
         .overlay(alignment: .topTrailing) {
-            Button("Skip", action: onFinish)
+            Button("Skip", action: skip)
                 .padding()
         }
         .interactiveDismissDisabled()
+        .onAppear { Analytics.capture("onboarding_started") }
+    }
+
+    private func skip() {
+        Analytics.capture("onboarding_skipped", ["page": page])
+        onFinish()
+    }
+
+    private func finish(reminders: Bool) {
+        var properties: [String: Any] = [
+            "path": templateID == nil ? "blank" : "template",
+            "reminders": reminders,
+        ]
+        if let templateID { properties["template"] = templateID }
+        Analytics.capture("onboarding_completed", properties)
+        onFinish()
     }
 
     private var welcome: some View {
@@ -49,7 +68,11 @@ struct OnboardingView: View {
             VStack(spacing: 10) {
                 ForEach(BoardTemplate.all) { template in
                     Button {
-                        if let file = template.load() { store.replaceBoard(with: file) }
+                        if let file = template.load() {
+                            store.replaceBoard(with: file)
+                            templateID = template.id
+                            Analytics.capture("template_loaded", ["template": template.id, "surface": "onboarding"])
+                        }
                         withAnimation { page = 2 }
                     } label: {
                         Label(template.name, systemImage: template.symbol)
@@ -58,7 +81,14 @@ struct OnboardingView: View {
                     .buttonStyle(.bordered)
                     .controlSize(.large)
                 }
-                Button("Start Blank") { withAnimation { page = 2 } }
+                Button("Start Blank") {
+                    templateID = nil
+                    if !startedBlank {
+                        startedBlank = true
+                        Analytics.capture("blank_started", ["surface": "onboarding"])
+                    }
+                    withAnimation { page = 2 }
+                }
                     .padding(.top, 4)
             }
         }
@@ -74,14 +104,14 @@ struct OnboardingView: View {
                 Button {
                     Task {
                         await reminders.enable(hour: 8, items: store.items)
-                        onFinish()
+                        finish(reminders: reminders.isEnabled)
                     }
                 } label: {
                     Text("Turn On Reminders").frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
-                Button("Not Now", action: onFinish)
+                Button("Not Now") { finish(reminders: false) }
             }
         }
     }

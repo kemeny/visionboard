@@ -8,7 +8,7 @@ enum ClippingShare {
     @MainActor
     static func share(_ item: BoardItem) async {
         guard let activityItems = await activityItems(for: item) else { return }
-        present(activityItems)
+        present(activityItems, kind: item.type == .image ? "photo" : "text")
     }
 
     @MainActor
@@ -44,13 +44,16 @@ enum ClippingShare {
     }
 
     @MainActor
-    private static func present(_ activityItems: [Any]) {
+    private static func present(_ activityItems: [Any], kind: String) {
         let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
         let scene = scenes.first { $0.activationState == .foregroundActive } ?? scenes.first
         guard var top = scene?.keyWindow?.rootViewController else { return }
         while let next = top.presentedViewController, !next.isBeingDismissed { top = next }
 
         let sheet = UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+        sheet.completionWithItemsHandler = { _, completed, _, _ in
+            if completed { Analytics.capture("clipping_shared", ["kind": kind]) }
+        }
         if let popover = sheet.popoverPresentationController {
             popover.sourceView = top.view
             popover.sourceRect = CGRect(x: top.view.bounds.midX, y: top.view.bounds.maxY - 80, width: 1, height: 1)

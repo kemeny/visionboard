@@ -33,6 +33,7 @@ final class Reminders {
             return
         }
         errorMessage = nil
+        if !isEnabled { Analytics.capture("reminders_enabled", ["hour": hour]) }
         isEnabled = true
         self.hour = hour
         UserDefaults.standard.set(true, forKey: Self.enabledKey)

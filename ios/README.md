@@ -65,3 +65,9 @@ The Duo-only calls are in `VisionBoard/Views/DuoSupport.swift`.
 `VB_WEB_ORIGIN` (target build setting) is the web app's address. The app calls
 `$VB_WEB_ORIGIN/api/sync/*` and builds share links from it. It is set to
 `https://visionboard.kemenystudio.com`.
+
+`VB_POSTHOG_KEY` and `VB_POSTHOG_HOST` (target build settings) feed the
+PostHog client in `VisionBoard/Analytics/Analytics.swift`. The key is a public
+client token; leave it empty to turn analytics off. Events are anonymous (a
+random id made on the device), never carry board content, and stop entirely
+when Settings > Share Anonymous Usage is off.

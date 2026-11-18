@@ -100,6 +100,7 @@ final class SyncService {
         key = newKey
         syncedAt = 0
         dirty = true
+        Analytics.capture("sync_enabled", ["board_item_count": store.items.count])
         await push(key: newKey)
     }
 
@@ -119,6 +120,7 @@ final class SyncService {
         syncedAt = remote.updatedAt
         status = .synced
         errorMessage = nil
+        Analytics.capture("board_joined", ["board_item_count": store.items.count])
     }
 
     // Stop syncing here; the board stays on this device and in the cloud

@@ -128,6 +128,7 @@ struct WallpaperSheet: View {
                 PHAssetChangeRequest.creationRequestForAsset(from: rendered)
             }
             status = String(localized: "Saved. In Photos, open it, tap Share, then Use as Wallpaper.")
+            Analytics.capture("wallpaper_made", ["kind": style.rawValue])
         } catch {
             status = String(localized: "Couldn't save: \(error.localizedDescription)")
         }

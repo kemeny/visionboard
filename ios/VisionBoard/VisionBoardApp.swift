@@ -14,6 +14,7 @@ struct VisionBoardApp: App {
     @AppStorage("appearance") private var appearance: Appearance = .system
 
     init() {
+        Analytics.start()
         let store = BoardStore(boardID: BoardLibrary.savedCurrentID)
         let sync = SyncService(store: store)
         store.onEdit = { sync.localEdit() }
@@ -30,8 +31,16 @@ struct VisionBoardApp: App {
                 .environment(library)
                 .environment(reminders)
                 .environment(router)
+                .environment(ProAccess.shared)
                 .preferredColorScheme(appearance.colorScheme)
                 .onOpenURL { url in router.open(url) }
+                .onChange(of: scenePhase, initial: true) { _, phase in
+                    switch phase {
+                    case .active: AppLifecycleAnalytics.didBecomeActive()
+                    case .background: AppLifecycleAnalytics.didEnterBackground()
+                    default: break
+                    }
+                }
                 .task(id: scenePhase) {
                     guard scenePhase == .active else { return }
                     await sync.pull()
@@ -95,7 +104,11 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
 
     // Tapping a reminder opens that day's goal and photo full screen
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
-        let info = response.notification.request.content.userInfo
+        let request = response.notification.request
+        let info = request.content.userInfo
+        if request.identifier.hasPrefix("daily-") || request.identifier.hasPrefix("test-") {
+            Analytics.capture("reminder_opened", ["kind": request.identifier.hasPrefix("test-") ? "test" : "daily"])
+        }
         let text = info["text"] as? String ?? ""
         let image = (info["image"] as? String).flatMap { $0.isEmpty ? nil : $0 }
         await MainActor.run {

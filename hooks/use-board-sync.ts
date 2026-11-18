@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { BoardItem } from "@/lib/types"
+import { track } from "@/lib/analytics"
 import {
   cloudItems,
   deleteRemoteBoard,
@@ -148,6 +149,7 @@ export function useBoardSync({ items, maxZIndex, isLoaded, applyRemote, replaceI
     setSyncedAt(0)
     setKey(key)
     dirty.current = true
+    track("sync_enabled", { board_item_count: latest.current.items.length })
     await push(key)
     return key
   }, [push])
@@ -166,6 +168,7 @@ export function useBoardSync({ items, maxZIndex, isLoaded, applyRemote, replaceI
       setSyncedAt(remote.updatedAt)
       setKey(key)
       setStatus("synced")
+      track("board_joined", { board_item_count: remote.board.items.length })
     },
     [applyRemote]
   )

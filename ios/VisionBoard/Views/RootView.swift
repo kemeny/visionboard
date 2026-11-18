@@ -57,4 +57,5 @@ extension DailyCard: Identifiable {
         .environment(BoardLibrary(store: store, sync: sync))
         .environment(Reminders())
         .environment(AppRouter.shared)
+        .environment(ProAccess.shared)
 }

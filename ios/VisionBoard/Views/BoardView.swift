@@ -245,8 +245,13 @@ struct BoardView: View {
         camera.toCanvas(CGPoint(x: viewport.width / 2, y: (viewport.height - bottomInset) / 2))
     }
 
+    private func logAdded(_ source: String) {
+        Analytics.capture("item_added", ["source": source, "board_item_count": store.items.count])
+    }
+
     private func addText() {
         let item = store.addText(at: visibleCenter)
+        logAdded("text")
         selection = item.id
         editingTextID = item.id
     }
@@ -258,6 +263,7 @@ struct BoardView: View {
                 guard let data = try await photo.loadTransferable(type: Data.self) else { continue }
                 let imported = try await ImageStore.shared.importPhoto(data)
                 let item = store.addImage(content: imported.content, aspect: imported.aspect, at: center)
+                logAdded("photo")
                 selection = item.id
                 center.x += 30
                 center.y += 30
@@ -271,6 +277,7 @@ struct BoardView: View {
         do {
             let imported = try await ImageStore.shared.importPhoto(data)
             let item = store.addImage(content: imported.content, aspect: imported.aspect, at: visibleCenter)
+            logAdded("camera")
             selection = item.id
         } catch {
             importError = error.localizedDescription
@@ -310,6 +317,7 @@ struct BoardView: View {
                 do {
                     let imported = try await ImageStore.shared.importPhoto(data)
                     last = store.addImage(content: imported.content, aspect: imported.aspect, at: center)
+                    logAdded("share_sheet")
                 } catch {
                     importError = error.localizedDescription
                     continue
@@ -318,6 +326,7 @@ struct BoardView: View {
                 guard let text = item.text else { continue }
                 let added = store.addText(at: center, content: text)
                 store.update(added.id) { $0.applyRandomLook() }
+                logAdded("share_sheet")
                 last = added
             }
             center.x += 30
@@ -380,6 +389,7 @@ struct BoardView: View {
     private func apply(_ template: BoardTemplate) {
         guard let file = template.load() else { return }
         store.replaceBoard(with: file)
+        Analytics.capture("template_loaded", ["template": template.id, "surface": "board"])
         selection = nil
         pendingTemplate = nil
         withAnimation(.snappy) { camera = .fitting(file.items, in: viewport, bottomInset: bottomInset) }

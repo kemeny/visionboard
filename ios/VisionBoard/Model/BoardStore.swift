@@ -126,7 +126,11 @@ final class BoardStore {
     }
 
     func toggleLike(_ id: String) {
+        guard let current = item(id) else { return }
         update(id) { $0.liked = !$0.isLiked ? true : nil }
+        if !current.isLiked {
+            Analytics.capture("item_liked", ["type": current.type == .image ? "photo" : "text"])
+        }
     }
 
     func replaceBoard(with file: BoardFile) {

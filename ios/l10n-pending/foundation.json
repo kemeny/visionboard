@@ -1,0 +1,10 @@
+{
+  "app": {
+    "Privacy": "Privacidad",
+    "Share Anonymous Usage": "Compartir uso anónimo",
+    "Helps us see which features people use. Only taps and counts are sent, with a random ID. Your goals and photos are never sent.": "Nos ayuda a ver qué funciones se usan. Solo se envían toques y conteos, con un ID al azar. Tus metas y fotos nunca se envían."
+  },
+  "widget": {},
+  "share": {},
+  "infoplist": {}
+}

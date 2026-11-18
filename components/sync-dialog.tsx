@@ -25,6 +25,7 @@ import {
   syncLink,
 } from "@/lib/sync"
 import type { useBoardSync } from "@/hooks/use-board-sync"
+import { track } from "@/lib/analytics"
 
 type Sync = ReturnType<typeof useBoardSync>
 
@@ -151,6 +152,7 @@ export function SyncDialog({ open, onOpenChange, sync, hasLocalItems, linkKey, o
       if (on) {
         await enableReminders(await ensureKey(), hour)
         setReminderOn(true)
+        track("reminders_enabled", { hour })
       } else {
         await disableReminders(sync.syncKey)
         setReminderOn(false)

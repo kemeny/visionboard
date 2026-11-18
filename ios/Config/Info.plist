@@ -4,6 +4,10 @@
 <dict>
 	<key>VBWebOrigin</key>
 	<string>$(VB_WEB_ORIGIN)</string>
+	<key>VBPostHogKey</key>
+	<string>$(VB_POSTHOG_KEY)</string>
+	<key>VBPostHogHost</key>
+	<string>$(VB_POSTHOG_HOST)</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

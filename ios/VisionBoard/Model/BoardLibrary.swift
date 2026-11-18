@@ -84,6 +84,7 @@ final class BoardLibrary {
         }
         boards.append(board)
         saveList()
+        Analytics.capture("board_created", ["board_count": boards.count])
         await open(board.id)
         return board
     }

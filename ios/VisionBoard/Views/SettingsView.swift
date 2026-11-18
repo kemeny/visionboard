@@ -18,6 +18,7 @@ struct SettingsView: View {
     @State private var reminderTime = Date()
     @AppStorage("appearance") private var appearance: Appearance = .system
     @AppStorage("canvas-paper") private var paper: PaperColor = .moleskine
+    @AppStorage("analytics-opted-out") private var analyticsOptedOut = false
 
     var body: some View {
         NavigationStack {
@@ -39,6 +40,19 @@ struct SettingsView: View {
                     Text("Display")
                 } footer: {
                     Text("The board paper and the words written on it switch between day and night versions with the appearance.")
+                }
+                Section {
+                    Toggle("Share Anonymous Usage", systemImage: "chart.bar", isOn: Binding(
+                        get: { !analyticsOptedOut },
+                        set: { share in
+                            Analytics.optedOut = !share
+                            analyticsOptedOut = !share
+                        }
+                    ))
+                } header: {
+                    Text("Privacy")
+                } footer: {
+                    Text("Helps us see which features people use. Only taps and counts are sent, with a random ID. Your goals and photos are never sent.")
                 }
                 Section {
                     LabeledContent("Version", value: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "")

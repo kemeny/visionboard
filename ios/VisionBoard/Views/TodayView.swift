@@ -20,6 +20,7 @@ struct TodayView: View {
                 upcoming
             }
             .navigationTitle("Today")
+            .onAppear { Analytics.capture("today_viewed", ["surface": "tab"]) }
             .toolbar {
                 if !reminders.isEnabled {
                     ToolbarItem(placement: .primaryAction) {
@@ -124,5 +125,6 @@ struct TodayFullScreen: View {
             }
             .onTapGesture { dismiss() }
             .statusBarHidden()
+            .onAppear { Analytics.capture("today_viewed", ["surface": "full_screen"]) }
     }
 }

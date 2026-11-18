@@ -65,6 +65,7 @@ import {
   type TodayCard as TodayCardData,
 } from "@/lib/sync"
 import { TEMPLATES } from "@/lib/templates"
+import { track } from "@/lib/analytics"
 import { BoardItemComponent } from "./board-item"
 import { SyncDialog } from "./sync-dialog"
 import { TodayCard } from "./today-card"
@@ -103,6 +104,9 @@ export function VisionBoard() {
   const [isRemovingBg, setIsRemovingBg] = useState(false)
   const [canvasBgColor, setCanvasBgColor] = useState<CanvasBgColor>('canvas-bg-warm')
   const [zoom, setZoom] = useState(1)
+  // For analytics: how many clippings the board has, without re-creating callbacks
+  const itemCountRef = useRef(0)
+  itemCountRef.current = items.length
   const [showBackupReminder, setShowBackupReminder] = useState(false)
   const [syncOpen, setSyncOpen] = useState(false)
   const [linkKey, setLinkKey] = useState<string | null>(null)
@@ -243,6 +247,7 @@ export function VisionBoard() {
     setItems((prev) => [...prev, newItem])
     setMaxZIndex((prev) => prev + 1)
     setSelectedIds(new Set([newItem.id]))
+    track("item_added", { source: "text", board_item_count: itemCountRef.current + 1 })
   }, [maxZIndex])
 
   const loadTemplate = useCallback((templateId: string) => {
@@ -257,6 +262,7 @@ export function VisionBoard() {
     setMaxZIndex(newItems.length + 1)
     setSelectedIds(new Set())
     setZoom(1)
+    track("template_loaded", { template: templateId, surface: "board" })
   }, [])
 
   const resetBoard = useCallback(() => {
@@ -268,7 +274,7 @@ export function VisionBoard() {
   }, [])
 
   const handleImageUpload = useCallback(
-    (file: File) => {
+    (file: File, source: "upload" | "drop" | "paste" = "upload") => {
       const reader = new FileReader()
       reader.onload = (e) => {
         const dataUrl = e.target?.result as string
@@ -288,6 +294,7 @@ export function VisionBoard() {
         setItems((prev) => [...prev, newItem])
         setMaxZIndex((prev) => prev + 1)
         setSelectedIds(new Set([newItem.id]))
+        track("item_added", { source, board_item_count: itemCountRef.current + 1 })
       }
       reader.readAsDataURL(file)
     },
@@ -315,7 +322,7 @@ export function VisionBoard() {
         if (clipItem.type.startsWith("image/")) {
           const file = clipItem.getAsFile()
           if (file) {
-            handleImageUpload(file)
+            handleImageUpload(file, "paste")
           }
           break
         }
@@ -335,6 +342,7 @@ export function VisionBoard() {
   // On phones the app reopens in whichever view you left it in
   const openFeed = useCallback((open: boolean) => {
     setFeedOpen(open)
+    if (open) track("feed_viewed", { board_item_count: itemCountRef.current })
     try {
       localStorage.setItem("visionboard-view", open ? "feed" : "board")
     } catch {}
@@ -345,6 +353,7 @@ export function VisionBoard() {
     try {
       if (window.matchMedia("(max-width: 640px)").matches && localStorage.getItem("visionboard-view") === "feed") {
         setFeedOpen(true)
+        track("feed_viewed", { board_item_count: items.length })
       }
     } catch {}
     // Only decide once the board has loaded
@@ -418,7 +427,7 @@ export function VisionBoard() {
       const files = Array.from(e.dataTransfer.files)
       const imageFile = files.find((f) => f.type.startsWith("image/"))
       if (imageFile) {
-        handleImageUpload(imageFile)
+        handleImageUpload(imageFile, "drop")
       }
     },
     [handleImageUpload]
@@ -1454,7 +1463,13 @@ export function VisionBoard() {
       {feedOpen && (
         <FeedView
           items={items}
-          onToggleLike={(id, liked) => updateItem(id, { liked })}
+          onToggleLike={(id, liked) => {
+            updateItem(id, { liked })
+            if (liked) {
+              const type = items.find((i) => i.id === id)?.type
+              track("item_liked", { type: type === "image" ? "photo" : "text" })
+            }
+          }}
           onClose={() => openFeed(false)}
         />
       )}
