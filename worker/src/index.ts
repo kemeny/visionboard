@@ -14,6 +14,7 @@ interface Env {
 interface BoardItem {
   type: 'image' | 'text'
   content: string
+  achievedAt?: string
 }
 
 const MAX_BOARD_BYTES = 2 * 1024 * 1024
@@ -49,11 +50,19 @@ async function getVapidKeys(env: Env): Promise<VapidKeys> {
 }
 
 // Pick today's reminder, rotating through the board so each day shows something different
+// Goals marked done ("I did it") step aside: today's goal is one still to do,
+// unless every goal is done. Done photos come round 3 times in 10. The iOS app
+// (DailyCard.pick) uses the same rotation, so phone and web agree.
 export function pickReminder(items: BoardItem[], day: number) {
-  const texts = items
-    .filter((i) => i.type === 'text' && i.content.trim() && i.content !== PLACEHOLDER_TEXT)
-    .map((i) => i.content.trim())
-  const images = items.filter((i) => i.type === 'image' && i.content.startsWith('/')).map((i) => i.content)
+  const allTexts = items.filter((i) => i.type === 'text' && i.content.trim() && i.content !== PLACEHOLDER_TEXT)
+  const openTexts = allTexts.filter((i) => !i.achievedAt)
+  const texts = (openTexts.length ? openTexts : allTexts).map((i) => i.content.trim())
+  const imageItems = items.filter((i) => i.type === 'image' && i.content.startsWith('/'))
+  const images = imageItems.some((i) => i.achievedAt)
+    ? [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].flatMap((round) =>
+        imageItems.filter((i) => !i.achievedAt || (round % 3 === 0 && round < 9)).map((i) => i.content)
+      )
+    : imageItems.map((i) => i.content)
   return {
     body: texts.length ? texts[day % texts.length] : 'Take a minute with your vision board today.',
     image: images.length ? images[day % images.length] : undefined,

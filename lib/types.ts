@@ -80,6 +80,7 @@ export interface BoardItem {
   originalContent?: string // stores original image before bg removal
   locked?: boolean
   liked?: boolean // hearted in the feed; synced with the board
+  achievedAt?: string // ISO 8601 time it was marked "I did it"; absent while still a goal
 }
 
 export interface BoardState {

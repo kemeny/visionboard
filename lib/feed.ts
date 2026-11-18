@@ -1,4 +1,5 @@
 import type { BoardItem } from './types'
+import { ACHIEVED_WEIGHT, isAchieved } from './progress'
 
 // Ranking for the feed: an Instagram-style "for you" order over the board's
 // clippings. Likes live on the items (so they sync); views and dwell time are
@@ -65,7 +66,11 @@ export function buildFeedRound(
 ): BoardItem[] {
   const now = options.now ?? Date.now()
   const random = options.random ?? Math.random
-  const pool = items.filter(isFeedItem).filter((i) => !options.likedOnly || i.liked)
+  const eligible = items.filter(isFeedItem).filter((i) => !options.likedOnly || i.liked)
+  // Done goals still come back, just less often. Liked keeps everything liked,
+  // and a board where everything is done still has a feed.
+  const thin = !options.likedOnly && eligible.some((i) => !isAchieved(i))
+  const pool = thin ? eligible.filter((i) => !isAchieved(i) || random() < ACHIEVED_WEIGHT) : eligible
   const ranked = pool
     .map((item) => ({ item, score: scoreItem(item, stats[item.id], now, random) }))
     .sort((a, b) => b.score - a.score)

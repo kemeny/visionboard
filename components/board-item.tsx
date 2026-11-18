@@ -380,6 +380,20 @@ export function BoardItemComponent({
         </div>
       )}
 
+      {/* Achieved seal */}
+      {item.achievedAt && (
+        <div
+          className="pointer-events-none absolute -top-2.5 -left-2.5 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 shadow-md ring-2 ring-white animate-in zoom-in-50 fade-in duration-300"
+          role="img"
+          aria-label="Done"
+          title="Done"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 6 9 17l-5-5" />
+          </svg>
+        </div>
+      )}
+
       {/* Lock indicator */}
       {item.locked && isSelected && (
         <div className="absolute -top-3 -right-3 h-5 w-5 rounded-full bg-amber-500 flex items-center justify-center shadow-sm">
