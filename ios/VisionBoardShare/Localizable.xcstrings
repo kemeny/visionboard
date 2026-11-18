@@ -61,6 +61,16 @@
         }
       }
     },
+    "Couldn't save to your board: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo guardar en tu tablero: %@"
+          }
+        }
+      }
+    },
     "Getting it ready…": {
       "localizations": {
         "es": {
@@ -81,12 +91,52 @@
         }
       }
     },
+    "Photo": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto"
+          }
+        }
+      }
+    },
+    "There's nothing here VisionBoard can add. Try a photo, a video, a link or some text.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No hay nada aquí que VisionBoard pueda agregar. Prueba con una foto, un video, un enlace o un texto."
+          }
+        }
+      }
+    },
+    "Video still": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Imagen del video"
+          }
+        }
+      }
+    },
     "Videos go on the board as a still from the clip.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Los videos se agregan al tablero como una imagen fija del clip."
+          }
+        }
+      }
+    },
+    "VisionBoard can't reach its board from here. Open the app once, then try again.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "VisionBoard no puede llegar a tu tablero desde aquí. Abre la app una vez y vuelve a intentarlo."
           }
         }
       }

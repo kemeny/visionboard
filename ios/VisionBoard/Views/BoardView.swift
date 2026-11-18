@@ -130,7 +130,7 @@ struct BoardView: View {
                 TextEditSheet(itemID: target.id)
             }
             .confirmationDialog(
-                "Replace your board with \(pendingTemplate?.name ?? "this template")?",
+                "Replace your board with \(pendingTemplate?.name ?? String(localized: "this template"))?",
                 isPresented: Binding(get: { pendingTemplate != nil }, set: { if !$0 { pendingTemplate = nil } }),
                 titleVisibility: .visible
             ) {

@@ -21,6 +21,16 @@
         }
       }
     },
+    "Run the Patagonia marathon": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Correr la maratón de la Patagonia"
+          }
+        }
+      }
+    },
     "TODAY": {
       "localizations": {
         "es": {
