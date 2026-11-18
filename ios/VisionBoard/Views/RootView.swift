@@ -95,10 +95,12 @@ extension DailyCard: Identifiable {
 #Preview {
     let store = BoardStore()
     let sync = SyncService(store: store)
+    let library = BoardLibrary(store: store, sync: sync)
     RootView()
         .environment(store)
         .environment(sync)
-        .environment(BoardLibrary(store: store, sync: sync))
+        .environment(library)
+        .environment(AccountService(library: library, sync: sync, store: store))
         .environment(Reminders())
         .environment(AppRouter.shared)
         .environment(ProAccess.shared)

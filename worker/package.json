@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "test": "node --experimental-strip-types test/webpush.test.ts && node --experimental-strip-types test/ai.test.ts",
+    "test": "node --experimental-strip-types test/webpush.test.ts && node --experimental-strip-types test/ai.test.ts && node --experimental-strip-types test/account.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

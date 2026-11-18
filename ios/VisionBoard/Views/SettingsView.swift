@@ -30,6 +30,7 @@ struct SettingsView: View {
             Form {
                 proSection
                 syncSection
+                AccountSection()
                 remindersSection
                 Section {
                     Picker(selection: $appearance) {

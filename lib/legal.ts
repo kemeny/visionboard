@@ -49,7 +49,7 @@ export const PRIVACY: Record<Lang, LegalDoc> = {
   en: {
     title: 'Privacy Policy',
     intro:
-      'VisionBoard is made by Kemeny Studio. This policy explains what the iPhone app and the web app at visionboard.kemenystudio.com collect, why, and how you can control it. You can use it without an account. Signing in is optional.',
+      'VisionBoard is made by Kemeny Studio. This policy explains what the iPhone app and the web app at visionboard.kemenystudio.com collect, why, and how you can control it. You never need an account. Signing in with Apple on iPhone is optional and only used for backup.',
     sections: [
       {
         heading: 'Your board',
@@ -60,17 +60,18 @@ export const PRIVACY: Record<Lang, LegalDoc> = {
         ],
       },
       {
+        heading: 'Optional account',
+        body: [
+          'On iPhone you can sign in with Apple to back up your boards. We then store the stable user ID Apple gives us for VisionBoard, the email Apple shares (if you choose to share it, often a private relay address), and the list of your boards: each board\'s name and sync key. That list is encrypted on our servers. Signing in also turns on Sync for every board.',
+          'We use this only to bring your boards back on a new device. We never email you for marketing.',
+          'To delete it, go to Settings > Account > Delete Account in the app. This deletes the account and the backed-up list, and can also delete the cloud copy of every board. You can also stop using Sign in with Apple for VisionBoard in your iPhone\'s Apple Account settings.',
+        ],
+      },
+      {
         heading: 'Reminders',
         body: [
           'On iPhone, daily reminders are local notifications scheduled on your device. Nothing is sent to us for them.',
           'On the web, reminders use web push. We store your browser\'s push subscription, the reminder time and time zone, and the sync key of the board, so we can send the reminder. Turning reminders off deletes the subscription.',
-        ],
-      },
-      {
-        heading: 'Sign in with Apple (optional)',
-        body: [
-          'On iPhone you can sign in with Apple to back up your boards and get them back on a new phone. If you do, we store your Apple account ID (a random identifier Apple gives us), your email address only if you choose to share it, and an encrypted list of your board sync keys so we can restore your boards.',
-          'You can sign out at any time. To delete this account data, use Delete Account in the app\'s Settings. This removes the Apple account ID, email and key list from our servers.',
         ],
       },
       {
@@ -98,7 +99,7 @@ export const PRIVACY: Record<Lang, LegalDoc> = {
         heading: 'Deleting your data',
         body: [
           'To delete the cloud copy of a board and its photos, open Sync (Settings on iPhone) and choose Delete Cloud Copy. This removes it for every device. The board stays on the device you used.',
-          'If you signed in with Apple, Delete Account in Settings removes your account data. Deleting the app or clearing your browser data removes everything stored on that device. You can also email us to delete any data tied to a sync key or account.',
+          'If you signed in with Apple, Delete Account in Settings > Account removes your account data. Deleting the app or clearing your browser data removes everything stored on that device. You can also email us to delete any data tied to a sync key or account.',
         ],
       },
       {
@@ -117,7 +118,7 @@ export const PRIVACY: Record<Lang, LegalDoc> = {
   es: {
     title: 'Política de privacidad',
     intro:
-      'VisionBoard es un producto de Kemeny Studio. Esta política explica qué datos recogen la app de iPhone y la app web en visionboard.kemenystudio.com, para qué, y cómo puedes controlarlos. Puedes usarla sin cuenta. Iniciar sesión es opcional.',
+      'VisionBoard es un producto de Kemeny Studio. Esta política explica qué datos recogen la app de iPhone y la app web en visionboard.kemenystudio.com, para qué, y cómo puedes controlarlos. Nunca necesitas una cuenta. Iniciar sesión con Apple en iPhone es opcional y solo sirve para respaldar.',
     sections: [
       {
         heading: 'Tu tablero',
@@ -128,17 +129,18 @@ export const PRIVACY: Record<Lang, LegalDoc> = {
         ],
       },
       {
+        heading: 'Cuenta opcional',
+        body: [
+          'En iPhone puedes iniciar sesión con Apple para respaldar tus tableros. En ese caso guardamos el ID de usuario que Apple nos da para VisionBoard, el correo que Apple comparte (si eliges compartirlo, muchas veces una dirección privada de reenvío) y la lista de tus tableros: el nombre y la clave de sincronización de cada uno. Esa lista se guarda cifrada en nuestros servidores. Al iniciar sesión también se activa la sincronización de todos tus tableros.',
+          'Solo usamos esto para recuperar tus tableros en un dispositivo nuevo. Nunca te enviamos correos de marketing.',
+          'Para borrarla, ve a Ajustes > Cuenta > Borrar cuenta en la app. Se borran la cuenta y la lista respaldada, y también puedes borrar la copia en la nube de cada tablero. Además puedes dejar de usar Iniciar sesión con Apple para VisionBoard en los ajustes de tu cuenta de Apple en el iPhone.',
+        ],
+      },
+      {
         heading: 'Recordatorios',
         body: [
           'En iPhone, los recordatorios diarios son notificaciones locales programadas en tu dispositivo. No nos llega nada por ellos.',
           'En la web, los recordatorios usan notificaciones push. Guardamos la suscripción push de tu navegador, la hora y zona horaria del recordatorio y la clave del tablero, para poder enviarlo. Al apagar los recordatorios se borra la suscripción.',
-        ],
-      },
-      {
-        heading: 'Iniciar sesión con Apple (opcional)',
-        body: [
-          'En iPhone puedes iniciar sesión con Apple para respaldar tus tableros y recuperarlos en un teléfono nuevo. Si lo haces, guardamos tu ID de cuenta de Apple (un identificador aleatorio que nos da Apple), tu correo solo si eliges compartirlo, y una lista cifrada de las claves de sincronización de tus tableros para poder restaurarlos.',
-          'Puedes cerrar sesión cuando quieras. Para borrar estos datos, usa Eliminar cuenta en los Ajustes de la app. Así se borran de nuestros servidores el ID de Apple, el correo y la lista de claves.',
         ],
       },
       {
@@ -166,7 +168,7 @@ export const PRIVACY: Record<Lang, LegalDoc> = {
         heading: 'Borrar tus datos',
         body: [
           'Para borrar la copia en la nube de un tablero y sus fotos, abre Sincronización (en Ajustes, en iPhone) y elige Eliminar copia en la nube. Se borra para todos los dispositivos. El tablero se queda en el dispositivo que usaste.',
-          'Si iniciaste sesión con Apple, Eliminar cuenta en Ajustes borra los datos de tu cuenta. Al borrar la app o los datos de tu navegador se borra todo lo guardado en ese dispositivo. También puedes escribirnos para borrar cualquier dato ligado a una clave o a una cuenta.',
+          'Si iniciaste sesión con Apple, Borrar cuenta en Ajustes > Cuenta borra los datos de tu cuenta. Al borrar la app o los datos de tu navegador se borra todo lo guardado en ese dispositivo. También puedes escribirnos para borrar cualquier dato ligado a una clave o a una cuenta.',
         ],
       },
       {

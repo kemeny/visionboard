@@ -5,11 +5,25 @@
 
 import { handleAI, pruneRateLimits, type AIEnv } from './ai'
 import { generateVapidKeys, sendPush, type PushSubscriptionJSON, type VapidKeys } from './webpush'
+import {
+  DEFAULT_BUNDLE_ID,
+  TokenError,
+  cleanBackup,
+  decryptBackup,
+  encryptBackup,
+  signSession,
+  verifyAppleToken,
+  verifySession,
+} from './account'
 
 interface Env extends AIEnv {
   DB: D1Database
   IMAGES: R2Bucket
   VAPID_SUBJECT: string
+  // Secret (wrangler secret put ACCOUNT_SECRET): signs sessions and derives backup keys
+  ACCOUNT_SECRET?: string
+  // The iOS app's bundle id, the audience of its Apple identity tokens
+  APPLE_BUNDLE_ID?: string
 }
 
 interface BoardItem {
@@ -144,6 +158,8 @@ async function handle(request: Request, env: Env): Promise<Response> {
     return json({ publicKey: (await getVapidKeys(env)).publicKey })
   }
 
+  if (path === '/account' || path.startsWith('/account/')) return handleAccount(path, method, request, env)
+
   // AI board generation needs no sync key (see ai.ts)
   const ai = await handleAI(request, env, path)
   if (ai) return ai
@@ -246,6 +262,85 @@ async function handle(request: Request, env: Env): Promise<Response> {
     if (!row) return error('Not subscribed', 404)
     const status = await sendReminder(env, await getVapidKeys(env), row, new Date())
     return json({ status }, status < 300 ? 200 : 502)
+  }
+
+  return error('Not found', 404)
+}
+
+// Optional Sign in with Apple account: backs up the list of boards (name and
+// sync key) so a new device can reconnect them. Auth is a session token.
+async function handleAccount(path: string, method: string, request: Request, env: Env): Promise<Response> {
+  const secret = env.ACCOUNT_SECRET
+  if (!secret || secret.length < 32) return error('Accounts are not set up on this server', 503)
+
+  if (path === '/account/signin' && method === 'POST') {
+    let body: { identityToken?: unknown }
+    try {
+      body = await request.json()
+    } catch {
+      return error('Invalid JSON', 400)
+    }
+    if (typeof body.identityToken !== 'string' || !body.identityToken) return error('identityToken is required', 400)
+    let identity
+    try {
+      identity = await verifyAppleToken(body.identityToken, env.APPLE_BUNDLE_ID || DEFAULT_BUNDLE_ID)
+    } catch (e) {
+      if (e instanceof TokenError) return error(`Sign in failed: ${e.message}`, 401)
+      throw e
+    }
+    const now = Date.now()
+    // Apple only sends the email when it was shared, so keep the one we have
+    await env.DB.prepare(
+      `INSERT INTO accounts (id, email, created_at, updated_at) VALUES (?1, ?2, ?3, ?3)
+       ON CONFLICT(id) DO UPDATE SET email = COALESCE(?2, email), updated_at = ?3`
+    )
+      .bind(identity.sub, identity.email, now)
+      .run()
+    const row = await env.DB.prepare('SELECT email, boards_ciphertext FROM accounts WHERE id = ?')
+      .bind(identity.sub)
+      .first<{ email: string | null; boards_ciphertext: string | null }>()
+    return json({
+      sessionToken: await signSession(identity.sub, secret),
+      email: row?.email ?? null,
+      hasBackup: Boolean(row?.boards_ciphertext),
+    })
+  }
+
+  const auth = request.headers.get('Authorization') || ''
+  const session = auth.startsWith('Bearer ') ? await verifySession(auth.slice(7).trim(), secret) : null
+  if (!session) return error('Please sign in again', 401)
+  const accountId = session.sub
+
+  const account = await env.DB.prepare('SELECT email, boards_ciphertext, updated_at FROM accounts WHERE id = ?')
+    .bind(accountId)
+    .first<{ email: string | null; boards_ciphertext: string | null; updated_at: number }>()
+  if (!account) return error('No account', 401)
+
+  if (path === '/account/backup' && method === 'GET') {
+    const boards = account.boards_ciphertext ? await decryptBackup(account.boards_ciphertext, secret, accountId) : []
+    return json({ boards, email: account.email, updatedAt: account.updated_at })
+  }
+
+  if (path === '/account/backup' && method === 'PUT') {
+    let body: { boards?: unknown }
+    try {
+      body = await request.json()
+    } catch {
+      return error('Invalid JSON', 400)
+    }
+    const boards = cleanBackup(body.boards)
+    if (!boards) return error('boards must be a list of {name, syncKey}', 400)
+    const updatedAt = Date.now()
+    await env.DB.prepare('UPDATE accounts SET boards_ciphertext = ?1, updated_at = ?2 WHERE id = ?3')
+      .bind(await encryptBackup(boards, secret, accountId), updatedAt, accountId)
+      .run()
+    return json({ ok: true, updatedAt })
+  }
+
+  if (path === '/account' && method === 'DELETE') {
+    // Boards stay under their sync keys; the app deletes those itself when asked to
+    await env.DB.prepare('DELETE FROM accounts WHERE id = ?').bind(accountId).run()
+    return json({ ok: true })
   }
 
   return error('Not found', 404)

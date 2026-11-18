@@ -16,6 +16,9 @@ final class SyncService {
     private(set) var errorMessage: String?
 
     private let store: BoardStore
+    // Called when this board's key appears or goes away, so the account
+    // backup can follow
+    @ObservationIgnored var onKeyChange: (@MainActor () -> Void)?
     // The delayed push after an edit. Cancelling it only stops the wait;
     // a push that already started runs to the end in `inFlight`.
     @ObservationIgnored private var pushTask: Task<Void, Never>?
@@ -145,6 +148,7 @@ final class SyncService {
         Self.setSyncedAt(0, board: boardID)
         dirty = true
         Analytics.capture("sync_enabled", ["board_item_count": store.items.count])
+        onKeyChange?()
         await runPush(key: newKey, board: boardID)
     }
 
@@ -168,6 +172,7 @@ final class SyncService {
         status = .synced
         errorMessage = nil
         Analytics.capture("board_joined", ["board_item_count": store.items.count])
+        onKeyChange?()
     }
 
     // Stop syncing here; the board stays on this device and in the cloud
@@ -180,6 +185,7 @@ final class SyncService {
         Self.setSyncedAt(0, board: store.boardID)
         status = .off
         errorMessage = nil
+        onKeyChange?()
     }
 
     // Remove the board and its images from the cloud for every device
@@ -187,6 +193,58 @@ final class SyncService {
         guard let key else { return }
         try await SyncAPI.deleteBoard(key: key)
         disconnect()
+    }
+
+    // Turns on sync for a board that isn't on screen: a new key, its photos
+    // uploaded and the board pushed, straight from its file. If the upload
+    // fails the board stays marked as changed, so it goes up when opened.
+    @discardableResult
+    static func enableStored(board boardID: String) async -> String {
+        if let existing = KeyStore.read(board: boardID) { return existing }
+        let key = SyncAPI.generateKey()
+        KeyStore.write(key, board: boardID)
+        setSyncedAt(0, board: boardID)
+        setDirty(true, board: boardID)
+
+        let url = BoardLibrary.fileURL(for: boardID)
+        guard let data = try? Data(contentsOf: url), var file = try? JSONDecoder().decode(BoardFile.self, from: data) else {
+            return key
+        }
+        var pending = Set<String>()
+        for item in file.items {
+            for content in [item.content, item.originalContent] {
+                if let content, ImageStore.isLocal(content) { pending.insert(content) }
+            }
+        }
+        var uploaded: [String: String] = [:]
+        for local in pending {
+            guard let upload = await ImageStore.shared.uploadData(for: local) else { continue }
+            if let path = try? await SyncAPI.uploadImage(key: key, data: upload.0, contentType: upload.1) {
+                await ImageStore.shared.adopt(local: local, as: path)
+                uploaded[local] = path
+            }
+        }
+        if !uploaded.isEmpty {
+            for index in file.items.indices {
+                if let cloud = uploaded[file.items[index].content] { file.items[index].content = cloud }
+                if let original = file.items[index].originalContent, let cloud = uploaded[original] { file.items[index].originalContent = cloud }
+            }
+            if let encoded = try? JSONEncoder().encode(file) { try? encoded.write(to: url, options: .atomic) }
+        }
+        var remote = file
+        remote.items = remote.items
+            .filter { !ImageStore.isLocal($0.content) }
+            .map { item in
+                var item = item
+                if ImageStore.isLocal(item.originalContent) { item.originalContent = nil }
+                return item
+            }
+        if let updatedAt = try? await SyncAPI.pushBoard(key: key, board: remote) {
+            setSyncedAt(updatedAt, board: boardID)
+            let stillLocal = file.items.contains { ImageStore.isLocal($0.content) }
+            setDirty(stillLocal, board: boardID)
+        }
+        return key
     }
 
     // True while `board` is on screen and still syncs under `key`
