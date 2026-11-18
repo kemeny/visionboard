@@ -15,6 +15,9 @@
          <BuildableReference BuildableIdentifier = "primary" BlueprintIdentifier = "42AEFBAE01D2DFD981F7DA7D" BuildableName = "VisionBoard.app" BlueprintName = "VisionBoard" ReferencedContainer = "container:VisionBoard.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
+      <StoreKitConfigurationFileReference
+         identifier = "../../StoreKit/VisionBoardPro.storekit">
+      </StoreKitConfigurationFileReference>
    </LaunchAction>
    <ProfileAction buildConfiguration = "Release" shouldUseLaunchSchemeArgsEnv = "YES" savedToolIdentifier = "" useCustomWorkingDirectory = "NO" debugDocumentVersioning = "YES">
    </ProfileAction>

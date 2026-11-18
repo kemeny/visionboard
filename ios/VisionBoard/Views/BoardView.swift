@@ -6,6 +6,7 @@ struct BoardView: View {
     @Environment(SyncService.self) private var sync
     @Environment(AppRouter.self) private var router
     @Environment(BoardLibrary.self) private var library
+    @Environment(ProAccess.self) private var pro
 
     @State private var selection: String?
     @State private var showStyle = false
@@ -346,6 +347,8 @@ struct BoardView: View {
         }
         Divider()
         Button("New Board", systemImage: "plus.rectangle.on.rectangle") {
+            // The free plan keeps one board; existing extra boards stay
+            guard pro.canCreateBoard(currentCount: library.boards.count) || pro.requirePro(from: "board_limit") else { return }
             boardName = ""
             naming = .new
         }

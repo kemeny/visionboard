@@ -1,4 +1,5 @@
 import CoreImage.CIFilterBuiltins
+import StoreKit
 import SwiftUI
 import VisionKit
 
@@ -8,6 +9,7 @@ struct SettingsView: View {
     @Environment(Reminders.self) private var reminders
     @Environment(AppRouter.self) private var router
     @Environment(BoardLibrary.self) private var library
+    @Environment(ProAccess.self) private var pro
 
     @State private var keyInput = ""
     @State private var joining = false
@@ -16,6 +18,7 @@ struct SettingsView: View {
     @State private var confirmDelete = false
     @State private var confirmJoin = false
     @State private var reminderTime = Date()
+    @State private var showManageSubscriptions = false
     @AppStorage("appearance") private var appearance: Appearance = .system
     @AppStorage("canvas-paper") private var paper: PaperColor = .moleskine
     @AppStorage("analytics-opted-out") private var analyticsOptedOut = false
@@ -23,6 +26,7 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                proSection
                 syncSection
                 remindersSection
                 Section {
@@ -87,7 +91,11 @@ struct SettingsView: View {
                 }
             }
             .confirmationDialog("Open the synced board on this iPhone?", isPresented: $confirmJoin, titleVisibility: .visible) {
-                Button(store.items.isEmpty ? "Open Board" : "Add as New Board") { Task { await join(keyInput) } }
+                Button(store.items.isEmpty ? "Open Board" : "Add as New Board") {
+                    // Adding a board past the free plan's limit asks for Pro
+                    guard store.items.isEmpty || pro.canCreateBoard(currentCount: library.boards.count) || pro.requirePro(from: "join_board") else { return }
+                    Task { await join(keyInput) }
+                }
             } message: {
                 Text(store.items.isEmpty
                     ? "The board from your other device opens here."
@@ -100,8 +108,43 @@ struct SettingsView: View {
             } message: {
                 Text("Your board stays on this iPhone, but every other device stops syncing and its photos are removed from the cloud.")
             }
+            .manageSubscriptionsSheet(isPresented: $showManageSubscriptions)
             .onAppear { takeIncomingKey() }
             .onChange(of: router.incomingSyncKey) { takeIncomingKey() }
+        }
+    }
+
+    // MARK: Pro
+
+    private var proSection: some View {
+        Section {
+            LabeledContent("Status") {
+                if pro.isPro {
+                    Text("Pro")
+                } else {
+                    Text("Free")
+                }
+            }
+            if pro.isPro {
+                Button("Manage Subscription", systemImage: "creditcard") { showManageSubscriptions = true }
+            } else {
+                Button("Upgrade to Pro", systemImage: "sparkles") { _ = pro.requirePro(from: "settings") }
+            }
+            Button("Restore Purchases", systemImage: "arrow.clockwise") { Task { await pro.restore() } }
+                .disabled(pro.isRestoring)
+            if let error = pro.errorMessage, router.paywallSource == nil {
+                Label(error, systemImage: "exclamationmark.triangle")
+                    .foregroundStyle(.red)
+                    .font(.callout)
+            }
+        } header: {
+            Text("VisionBoard Pro")
+        } footer: {
+            if pro.isPro {
+                Text("Thank you for supporting an indie studio.")
+            } else {
+                Text("Unlimited boards, boards made with AI, and shares and wallpapers without the VisionBoard mark.")
+            }
         }
     }
 

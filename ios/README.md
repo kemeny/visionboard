@@ -43,6 +43,19 @@ changes, so the widget turns the page each day on its own.
 **Wallpaper.** Board menu > Make Wallpaper renders the whole board below the
 Lock Screen clock, or today's photo and goal, at this iPhone's screen size.
 
+**VisionBoard Pro.** A StoreKit 2 subscription (no third-party SDK) in the
+"VisionBoard Pro" group: `com.kemenystudio.visionboard.pro.yearly` (with a
+7-day free trial) and `com.kemenystudio.visionboard.pro.monthly`.
+`Model/ProAccess.swift` loads the products, buys, restores
+(`AppStore.sync()`), listens to `Transaction.updates` from launch and turns
+Pro on from verified `Transaction.currentEntitlements` only. Gate features with
+`ProAccess.shared.isPro`, or `ProAccess.shared.requirePro(from: "source")`,
+which shows `Views/PaywallView.swift` (via `AppRouter.paywallSource`) when Pro
+is off. The free plan keeps one board; people who already have more keep them.
+For local testing the shared scheme runs with `ios/StoreKit/VisionBoardPro.storekit`
+(outside the synced folders, so it never ships in the app). The products must
+also be created in App Store Connect with the same ids before release.
+
 Reminders are local notifications scheduled two weeks ahead on the device, so
 they need no server and work offline.
 
