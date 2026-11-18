@@ -138,7 +138,7 @@ final class Reminders {
     // Photos synced from the web are often WebP, which notifications can't
     // show. Re-encode a small JPEG copy (the system moves the file it's given).
     private static func attachment(for content: String) async -> UNNotificationAttachment? {
-        guard let image = await ImageStore.shared.image(for: content) else { return nil }
+        guard let image = await ImageStore.shared.image(for: content, maxPixels: 1200) else { return nil }
         let scale = min(1, 1200 / max(image.size.width, image.size.height, 1))
         let size = CGSize(width: image.size.width * scale, height: image.size.height * scale)
         let format = UIGraphicsImageRendererFormat.default()

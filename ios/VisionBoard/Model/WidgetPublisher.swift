@@ -25,7 +25,7 @@ enum WidgetPublisher {
                 let name = fileName(for: content)
                 if written.contains(name) || FileManager.default.fileExists(atPath: folder.appending(path: name).path(percentEncoded: false)) {
                     file = name
-                } else if let image = await ImageStore.shared.image(for: content), let jpeg = shrink(image) {
+                } else if let image = await ImageStore.shared.image(for: content, maxPixels: maxEdge), let jpeg = shrink(image) {
                     try? jpeg.write(to: folder.appending(path: name), options: .atomic)
                     file = name
                 }
