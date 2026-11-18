@@ -3,9 +3,10 @@
 // Auth is a "sync key": a random secret generated in the browser. The Worker
 // only ever stores its SHA-256, which doubles as the board id.
 
+import { handleAI, pruneRateLimits, type AIEnv } from './ai'
 import { generateVapidKeys, sendPush, type PushSubscriptionJSON, type VapidKeys } from './webpush'
 
-interface Env {
+interface Env extends AIEnv {
   DB: D1Database
   IMAGES: R2Bucket
   VAPID_SUBJECT: string
@@ -143,6 +144,10 @@ async function handle(request: Request, env: Env): Promise<Response> {
     return json({ publicKey: (await getVapidKeys(env)).publicKey })
   }
 
+  // AI board generation needs no sync key (see ai.ts)
+  const ai = await handleAI(request, env, path)
+  if (ai) return ai
+
   const boardId = await boardIdFrom(request)
   if (!boardId) return error('Missing or invalid sync key', 401)
 
@@ -258,6 +263,7 @@ export default {
 
   async scheduled(_event, env, ctx): Promise<void> {
     const now = new Date()
+    ctx.waitUntil(pruneRateLimits(env, now.getTime()).catch((e) => console.error('prune ai_rate', e)))
     const { results } = await env.DB.prepare('SELECT * FROM push_subscriptions').all<SubscriptionRow>()
     const due = results.filter((row) => {
       try {

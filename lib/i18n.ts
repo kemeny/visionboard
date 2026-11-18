@@ -43,6 +43,10 @@ const en = {
   'menu.shareImage': 'Share as image',
   'share.mark': 'Made with VisionBoard',
 
+  // Photo credit
+  'credit.photoBy': 'Photo by',
+  'credit.on': 'on',
+
   // Progress
   'progress.didIt': 'I did it',
   'progress.done': 'Done',
@@ -192,6 +196,10 @@ const es: Record<MessageKey, string> = {
   'menu.getApp': 'Descarga la app para iPhone',
   'menu.shareImage': 'Compartir como imagen',
   'share.mark': 'Hecho con VisionBoard',
+
+  // Photo credit
+  'credit.photoBy': 'Foto de',
+  'credit.on': 'en',
 
   // Progress
   'progress.didIt': '¡Lo logré!',

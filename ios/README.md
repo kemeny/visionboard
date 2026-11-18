@@ -28,6 +28,14 @@ boards. Each board is its own file under `Application Support/VisionBoard/boards
 (`Model/BoardLibrary.swift`) and syncs on its own key, so one can be shared and
 another kept private. The share sheet asks which board to add to.
 
+**Create with AI** (Pro). Board + menu > Create with AI, or the empty board.
+Someone writes a few sentences about the year they want; the sync Worker
+(`worker/src/ai.ts`) asks Claude for 6 to 9 short goals in the app's language
+and finds an Unsplash photo for each. They tap to leave out anything that
+doesn't fit, and Add to Board downloads the photos like picked ones and lays
+everything out as a collage (`Views/AIBoardView.swift`). Each photo keeps its
+Unsplash credit in the item's `credit` field, shown in the Style inspector.
+
 **Share sheet.** VisionBoard shows up in every app's share sheet (WhatsApp,
 Photos, Safari, Instagram). Photos come in as photos, a video as a still from
 the clip, a link as its preview image, and text as a goal with a random style.

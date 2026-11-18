@@ -86,6 +86,22 @@ final class BoardStore {
         return item
     }
 
+    // Several clippings at once (Create with AI), as one Undo step. Each one
+    // goes on top in the order given, so later items cover earlier ones.
+    @discardableResult
+    func addItems(_ newItems: [BoardItem]) -> [BoardItem] {
+        guard !newItems.isEmpty else { return [] }
+        remember()
+        var added: [BoardItem] = []
+        for var item in newItems {
+            item.zIndex = nextZ()
+            items.append(item)
+            added.append(item)
+        }
+        commit()
+        return added
+    }
+
     func update(_ id: String, _ change: (inout BoardItem) -> Void) {
         guard let index = items.firstIndex(where: { $0.id == id }) else { return }
         remember()

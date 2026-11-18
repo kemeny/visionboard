@@ -28,6 +28,17 @@ struct BoardItem: Codable, Identifiable, Hashable {
     // ISO 8601 time it was marked "I Did It"; nil while it's still a goal.
     // Optional, so boards saved before this field still decode.
     var achievedAt: String?
+    // Who took the photo, for stock photos that need attribution (Unsplash
+    // photos from Create with AI). Same shape as ImageCredit in lib/types.ts.
+    var credit: Credit?
+
+    struct Credit: Codable, Hashable {
+        var name: String
+        // The photographer's profile page
+        var url: String?
+        // Where the photo came from, for example "unsplash"
+        var source: String?
+    }
 
     var isLocked: Bool { locked ?? false }
     var isLiked: Bool { liked ?? false }

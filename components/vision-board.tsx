@@ -41,7 +41,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
-import { BoardItem, TEXT_COLORS, FONT_SIZES, TEXT_STYLES, FontStyle } from "@/lib/types"
+import { BoardItem, TEXT_COLORS, FONT_SIZES, TEXT_STYLES, FontStyle, UNSPLASH_REFERRAL_URL } from "@/lib/types"
 import { daysSinceCreated } from "@/lib/progress"
 
 const LEGACY_STYLE_MAP: Record<string, FontStyle> = {
@@ -1660,6 +1660,27 @@ export function VisionBoard() {
               <RotateCcw className="h-3 w-3" />
               {t("sel.restoreBg")}
             </Button>
+          )}
+
+          {selectedItem.credit && (
+            <span className="whitespace-nowrap px-2 text-xs text-muted-foreground">
+              {t("credit.photoBy")}{" "}
+              {selectedItem.credit.url ? (
+                <a href={selectedItem.credit.url} target="_blank" rel="noopener noreferrer" className="underline">
+                  {selectedItem.credit.name}
+                </a>
+              ) : (
+                selectedItem.credit.name
+              )}
+              {selectedItem.credit.source === "unsplash" && (
+                <>
+                  {" "}{t("credit.on")}{" "}
+                  <a href={UNSPLASH_REFERRAL_URL} target="_blank" rel="noopener noreferrer" className="underline">
+                    Unsplash
+                  </a>
+                </>
+              )}
+            </span>
           )}
 
           <div className="mx-1 h-5 w-px bg-border" />
