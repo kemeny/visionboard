@@ -105,6 +105,8 @@ final class AppRouter {
     var todayCard: DailyCard?
     // Where the weekly recap sheet was opened from ("notification" or "today"); nil when closed
     var weeklyRecapSource: String?
+    // A clipping to find on the board, set from the Feed's long-press dial
+    var focusItem: String?
     var incomingSyncKey: String?
     // Bumped when the share sheet left something in the inbox
     var sharedArrivals = 0

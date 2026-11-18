@@ -123,6 +123,12 @@ struct BoardView: View {
             .onChange(of: onboarded) { _, done in
                 if done { fitBoard() }
             }
+            // "Show on Board" from the Feed: pick the clipping and bring it to the middle
+            .task(id: router.focusItem) {
+                guard let id = router.focusItem else { return }
+                router.focusItem = nil
+                focus(on: id)
+            }
             .sheet(item: Binding(
                 get: { editingTextID.map(EditTarget.init) },
                 set: { editingTextID = $0?.id }
@@ -277,6 +283,23 @@ struct BoardView: View {
 
     private func logAdded(_ source: String) {
         Analytics.capture("item_added", ["source": source, "board_item_count": store.items.count])
+    }
+
+    private func focus(on id: String) {
+        guard let item = store.item(id), viewport.width > 0 else { return }
+        let fit = CanvasCamera.fitting([item], in: viewport, bottomInset: bottomInset)
+        let zoom = min(fit.zoom, max(camera.zoom, 0.8))
+        let visibleHeight = viewport.height - bottomInset
+        selection = id
+        withAnimation(.snappy) {
+            camera = CanvasCamera(
+                zoom: zoom,
+                offset: CGSize(
+                    width: viewport.width / 2 - (item.x + item.width / 2) * zoom,
+                    height: visibleHeight / 2 - (item.y + item.height / 2) * zoom
+                )
+            )
+        }
     }
 
     private func addText() {

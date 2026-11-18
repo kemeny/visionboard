@@ -29,6 +29,18 @@ enum Feed {
         stats[id] = Stats(views: prev.views + 1, dwellMs: prev.dwellMs + dwellMs, lastSeen: now)
     }
 
+    // Clippings hidden from For You with the long-press dial. Per device, like
+    // the view stats: hiding is about this feed, not about the board.
+    private static let hiddenKey = "feed-hidden"
+
+    static func loadHidden() -> Set<String> {
+        Set(UserDefaults.standard.stringArray(forKey: hiddenKey) ?? [])
+    }
+
+    static func saveHidden(_ hidden: Set<String>) {
+        UserDefaults.standard.set(Array(hidden).sorted(), forKey: hiddenKey)
+    }
+
     static func nowMs() -> Double { Date().timeIntervalSince1970 * 1000 }
 
     static func isFeedItem(_ item: BoardItem) -> Bool {
@@ -54,9 +66,10 @@ enum Feed {
 
     // One ranked pass over every clipping, with recently shown ones pushed back
     // and never more than two text cards in a row when a photo can break them up
-    static func round(_ items: [BoardItem], stats: [String: Stats], avoid: [String] = [], likedOnly: Bool = false) -> [BoardItem] {
+    // Liked shows every liked clipping, hidden or not.
+    static func round(_ items: [BoardItem], stats: [String: Stats], avoid: [String] = [], likedOnly: Bool = false, hidden: Set<String> = []) -> [BoardItem] {
         let now = nowMs()
-        let eligible = items.filter { isFeedItem($0) && (!likedOnly || $0.isLiked) }
+        let eligible = items.filter { isFeedItem($0) && (likedOnly ? $0.isLiked : !hidden.contains($0.id)) }
         // Done goals still come back, just less often. Liked keeps everything
         // liked, and a board where everything is done still has a feed.
         let thin = !likedOnly && eligible.contains { !$0.isAchieved }

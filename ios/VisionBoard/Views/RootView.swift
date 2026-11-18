@@ -32,6 +32,7 @@ struct RootView: View {
             }
         }
         .tabViewStyle(.sidebarAdaptable)
+        .overlay { ActionDialOverlay() }
         .fullScreenCover(item: $router.todayCard) { card in
             TodayFullScreen(card: card)
         }
