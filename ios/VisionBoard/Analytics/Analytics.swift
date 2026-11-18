@@ -63,9 +63,14 @@ final class AnalyticsEngine: @unchecked Sendable {
 
     // Owned by `queue`
     private let queue = DispatchQueue(label: "com.kemenystudio.visionboard.analytics", qos: .utility)
-    private var events: [Data] = []
+    // Each event keeps a sequence number so a finished send removes exactly
+    // what it sent, even if trim() or an opt-out changed the queue meanwhile
+    private var events: [QueuedEvent] = []
+    private var nextSeq = 0
     private var started = false
     private var sending = false
+    // flush() calls that arrived while a send was in flight
+    private var pendingCompletions: [@Sendable () -> Void] = []
     private var timer: DispatchSourceTimer?
     private var lastFlagsFetch: Date?
     private var fetchingFlags = false
@@ -73,6 +78,9 @@ final class AnalyticsEngine: @unchecked Sendable {
     // Read synchronously by flag(), so guarded by a lock
     private let lock = NSLock()
     private var flags: [String: String]
+    // False until flags were cached from an earlier launch or fetched now, so
+    // a first-launch read doesn't log every user's exposure as control
+    private var flagsKnown: Bool
     private var calledFlags: Set<String> = []
 
     private init() {
@@ -91,7 +99,9 @@ final class AnalyticsEngine: @unchecked Sendable {
             defaults.set(made, forKey: Self.distinctIDKey)
             distinctID = made
         }
-        flags = defaults.dictionary(forKey: Self.flagsKey) as? [String: String] ?? [:]
+        let cachedFlags = defaults.dictionary(forKey: Self.flagsKey) as? [String: String]
+        flags = cachedFlags ?? [:]
+        flagsKnown = cachedFlags != nil
 
         let version = ProcessInfo.processInfo.operatingSystemVersion
         superProperties = [
@@ -118,7 +128,7 @@ final class AnalyticsEngine: @unchecked Sendable {
             guard !self.started else { return }
             self.started = true
             guard self.isConfigured else { return }
-            self.events = self.loadQueue()
+            self.events = self.loadQueue().map { self.makeQueued($0) }
             let timer = DispatchSource.makeTimerSource(queue: self.queue)
             timer.schedule(deadline: .now() + Self.flushInterval, repeating: Self.flushInterval)
             timer.setEventHandler { [weak self] in self?.send(completion: nil) }
@@ -173,22 +183,42 @@ final class AnalyticsEngine: @unchecked Sendable {
         ]
         guard JSONSerialization.isValidJSONObject(body), let data = try? JSONSerialization.data(withJSONObject: body) else { return }
         queue.async {
-            self.events.append(data)
+            self.events.append(self.makeQueued(data))
             self.trim()
             self.saveQueue()
             if self.events.count >= Self.flushAt { self.send(completion: nil) }
         }
     }
 
+    // On the queue
+    private func makeQueued(_ data: Data) -> QueuedEvent {
+        nextSeq += 1
+        return QueuedEvent(seq: nextSeq, data: data)
+    }
+
+    // On the queue. Calls this send's completion and any flush() that waited on it.
+    private func finish(_ completion: (@Sendable () -> Void)?) {
+        completion?()
+        let waiting = pendingCompletions
+        pendingCompletions.removeAll()
+        for done in waiting { done() }
+    }
+
     // On the queue. Sends up to 100 events; on success the rest follow.
     private func send(completion: (@Sendable () -> Void)?) {
-        guard isActive, !sending, !events.isEmpty, let url = URL(string: host + "/batch/") else {
-            completion?()
+        if sending {
+            // Keep the background task alive until the running send ends
+            if let completion { pendingCompletions.append(completion) }
+            return
+        }
+        guard isActive, !events.isEmpty, let url = URL(string: host + "/batch/") else {
+            finish(completion)
             return
         }
         let batch = Array(events.prefix(Self.maxBatch))
+        let sentSeqs = Set(batch.map(\.seq))
         guard let tokenJSON = try? JSONEncoder().encode(token) else {
-            completion?()
+            finish(completion)
             return
         }
         var body = Data("{\"api_key\":".utf8)
@@ -196,7 +226,7 @@ final class AnalyticsEngine: @unchecked Sendable {
         body.append(Data(",\"batch\":[".utf8))
         for (index, event) in batch.enumerated() {
             if index > 0 { body.append(Data(",".utf8)) }
-            body.append(event)
+            body.append(event.data)
         }
         body.append(Data("]}".utf8))
 
@@ -214,14 +244,14 @@ final class AnalyticsEngine: @unchecked Sendable {
                 // A batch the server rejects as malformed would fail forever
                 let rejected = error == nil && (status == 400 || status == 413)
                 if delivered || rejected {
-                    self.events.removeFirst(min(batch.count, self.events.count))
+                    self.events.removeAll { sentSeqs.contains($0.seq) }
                     self.saveQueue()
                     if delivered && !self.events.isEmpty {
                         self.send(completion: completion)
                         return
                     }
                 }
-                completion?()
+                self.finish(completion)
             }
         }.resume()
     }
@@ -251,7 +281,7 @@ final class AnalyticsEngine: @unchecked Sendable {
         var data = Data()
         for (index, event) in events.enumerated() {
             if index > 0 { data.append(UInt8(ascii: "\n")) }
-            data.append(event)
+            data.append(event.data)
         }
         try? data.write(to: queueURL, options: .atomic)
     }
@@ -261,7 +291,9 @@ final class AnalyticsEngine: @unchecked Sendable {
     func flag(_ key: String) -> String? {
         lock.lock()
         let value = flags[key]
-        let firstRead = calledFlags.insert(key).inserted
+        // Before the first fetch on a first launch the answer isn't real yet,
+        // so its exposure is logged on a later read instead
+        let firstRead = flagsKnown && calledFlags.insert(key).inserted
         lock.unlock()
         if firstRead {
             let response: Any = value.map { $0 == "true" ? true as Any : $0 as Any } ?? false
@@ -284,23 +316,33 @@ final class AnalyticsEngine: @unchecked Sendable {
         fetchingFlags = true
         URLSession.shared.dataTask(with: request) { data, response, error in
             let status = (response as? HTTPURLResponse)?.statusCode ?? 0
-            let parsed: [String: String]? = (error == nil && (200..<300).contains(status)) ? data.flatMap { AnalyticsEngine.parseFlags($0) } : nil
+            let parsed: (flags: [String: String], partial: Bool)? = (error == nil && (200..<300).contains(status)) ? data.flatMap { AnalyticsEngine.parseFlags($0) } : nil
             self.queue.async {
                 self.fetchingFlags = false
                 guard let parsed else { return }
                 self.lastFlagsFetch = Date()
                 self.lock.lock()
-                self.flags = parsed
+                if parsed.partial {
+                    // Some flags failed on the server; keep the cached answer
+                    // for those instead of flipping them to control
+                    self.flags.merge(parsed.flags) { _, new in new }
+                } else {
+                    self.flags = parsed.flags
+                }
+                self.flagsKnown = true
+                let saved = self.flags
                 self.lock.unlock()
-                UserDefaults.standard.set(parsed, forKey: Self.flagsKey)
+                UserDefaults.standard.set(saved, forKey: Self.flagsKey)
             }
         }.resume()
     }
 
     // Reads /flags?v=2 ({"flags": {key: {enabled, variant}}}) and the older
-    // {"featureFlags": {key: true | "variant"}} shape. Only flags that are on are kept.
-    private static func parseFlags(_ data: Data) -> [String: String]? {
+    // {"featureFlags": {key: true | "variant"}} shape. Only flags that are on
+    // are kept. `partial` is true when the server says some flags failed.
+    private static func parseFlags(_ data: Data) -> (flags: [String: String], partial: Bool)? {
         guard let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else { return nil }
+        let partial = json["errorsWhileComputingFlags"] as? Bool ?? false
         var result: [String: String] = [:]
         if let flags = json["flags"] as? [String: Any] {
             for (key, raw) in flags {
@@ -311,7 +353,7 @@ final class AnalyticsEngine: @unchecked Sendable {
                     result[key] = "true"
                 }
             }
-            return result
+            return (result, partial)
         }
         if let flags = json["featureFlags"] as? [String: Any] {
             for (key, raw) in flags {
@@ -321,7 +363,7 @@ final class AnalyticsEngine: @unchecked Sendable {
                     result[key] = "true"
                 }
             }
-            return result
+            return (result, partial)
         }
         return nil
     }
@@ -341,6 +383,11 @@ final class AnalyticsEngine: @unchecked Sendable {
         default: return String(describing: value)
         }
     }
+}
+
+private struct QueuedEvent {
+    let seq: Int
+    let data: Data
 }
 
 // Keeps the app awake for a few seconds after it goes to the background, so

@@ -11,6 +11,9 @@ struct OnboardingView: View {
     // What the person picked on the starter page, for analytics
     @State private var templateID: String?
     @State private var startedBlank = false
+    // Stops a second tap from finishing twice while reminders are set up
+    @State private var finishing = false
+    @State private var didFinish = false
 
     var body: some View {
         TabView(selection: $page) {
@@ -29,11 +32,15 @@ struct OnboardingView: View {
     }
 
     private func skip() {
+        guard !didFinish else { return }
+        didFinish = true
         Analytics.capture("onboarding_skipped", ["page": page])
         onFinish()
     }
 
     private func finish(reminders: Bool) {
+        guard !didFinish else { return }
+        didFinish = true
         var properties: [String: Any] = [
             "path": templateID == nil ? "blank" : "template",
             "reminders": reminders,
@@ -68,7 +75,7 @@ struct OnboardingView: View {
             VStack(spacing: 10) {
                 ForEach(BoardTemplate.all) { template in
                     Button {
-                        if let file = template.load() {
+                        if templateID != template.id, let file = template.load() {
                             store.replaceBoard(with: file)
                             templateID = template.id
                             Analytics.capture("template_loaded", ["template": template.id, "surface": "onboarding"])
@@ -82,7 +89,11 @@ struct OnboardingView: View {
                     .controlSize(.large)
                 }
                 Button("Start Blank") {
-                    templateID = nil
+                    if templateID != nil {
+                        // Back from a template: clear it so the board really is blank
+                        store.replaceBoard(with: BoardFile(version: 1, items: [], maxZIndex: 1))
+                        templateID = nil
+                    }
                     if !startedBlank {
                         startedBlank = true
                         Analytics.capture("blank_started", ["surface": "onboarding"])
@@ -102,6 +113,8 @@ struct OnboardingView: View {
         ) {
             VStack(spacing: 10) {
                 Button {
+                    guard !finishing else { return }
+                    finishing = true
                     Task {
                         await reminders.enable(hour: 8, items: store.items)
                         finish(reminders: reminders.isEnabled)
@@ -111,7 +124,9 @@ struct OnboardingView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
+                .disabled(finishing)
                 Button("Not Now") { finish(reminders: false) }
+                    .disabled(finishing)
             }
         }
     }
