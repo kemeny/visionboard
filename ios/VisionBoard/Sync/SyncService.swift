@@ -17,7 +17,17 @@ final class SyncService {
 
     private let store: BoardStore
     @ObservationIgnored private var pushTask: Task<Void, Never>?
-    @ObservationIgnored private var dirty = false
+    // Bumped on every local edit, so a push only marks the board clean when
+    // nothing changed while it was uploading
+    @ObservationIgnored private var editGeneration = 0
+    // Saved per board, so an edit made just before the app is killed is
+    // still pushed on the next launch instead of being pulled over
+    private var dirtyKey: String { Self.dirtyDefaultsKey(board: store.boardID) }
+    private static func dirtyDefaultsKey(board boardID: String) -> String { "sync-dirty-\(boardID)" }
+    private var dirty: Bool {
+        get { UserDefaults.standard.bool(forKey: dirtyKey) }
+        set { UserDefaults.standard.set(newValue, forKey: dirtyKey) }
+    }
     private var syncedAtKey: String {
         store.boardID == BoardLibrary.mainID ? "synced-at" : "synced-at-\(store.boardID)"
     }
@@ -46,7 +56,7 @@ final class SyncService {
     func boardChanged() {
         pushTask?.cancel()
         pushTask = nil
-        dirty = false
+        // `dirty` now reads the new board's own saved flag
         errorMessage = nil
         key = KeyStore.read(board: store.boardID)
         status = !SyncAPI.isConfigured ? .unavailable : key == nil ? .off : .synced
@@ -56,6 +66,7 @@ final class SyncService {
     static func forget(board boardID: String) {
         KeyStore.write(nil, board: boardID)
         UserDefaults.standard.removeObject(forKey: "synced-at-\(boardID)")
+        UserDefaults.standard.removeObject(forKey: dirtyDefaultsKey(board: boardID))
     }
 
     var isOn: Bool { key != nil }
@@ -63,6 +74,7 @@ final class SyncService {
     func localEdit() {
         guard let key else { return }
         dirty = true
+        editGeneration += 1
         pushTask?.cancel()
         pushTask = Task {
             try? await Task.sleep(for: Self.pushDelay)
@@ -74,6 +86,11 @@ final class SyncService {
 
     func pull() async {
         guard let key, status != .unavailable else { return }
+        // An edit that never got out (the app was killed first) goes up
+        // before anything comes down. A push already waiting will send it.
+        if dirty && pushTask == nil {
+            await push(key: key)
+        }
         status = .syncing
         do {
             if let remote = try await SyncAPI.fetchBoard(key: key), remote.updatedAt > syncedAt, !dirty {
@@ -127,6 +144,7 @@ final class SyncService {
     func disconnect() {
         pushTask?.cancel()
         KeyStore.write(nil, board: store.boardID)
+        dirty = false
         key = nil
         syncedAt = 0
         status = .off
@@ -141,6 +159,7 @@ final class SyncService {
     }
 
     private func push(key: String) async {
+        let generation = editGeneration
         status = .syncing
         do {
             // Upload photos added on this device first, then swap in their cloud paths
@@ -174,7 +193,10 @@ final class SyncService {
                     return item
                 }
             syncedAt = try await SyncAPI.pushBoard(key: key, board: file)
-            dirty = store.items.contains { ImageStore.isLocal($0.content) }
+            // An edit made during the upload keeps the board dirty for its own push
+            if editGeneration == generation {
+                dirty = store.items.contains { ImageStore.isLocal($0.content) }
+            }
             if let imageError {
                 status = .error
                 errorMessage = String(localized: "Some photos couldn't be saved to the cloud: \(imageError)")

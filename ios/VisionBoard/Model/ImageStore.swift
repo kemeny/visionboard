@@ -1,4 +1,5 @@
 import CryptoKit
+import ImageIO
 import UIKit
 
 // Board images live in three places: photos added on this device ("local:"),
@@ -32,7 +33,10 @@ actor ImageStore {
 
     // Shrinks a picked photo to board size and keeps it on this device until sync uploads it
     func importPhoto(_ data: Data) throws -> (content: String, aspect: Double) {
-        guard let image = UIImage(data: data) else { throw CocoaError(.fileReadCorruptFile) }
+        // Decode straight to board size so a 48 MP photo never sits in memory at full size
+        guard let image = Self.downsample(data, maxPixels: Self.maxEdge) ?? UIImage(data: data) else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
         let jpeg = Self.encode(image)
         let name = UUID().uuidString.lowercased() + ".jpg"
         try jpeg.write(to: localDir.appending(path: name), options: .atomic)
@@ -101,6 +105,20 @@ actor ImageStore {
 
     func deleteLocal(_ content: String) {
         if let url = localDirURL(content) { try? FileManager.default.removeItem(at: url) }
+    }
+
+    // ImageIO thumbnail at most maxPixels on the long edge, upright
+    private static func downsample(_ data: Data, maxPixels: CGFloat) -> UIImage? {
+        let sourceOptions = [kCGImageSourceShouldCache: false] as CFDictionary
+        guard let source = CGImageSourceCreateWithData(data as CFData, sourceOptions) else { return nil }
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceShouldCacheImmediately: true,
+            kCGImageSourceThumbnailMaxPixelSize: maxPixels,
+        ]
+        guard let cg = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else { return nil }
+        return UIImage(cgImage: cg)
     }
 
     private static func encode(_ image: UIImage) -> Data {
