@@ -58,7 +58,7 @@ final class BoardStore {
     // MARK: Editing
 
     @discardableResult
-    func addText(at center: CGPoint, content: String = "New goal") -> BoardItem {
+    func addText(at center: CGPoint, content: String = String(localized: "New goal")) -> BoardItem {
         remember()
         let item = BoardItem(
             id: BoardItem.newID(), type: .text,
@@ -86,6 +86,22 @@ final class BoardStore {
         return item
     }
 
+    // Several clippings at once (Create with AI), as one Undo step. Each one
+    // goes on top in the order given, so later items cover earlier ones.
+    @discardableResult
+    func addItems(_ newItems: [BoardItem]) -> [BoardItem] {
+        guard !newItems.isEmpty else { return [] }
+        remember()
+        var added: [BoardItem] = []
+        for var item in newItems {
+            item.zIndex = nextZ()
+            items.append(item)
+            added.append(item)
+        }
+        commit()
+        return added
+    }
+
     func update(_ id: String, _ change: (inout BoardItem) -> Void) {
         guard let index = items.firstIndex(where: { $0.id == id }) else { return }
         remember()
@@ -110,8 +126,10 @@ final class BoardStore {
         copy.y += 24
         copy.zIndex = nextZ()
         copy.locked = nil
+        copy.achievedAt = nil
         items.append(copy)
         commit()
+        Analytics.capture("item_added", ["source": "duplicate", "board_item_count": items.count])
         return copy
     }
 
@@ -126,7 +144,29 @@ final class BoardStore {
     }
 
     func toggleLike(_ id: String) {
+        guard let current = item(id) else { return }
         update(id) { $0.liked = !$0.isLiked ? true : nil }
+        if !current.isLiked {
+            Analytics.capture("item_liked", ["type": current.type == .image ? "photo" : "text"])
+        }
+    }
+
+    // "I Did It": the clipping stays on the board with a seal and shows up
+    // less often in the feed and reminders. Returns true if anything changed.
+    @discardableResult
+    func setAchieved(_ id: String, _ achieved: Bool) -> Bool {
+        guard let current = item(id), current.isAchieved != achieved else { return false }
+        update(id) { $0.achievedAt = achieved ? BoardItem.isoString(Date()) : nil }
+        if achieved {
+            var properties: [String: Any] = ["type": current.type == .image ? "photo" : "text"]
+            if let created = current.createdDate {
+                properties["days_since_created"] = max(0, Calendar.current.dateComponents([.day], from: created, to: Date()).day ?? 0)
+            }
+            Analytics.capture("goal_achieved", properties)
+        } else {
+            Analytics.capture("goal_unachieved", ["type": current.type == .image ? "photo" : "text"])
+        }
+        return true
     }
 
     func replaceBoard(with file: BoardFile) {
@@ -228,7 +268,7 @@ struct BoardTemplate: Identifiable {
     let symbol: String
 
     static let all = [
-        BoardTemplate(id: "demo-goals-2026", name: String(localized: "Goals 2026"), symbol: "target"),
+        BoardTemplate(id: "demo-goals-2027", name: String(localized: "Goals 2027"), symbol: "target"),
         BoardTemplate(id: "demo-morning-routine", name: String(localized: "Morning Routine"), symbol: "sunrise"),
         BoardTemplate(id: "demo-travel-bucket", name: String(localized: "Travel Bucket List"), symbol: "airplane"),
         BoardTemplate(id: "demo-creative-studio", name: String(localized: "Creative Studio"), symbol: "paintpalette"),

@@ -12,15 +12,23 @@ import UserNotifications
 final class Reminders {
     private static let enabledKey = "reminders-enabled"
     private static let hourKey = "reminders-hour"
+    private static let minuteKey = "reminders-minute"
     private static let idPrefix = "daily-"
     private static let daysAhead = 14
 
+    // Bumped by every reschedule and by disable(), so a reschedule that is
+    // still awaiting stops adding once a newer one started or reminders
+    // were turned off
+    @ObservationIgnored private var generation = 0
+
     var isEnabled = UserDefaults.standard.bool(forKey: Reminders.enabledKey)
     var hour: Int = UserDefaults.standard.object(forKey: Reminders.hourKey) as? Int ?? 8
+    // Older installs saved only the hour, so they keep firing on the hour
+    var minute: Int = UserDefaults.standard.object(forKey: Reminders.minuteKey) as? Int ?? 0
     var errorMessage: String?
     var testMessage: String?
 
-    func enable(hour: Int, items: [BoardItem]) async {
+    func enable(hour: Int, minute: Int = 0, items: [BoardItem]) async {
         do {
             let granted = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
             guard granted else {
@@ -33,34 +41,55 @@ final class Reminders {
             return
         }
         errorMessage = nil
+        if !isEnabled { Analytics.capture("reminders_enabled", ["hour": hour]) }
         isEnabled = true
         self.hour = hour
+        self.minute = minute
         UserDefaults.standard.set(true, forKey: Self.enabledKey)
         UserDefaults.standard.set(hour, forKey: Self.hourKey)
+        UserDefaults.standard.set(minute, forKey: Self.minuteKey)
         await reschedule(items: items)
     }
 
     func disable() {
+        generation += 1
         isEnabled = false
         UserDefaults.standard.set(false, forKey: Self.enabledKey)
         Task { await Self.removePending() }
     }
 
+    // Reschedules run one after another, so an older one can never finish
+    // its adds after a newer one and leave a stale reminder behind
+    @ObservationIgnored private var lastReschedule: Task<Void, Never>?
+
     func reschedule(items: [BoardItem]) async {
+        generation += 1
+        let mine = generation
+        let previous = lastReschedule
+        let task = Task { @MainActor in
+            await previous?.value
+            await self.run(items: items, mine: mine)
+        }
+        lastReschedule = task
+        await task.value
+    }
+
+    private func run(items: [BoardItem], mine: Int) async {
+        guard generation == mine else { return }
         await Self.removePending()
-        guard isEnabled else { return }
+        guard isEnabled, generation == mine else { return }
         let center = UNUserNotificationCenter.current()
         let calendar = Calendar.current
         let now = Date()
         for offset in 0..<Self.daysAhead {
             guard
                 let day = calendar.date(byAdding: .day, value: offset, to: now),
-                let fire = calendar.date(bySettingHour: hour, minute: 0, second: 0, of: day),
+                let fire = calendar.date(bySettingHour: hour, minute: minute, second: 0, of: day),
                 fire > now
             else { continue }
             let card = DailyCard.pick(from: items, on: fire)
             let content = UNMutableNotificationContent()
-            content.title = "Your vision board"
+            content.title = String(localized: "Your vision board")
             content.body = card.text
             content.sound = .default
             content.userInfo = ["text": card.text, "image": card.image ?? ""]
@@ -70,11 +99,18 @@ final class Reminders {
                 content.attachments = [attachment]
             }
             let parts = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: fire)
+            // The awaits above can outlast a toggle off or a newer reschedule
+            guard isEnabled, generation == mine else { return }
             try? await Self.add(
                 content,
                 id: Self.idPrefix + "\(offset)",
                 trigger: UNCalendarNotificationTrigger(dateMatching: parts, repeats: false)
             )
+            // Turned off while that add was in flight: take everything back out
+            if !isEnabled {
+                await Self.removePending()
+                return
+            }
         }
     }
 
@@ -96,7 +132,7 @@ final class Reminders {
         }
         let card = DailyCard.pick(from: items)
         let content = UNMutableNotificationContent()
-        content.title = "Your vision board"
+        content.title = String(localized: "Your vision board")
         content.body = card.text
         content.userInfo = ["text": card.text, "image": card.image ?? ""]
         if let image = card.image, let attachment = await Self.attachment(for: image) {
@@ -132,7 +168,7 @@ final class Reminders {
     // Photos synced from the web are often WebP, which notifications can't
     // show. Re-encode a small JPEG copy (the system moves the file it's given).
     private static func attachment(for content: String) async -> UNNotificationAttachment? {
-        guard let image = await ImageStore.shared.image(for: content) else { return nil }
+        guard let image = await ImageStore.shared.image(for: content, maxPixels: 1200) else { return nil }
         let scale = min(1, 1200 / max(image.size.width, image.size.height, 1))
         let size = CGSize(width: image.size.width * scale, height: image.size.height * scale)
         let format = UIGraphicsImageRendererFormat.default()

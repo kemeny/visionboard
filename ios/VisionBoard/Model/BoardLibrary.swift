@@ -20,6 +20,9 @@ final class BoardLibrary {
 
     @ObservationIgnored private let store: BoardStore
     @ObservationIgnored private let sync: SyncService
+    // Called after a board is created, renamed or deleted, so the account
+    // backup can follow
+    @ObservationIgnored var onListChange: (@MainActor () -> Void)?
 
     static var directory: URL {
         let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appending(path: "VisionBoard")
@@ -84,6 +87,7 @@ final class BoardLibrary {
         }
         boards.append(board)
         saveList()
+        Analytics.capture("board_created", ["board_count": boards.count])
         await open(board.id)
         return board
     }
@@ -133,6 +137,7 @@ final class BoardLibrary {
             try? data.write(to: Self.listURL, options: .atomic)
         }
         publishForShareSheet()
+        onListChange?()
     }
 
     // The share sheet lists boards by name so you can pick where things go

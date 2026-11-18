@@ -1,6 +1,96 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "%@ free": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ gratis"
+          }
+        }
+      }
+    },
+    "%@ per month": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ al mes"
+          }
+        }
+      }
+    },
+    "%@ per month.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ al mes."
+          }
+        }
+      }
+    },
+    "%@ per year (%@ per month)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ al año (%@ al mes)"
+          }
+        }
+      }
+    },
+    "%@ per year.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ al año."
+          }
+        }
+      }
+    },
+    "%lld boards couldn't be restored. They may have been deleted from the cloud.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudieron restaurar %lld tableros. Puede que los hayan borrado de la nube."
+          }
+        }
+      }
+    },
+    "%lld boards restored.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se restauraron %lld tableros."
+          }
+        }
+      }
+    },
+    "%lld of %lld": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld de %lld"
+          }
+        }
+      }
+    },
+    "%lld photos added": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld fotos agregadas"
+          }
+        }
+      }
+    },
     "%lld pt": {
       "localizations": {
         "es": {
@@ -11,12 +101,82 @@
         }
       }
     },
+    "1 board couldn't be restored. It may have been deleted from the cloud.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo restaurar 1 tablero. Puede que lo hayan borrado de la nube."
+          }
+        }
+      }
+    },
+    "1 board restored.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se restauró 1 tablero."
+          }
+        }
+      }
+    },
+    "1 photo added": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 foto agregada"
+          }
+        }
+      }
+    },
+    "7 days free": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "7 días gratis"
+          }
+        }
+      }
+    },
     "A Daily Nudge": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Un empujón diario"
+          }
+        }
+      }
+    },
+    "A photo is missing from this iPhone.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Falta una foto en este iPhone."
+          }
+        }
+      }
+    },
+    "Account": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cuenta"
+          }
+        }
+      }
+    },
+    "Accounts aren't set up in this build.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las cuentas no están disponibles en esta versión."
           }
         }
       }
@@ -51,6 +211,16 @@
         }
       }
     },
+    "Add a Photo for Each": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agrega una foto para cada una"
+          }
+        }
+      }
+    },
     "Add as New Board": {
       "localizations": {
         "es": {
@@ -61,12 +231,72 @@
         }
       }
     },
+    "Add the Widget": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agregar el widget"
+          }
+        }
+      }
+    },
     "Add the photos and goals that pull you forward. You'll see one each day.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Agrega las fotos y metas que te impulsan. Verás una cada día."
+          }
+        }
+      }
+    },
+    "Add to Board": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agregar al tablero"
+          }
+        }
+      }
+    },
+    "Added to your board.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se agregó a tu tablero."
+          }
+        }
+      }
+    },
+    "Adding photos": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agregando fotos"
+          }
+        }
+      }
+    },
+    "Adding…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agregando…"
+          }
+        }
+      }
+    },
+    "All your backed-up boards are already here.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todos tus tableros respaldados ya están aquí."
           }
         }
       }
@@ -91,12 +321,62 @@
         }
       }
     },
+    "Apple Account": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cuenta de Apple"
+          }
+        }
+      }
+    },
     "Arrange": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Ordenar"
+          }
+        }
+      }
+    },
+    "Back": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atrás"
+          }
+        }
+      }
+    },
+    "Back Up Now": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Respaldar ahora"
+          }
+        }
+      }
+    },
+    "Back up your board with Apple": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Respalda tu tablero con Apple"
+          }
+        }
+      }
+    },
+    "Backed up.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Respaldo listo."
           }
         }
       }
@@ -111,6 +391,16 @@
         }
       }
     },
+    "Before You Start": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Antes de empezar"
+          }
+        }
+      }
+    },
     "Begin with an example you can change, or with blank paper.": {
       "localizations": {
         "es": {
@@ -121,12 +411,32 @@
         }
       }
     },
+    "Black": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Negro"
+          }
+        }
+      }
+    },
     "Blank": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Liso"
+          }
+        }
+      }
+    },
+    "Blue": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Azul"
           }
         }
       }
@@ -161,12 +471,42 @@
         }
       }
     },
+    "Camera": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cámara"
+          }
+        }
+      }
+    },
     "Cancel": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Cancelar"
+          }
+        }
+      }
+    },
+    "Choose Different Photos": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elegir otras fotos"
+          }
+        }
+      }
+    },
+    "Choose Photos": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elegir fotos"
           }
         }
       }
@@ -231,6 +571,56 @@
         }
       }
     },
+    "Couldn't connect. Check your connection and try again.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo conectar. Revisa tu conexión e inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "Couldn't load the plans. Check your connection and try again.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No pudimos cargar los planes. Revisa tu conexión e inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "Couldn't make a board from that. Try describing your year another way.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No pudimos crear un tablero con eso. Prueba a describir tu año de otra forma."
+          }
+        }
+      }
+    },
+    "Couldn't reach Apple to finish deleting your account. Try again in a moment.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No pudimos conectar con Apple para terminar de borrar tu cuenta. Intenta de nuevo en un momento."
+          }
+        }
+      }
+    },
+    "Couldn't reach the App Store. Check your connection and try again.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No pudimos conectar con el App Store. Revisa tu conexión e inténtalo de nuevo."
+          }
+        }
+      }
+    },
     "Couldn't save: %@": {
       "localizations": {
         "es": {
@@ -281,12 +671,52 @@
         }
       }
     },
+    "Create a board with AI from a few words": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crea un tablero con IA a partir de unas pocas palabras"
+          }
+        }
+      }
+    },
+    "Create with AI": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crear con IA"
+          }
+        }
+      }
+    },
+    "Create with AI isn't available right now.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crear con IA no está disponible ahora."
+          }
+        }
+      }
+    },
     "Creative Studio": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Estudio creativo"
+          }
+        }
+      }
+    },
+    "Custom color": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Color personalizado"
           }
         }
       }
@@ -317,6 +747,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Eliminar"
+          }
+        }
+      }
+    },
+    "Delete Account": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Borrar cuenta"
+          }
+        }
+      }
+    },
+    "Delete Account and Cloud Boards": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Borrar cuenta y tableros en la nube"
           }
         }
       }
@@ -361,12 +811,32 @@
         }
       }
     },
+    "Delete your account?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Borrar tu cuenta?"
+          }
+        }
+      }
+    },
     "Delete “%@”?": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "¿Eliminar “%@”?"
+          }
+        }
+      }
+    },
+    "Dismiss": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cerrar"
           }
         }
       }
@@ -401,6 +871,26 @@
         }
       }
     },
+    "Double-tap to keep or leave out": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toca dos veces para incluir o dejar fuera"
+          }
+        }
+      }
+    },
+    "Drag it to move it, or drag the corner to resize and turn": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arrástralo para moverlo, o arrastra la esquina para cambiar el tamaño y girarlo"
+          }
+        }
+      }
+    },
     "Duplicate": {
       "localizations": {
         "es": {
@@ -417,6 +907,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Cada día a esta hora recibirás una meta y una foto de tu tablero. Los recordatorios salen a la hora en punto."
+          }
+        }
+      }
+    },
+    "Each day at this time you'll get one goal and one photo from your board. The weekly recap comes on Sunday, and if you're away for a week, a check-in brings your board back.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cada día a esta hora recibirás una meta y una foto de tu tablero. El resumen semanal llega el domingo, y si pasas una semana sin entrar, te recordamos tu tablero."
           }
         }
       }
@@ -447,6 +947,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Elegante"
+          }
+        }
+      }
+    },
+    "Every board syncs, and the list of your boards is backed up to your account. Signing out keeps your boards and their sync on this iPhone.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todos tus tableros se sincronizan y su lista queda respaldada en tu cuenta. Si cierras sesión, tus tableros y su sincronización siguen en este iPhone."
           }
         }
       }
@@ -491,12 +1001,92 @@
         }
       }
     },
+    "For You": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para ti"
+          }
+        }
+      }
+    },
     "For example 2027, Career or Travel.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Por ejemplo 2027, Carrera o Viajes."
+          }
+        }
+      }
+    },
+    "For example: Walk 20 minutes on Monday": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por ejemplo: caminar 20 minutos el lunes"
+          }
+        }
+      }
+    },
+    "Free": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gratis"
+          }
+        }
+      }
+    },
+    "Free for %@, then %@ per year.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gratis por %@, luego %@ al año."
+          }
+        }
+      }
+    },
+    "Free for 7 days, then %@ per year.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gratis por 7 días, luego %@ al año."
+          }
+        }
+      }
+    },
+    "Free trial": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prueba gratis"
+          }
+        }
+      }
+    },
+    "Free trial, then %@ per year.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prueba gratis, luego %@ al año."
+          }
+        }
+      }
+    },
+    "Generate": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Generar"
           }
         }
       }
@@ -521,12 +1111,42 @@
         }
       }
     },
+    "Goal %lld": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meta %lld"
+          }
+        }
+      }
+    },
     "Goals 2026": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Metas 2026"
+          }
+        }
+      }
+    },
+    "Goals 2027": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Metas 2027"
+          }
+        }
+      }
+    },
+    "Goals Done": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Metas logradas"
           }
         }
       }
@@ -541,12 +1161,72 @@
         }
       }
     },
+    "Green": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verde"
+          }
+        }
+      }
+    },
     "Grid": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Cuadrícula"
+          }
+        }
+      }
+    },
+    "Health, work, travel, people, money. Anything that matters to you.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salud, trabajo, viajes, personas, dinero. Lo que te importe."
+          }
+        }
+      }
+    },
+    "Help and Support": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ayuda y soporte"
+          }
+        }
+      }
+    },
+    "Helps us see which features people use. Only taps and counts are sent, with a random ID. Your goals and photos are never sent.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nos ayuda a ver qué funciones se usan. Solo se envían toques y conteos, con un ID al azar. Tus metas y fotos nunca se envían."
+          }
+        }
+      }
+    },
+    "Helps us see which features people use. Only taps, counts and the plan you pick are sent, with a random ID. Your goals and photos are never sent.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nos ayuda a ver qué funciones se usan. Solo se envían toques, conteos y el plan que eliges, con un ID aleatorio. Tus metas y fotos nunca se envían."
+          }
+        }
+      }
+    },
+    "Here's to the next one.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por el que viene."
           }
         }
       }
@@ -571,6 +1251,46 @@
         }
       }
     },
+    "I Did It": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¡Lo logré!"
+          }
+        }
+      }
+    },
+    "I want to run a half marathon, cook more at home and take my mom to Japan.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quiero correr una media maratón, cocinar más en casa y llevar a mi mamá a Japón."
+          }
+        }
+      }
+    },
+    "Ink": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tinta"
+          }
+        }
+      }
+    },
+    "It goes on your board as a new goal.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se agrega a tu tablero como una meta nueva."
+          }
+        }
+      }
+    },
     "Its photos and goals are removed from this iPhone. If the board syncs, the cloud copy stays for your other devices.": {
       "localizations": {
         "es": {
@@ -587,6 +1307,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mantén este tablero al día con VisionBoard en la web y tus otros dispositivos."
+          }
+        }
+      }
+    },
+    "Keep your boards if you change phones.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No pierdas tus tableros si cambias de teléfono."
+          }
+        }
+      }
+    },
+    "Kept": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incluido"
+          }
+        }
+      }
+    },
+    "Last Backup": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Último respaldo"
+          }
+        }
+      }
+    },
+    "Left out": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fuera"
           }
         }
       }
@@ -661,12 +1421,82 @@
         }
       }
     },
+    "Made with VisionBoard": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hecho con VisionBoard"
+          }
+        }
+      }
+    },
+    "Make My Wallpaper": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crear mi fondo de pantalla"
+          }
+        }
+      }
+    },
     "Make Wallpaper": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Crear fondo de pantalla"
+          }
+        }
+      }
+    },
+    "Make Your Vision Real": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Haz realidad tu visión"
+          }
+        }
+      }
+    },
+    "Make a wallpaper of your board, so your goals are there every time you pick up your phone.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Haz un fondo de pantalla con tu tablero y ve tus metas cada vez que tomes el teléfono."
+          }
+        }
+      }
+    },
+    "Making your board…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Creando tu tablero…"
+          }
+        }
+      }
+    },
+    "Manage Subscription": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Administrar suscripción"
+          }
+        }
+      }
+    },
+    "Mark as Not Done": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Marcar como pendiente"
           }
         }
       }
@@ -691,12 +1521,32 @@
         }
       }
     },
+    "Monthly": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mensual"
+          }
+        }
+      }
+    },
     "More": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Más"
+          }
+        }
+      }
+    },
+    "More calm, less phone. Read 20 books, sleep well, see friends every week.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Más calma, menos celular. Leer 20 libros, dormir bien, ver a mis amigos cada semana."
           }
         }
       }
@@ -731,12 +1581,42 @@
         }
       }
     },
+    "Need Ideas?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Necesitas ideas?"
+          }
+        }
+      }
+    },
     "New Board": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Nuevo tablero"
+          }
+        }
+      }
+    },
+    "New goal": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nueva meta"
+          }
+        }
+      }
+    },
+    "No active VisionBoard Pro plan was found for this Apple Account.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No encontramos un plan VisionBoard Pro activo en esta cuenta de Apple."
           }
         }
       }
@@ -751,12 +1631,52 @@
         }
       }
     },
+    "None": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ninguno"
+          }
+        }
+      }
+    },
     "Not Now": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Ahora no"
+          }
+        }
+      }
+    },
+    "Not Synced": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin sincronizar"
+          }
+        }
+      }
+    },
+    "Not opened": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin abrir"
+          }
+        }
+      }
+    },
+    "Nothing Selected": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nada seleccionado"
           }
         }
       }
@@ -821,6 +1741,16 @@
         }
       }
     },
+    "Open Photos and tap your new wallpaper.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre Fotos y toca tu nuevo fondo de pantalla."
+          }
+        }
+      }
+    },
     "Open Synced Board": {
       "localizations": {
         "es": {
@@ -841,6 +1771,16 @@
         }
       }
     },
+    "Opened": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abierto"
+          }
+        }
+      }
+    },
     "Opens full screen": {
       "localizations": {
         "es": {
@@ -857,6 +1797,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Abre la configuración de sincronización"
+          }
+        }
+      }
+    },
+    "Optional. Signing in turns on sync for every board and backs up the list of your boards, so a new iPhone can bring them back. Everything works the same without an account.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opcional. Al iniciar sesión se activa la sincronización de todos tus tableros y se respalda su lista, para recuperarlos en un iPhone nuevo. Todo funciona igual sin cuenta."
+          }
+        }
+      }
+    },
+    "Orange": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Naranja"
           }
         }
       }
@@ -891,16 +1851,6 @@
         }
       }
     },
-    "Camera": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cámara"
-          }
-        }
-      }
-    },
     "Photo": {
       "localizations": {
         "es": {
@@ -911,12 +1861,52 @@
         }
       }
     },
-    "Drag it to move it, or drag the corner to resize and turn": {
+    "Photo by %@": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Arrástralo para moverlo, o arrastra la esquina para cambiar el tamaño y girarlo"
+            "value": "Foto de %@"
+          }
+        }
+      }
+    },
+    "Photo by %@ on Unsplash": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto de %@ en Unsplash"
+          }
+        }
+      }
+    },
+    "Photos from Unsplash": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotos de Unsplash"
+          }
+        }
+      }
+    },
+    "Pick up to three photos that show your goals. You can skip this.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige hasta tres fotos que muestren tus metas. Puedes saltarte este paso."
+          }
+        }
+      }
+    },
+    "Pink": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rosa"
           }
         }
       }
@@ -927,6 +1917,56 @@
           "stringUnit": {
             "state": "translated",
             "value": "Póster"
+          }
+        }
+      }
+    },
+    "Privacy": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Privacidad"
+          }
+        }
+      }
+    },
+    "Privacy Policy": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Política de privacidad"
+          }
+        }
+      }
+    },
+    "Pro": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pro"
+          }
+        }
+      }
+    },
+    "Purple": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Morado"
+          }
+        }
+      }
+    },
+    "Put It on Your Screen": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ponlo en tu pantalla"
           }
         }
       }
@@ -957,6 +1997,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Estilo al azar"
+          }
+        }
+      }
+    },
+    "Red": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rojo"
           }
         }
       }
@@ -1001,12 +2051,62 @@
         }
       }
     },
+    "Renews automatically until you cancel. Cancel anytime in Settings at least 24 hours before it renews.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se renueva automáticamente hasta que canceles. Cancela cuando quieras en Configuración, al menos 24 horas antes de la renovación."
+          }
+        }
+      }
+    },
     "Replace Board": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Reemplazar tablero"
+          }
+        }
+      }
+    },
+    "Replace your board with %@?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Reemplazar tu tablero por %@?"
+          }
+        }
+      }
+    },
+    "Restore Boards": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restaurar tableros"
+          }
+        }
+      }
+    },
+    "Restore Purchases": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restaurar compras"
+          }
+        }
+      }
+    },
+    "Restore from Your Apple Account": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restaurar desde tu cuenta de Apple"
           }
         }
       }
@@ -1021,12 +2121,32 @@
         }
       }
     },
+    "Run a half marathon": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Correr una media maratón"
+          }
+        }
+      }
+    },
     "Save": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Guardar"
+          }
+        }
+      }
+    },
+    "Save for a home": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ahorrar para una casa"
           }
         }
       }
@@ -1091,12 +2211,32 @@
         }
       }
     },
+    "Search for VisionBoard, pick Today's Goal, then tap Add Widget.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Busca VisionBoard, elige Meta de hoy y toca Agregar widget."
+          }
+        }
+      }
+    },
     "See Your Goals Every Day": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Mira tus metas cada día"
+          }
+        }
+      }
+    },
+    "See your goals, photos and days": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mira tus metas, fotos y días"
           }
         }
       }
@@ -1151,6 +2291,26 @@
         }
       }
     },
+    "Set It as Your Lock Screen": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Úsalo en tu pantalla bloqueada"
+          }
+        }
+      }
+    },
+    "Set Up": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configurar"
+          }
+        }
+      }
+    },
     "Settings": {
       "localizations": {
         "es": {
@@ -1171,12 +2331,52 @@
         }
       }
     },
+    "Share Anonymous Usage": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compartir uso anónimo"
+          }
+        }
+      }
+    },
+    "Share Board": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compartir tablero"
+          }
+        }
+      }
+    },
     "Share Sync Link": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Compartir enlace de sincronización"
+          }
+        }
+      }
+    },
+    "Share and wallpapers without the VisionBoard mark": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comparte y crea fondos sin la marca VisionBoard"
+          }
+        }
+      }
+    },
+    "Share as Story": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compartir como historia"
           }
         }
       }
@@ -1197,6 +2397,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ver en el tablero"
+          }
+        }
+      }
+    },
+    "Sign Out": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cerrar sesión"
+          }
+        }
+      }
+    },
+    "Sign in with Apple didn't finish. Try again.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo terminar de iniciar sesión con Apple. Inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "Signed In": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sesión iniciada"
           }
         }
       }
@@ -1231,12 +2461,42 @@
         }
       }
     },
+    "Something went wrong. Try again.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Algo salió mal. Inténtalo de nuevo."
+          }
+        }
+      }
+    },
     "Start Blank": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Empezar en blanco"
+          }
+        }
+      }
+    },
+    "Start Free Trial": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empezar prueba gratis"
+          }
+        }
+      }
+    },
+    "Start Over": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empezar de nuevo"
           }
         }
       }
@@ -1271,12 +2531,42 @@
         }
       }
     },
+    "Start from an Example": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empezar con un ejemplo"
+          }
+        }
+      }
+    },
+    "Starter Board": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tablero de inicio"
+          }
+        }
+      }
+    },
     "Status": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Estado"
+          }
+        }
+      }
+    },
+    "Step %lld": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paso %lld"
           }
         }
       }
@@ -1311,6 +2601,26 @@
         }
       }
     },
+    "Subscribe": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suscribirme"
+          }
+        }
+      }
+    },
+    "Support an indie studio": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apoya a un estudio independiente"
+          }
+        }
+      }
+    },
     "Sync": {
       "localizations": {
         "es": {
@@ -1341,6 +2651,16 @@
         }
       }
     },
+    "Sync Problem": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Problema al sincronizar"
+          }
+        }
+      }
+    },
     "Sync for %@": {
       "localizations": {
         "es": {
@@ -1351,12 +2671,52 @@
         }
       }
     },
+    "Sync isn't set up in this build": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La sincronización no está configurada en esta versión"
+          }
+        }
+      }
+    },
     "Sync isn't set up in this build.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "La sincronización no está configurada en esta versión."
+          }
+        }
+      }
+    },
+    "Synced": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sincronizado"
+          }
+        }
+      }
+    },
+    "Synced Board": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tablero sincronizado"
+          }
+        }
+      }
+    },
+    "Syncing": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sincronizando"
           }
         }
       }
@@ -1381,12 +2741,52 @@
         }
       }
     },
+    "Take a minute with your board and pick one step for next week.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tómate un minuto con tu tablero y elige un paso para la próxima semana."
+          }
+        }
+      }
+    },
     "Take a minute with your vision board today.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Tómate un minuto con tu tablero hoy."
+          }
+        }
+      }
+    },
+    "Tap Add, then Set as Wallpaper Pair.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toca Agregar y luego Definir como par de fondos de pantalla."
+          }
+        }
+      }
+    },
+    "Tap Edit, then Add Widget. On some iPhones it's the + button.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toca Editar y luego Agregar widget. En algunos iPhone es el botón +."
+          }
+        }
+      }
+    },
+    "Tap Share, then Use as Wallpaper.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toca Compartir y luego Usar como fondo de pantalla."
           }
         }
       }
@@ -1401,12 +2801,42 @@
         }
       }
     },
+    "Tap anything that doesn't feel like you to leave it out.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toca lo que no vaya contigo para dejarlo fuera."
+          }
+        }
+      }
+    },
+    "Tell me about the year you want": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cuéntame cómo quieres que sea tu año"
+          }
+        }
+      }
+    },
     "Template": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Plantilla"
+          }
+        }
+      }
+    },
+    "Terms of Use": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Términos de uso"
           }
         }
       }
@@ -1431,12 +2861,42 @@
         }
       }
     },
+    "Thank you for supporting an indie studio.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gracias por apoyar a un estudio independiente."
+          }
+        }
+      }
+    },
     "That doesn't look like a sync key. It's the code shown under Sync on your other device.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Eso no parece una clave de sincronización. Es el código que aparece en Sincronización en tu otro dispositivo."
+          }
+        }
+      }
+    },
+    "The App Store couldn't confirm this purchase. Try again, or tap Restore Purchases.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El App Store no pudo confirmar esta compra. Inténtalo de nuevo o toca Restaurar compras."
+          }
+        }
+      }
+    },
+    "The App Store couldn't confirm your Pro plan. Try Restore Purchases in Settings.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El App Store no pudo confirmar tu plan Pro. Prueba Restaurar compras en Ajustes."
           }
         }
       }
@@ -1471,12 +2931,82 @@
         }
       }
     },
+    "The purchase didn't go through. You weren't charged. Please try again.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La compra no se completó. No se te cobró nada. Inténtalo de nuevo."
+          }
+        }
+      }
+    },
     "This Board": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Este tablero"
+          }
+        }
+      }
+    },
+    "This Week": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta semana"
+          }
+        }
+      }
+    },
+    "This is the year I launch my own business and save for a house.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este es el año en que lanzo mi propio negocio y ahorro para una casa."
+          }
+        }
+      }
+    },
+    "This month": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este mes"
+          }
+        }
+      }
+    },
+    "This week": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta semana"
+          }
+        }
+      }
+    },
+    "This week you looked at your board %lld days. What's one step for next week?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta semana miraste tu tablero %lld días. ¿Cuál es un paso para la próxima semana?"
+          }
+        }
+      }
+    },
+    "This week you looked at your board 1 day. What's one step for next week?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta semana miraste tu tablero 1 día. ¿Cuál es un paso para la próxima semana?"
           }
         }
       }
@@ -1501,6 +3031,16 @@
         }
       }
     },
+    "Today's goal and photo on your Home Screen. It changes every day.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La meta y la foto de hoy en tu pantalla de inicio. Cambian cada día."
+          }
+        }
+      }
+    },
     "Today: %@": {
       "localizations": {
         "es": {
@@ -1511,12 +3051,32 @@
         }
       }
     },
+    "Touch and hold an empty spot on your Home Screen.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantén presionado un espacio vacío de tu pantalla de inicio."
+          }
+        }
+      }
+    },
     "Travel Bucket List": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Viajes pendientes"
+          }
+        }
+      }
+    },
+    "Try Again": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reintentar"
           }
         }
       }
@@ -1561,6 +3121,26 @@
         }
       }
     },
+    "Unlimited boards": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tableros ilimitados"
+          }
+        }
+      }
+    },
+    "Unlimited boards, boards made with AI, and shares and wallpapers without the VisionBoard mark.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tableros ilimitados, tableros hechos con IA, y lo que compartes y tus fondos sin la marca VisionBoard."
+          }
+        }
+      }
+    },
     "Unlock": {
       "localizations": {
         "es": {
@@ -1581,12 +3161,62 @@
         }
       }
     },
+    "Upgrade to Pro": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pásate a Pro"
+          }
+        }
+      }
+    },
+    "Used VisionBoard on another iPhone? Sign in with the same Apple Account to bring your boards back.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Usaste VisionBoard en otro iPhone? Inicia sesión con la misma cuenta de Apple para recuperar tus tableros."
+          }
+        }
+      }
+    },
     "Version": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Versión"
+          }
+        }
+      }
+    },
+    "View on Unsplash": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver en Unsplash"
+          }
+        }
+      }
+    },
+    "VisionBoard": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "VisionBoard"
+          }
+        }
+      }
+    },
+    "VisionBoard Pro": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "VisionBoard Pro"
           }
         }
       }
@@ -1611,6 +3241,16 @@
         }
       }
     },
+    "Visit Japan": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conocer Japón"
+          }
+        }
+      }
+    },
     "Wallpaper": {
       "localizations": {
         "es": {
@@ -1627,6 +3267,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Vista previa del fondo de pantalla"
+          }
+        }
+      }
+    },
+    "Weekly Recap and Check-ins": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resumen semanal y recordatorios"
+          }
+        }
+      }
+    },
+    "What do you want in 2027?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Qué quieres para 2027?"
+          }
+        }
+      }
+    },
+    "What you write here is sent to Anthropic to write your goals. Search words go to Unsplash to find photos.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lo que escribes aquí se envía a Anthropic para escribir tus metas. Las palabras de búsqueda van a Unsplash para buscar fotos."
+          }
+        }
+      }
+    },
+    "What's one step for next week?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Cuál es un paso para la próxima semana?"
           }
         }
       }
@@ -1651,6 +3331,146 @@
         }
       }
     },
+    "Working…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trabajando…"
+          }
+        }
+      }
+    },
+    "Write up to three goals. A few words each is enough.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escribe hasta tres metas. Unas pocas palabras bastan."
+          }
+        }
+      }
+    },
+    "Yearly": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anual"
+          }
+        }
+      }
+    },
+    "Yellow": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Amarillo"
+          }
+        }
+      }
+    },
+    "You achieved %lld goals this month. What's one step for next week?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lograste %lld metas este mes. ¿Cuál es un paso para la próxima semana?"
+          }
+        }
+      }
+    },
+    "You achieved 1 goal this month. What's one step for next week?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lograste 1 meta este mes. ¿Cuál es un paso para la próxima semana?"
+          }
+        }
+      }
+    },
+    "You looked at your board %lld days this week.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Miraste tu tablero %lld días esta semana."
+          }
+        }
+      }
+    },
+    "You looked at your board 1 day this week.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Miraste tu tablero 1 día esta semana."
+          }
+        }
+      }
+    },
+    "You've made a lot of boards this hour. Try again a bit later.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ya creaste muchos tableros en esta hora. Inténtalo más tarde."
+          }
+        }
+      }
+    },
+    "Your %@ on VisionBoard": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu %@ en VisionBoard"
+          }
+        }
+      }
+    },
+    "Your Week": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu semana"
+          }
+        }
+      }
+    },
+    "Your account and the backup of your board list are deleted from our server. You can also delete every board's cloud copy, which stops sync on your other devices. Your boards stay on this iPhone either way.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se borran de nuestro servidor tu cuenta y el respaldo de tu lista de tableros. También puedes borrar la copia en la nube de cada tablero, lo que detiene la sincronización en tus otros dispositivos. En ambos casos, tus tableros se quedan en este iPhone."
+          }
+        }
+      }
+    },
+    "Your account was deleted.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu cuenta fue borrada."
+          }
+        }
+      }
+    },
+    "Your board misses you": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu tablero te extraña"
+          }
+        }
+      }
+    },
     "Your board stays on this iPhone, but every other device stops syncing and its photos are removed from the cloud.": {
       "localizations": {
         "es": {
@@ -1667,6 +3487,116 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tu meta"
+          }
+        }
+      }
+    },
+    "Your purchase is waiting for approval. Pro turns on as soon as it goes through.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu compra está esperando aprobación. Pro se activa apenas se confirme."
+          }
+        }
+      }
+    },
+    "Your sign-in expired. Sign in again to keep your boards backed up.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu sesión expiró. Vuelve a iniciar sesión para seguir respaldando tus tableros."
+          }
+        }
+      }
+    },
+    "Your sign-in expired. Sign in again, then delete your account.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu sesión expiró. Vuelve a iniciar sesión y luego borra tu cuenta."
+          }
+        }
+      }
+    },
+    "Your vision board": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu tablero"
+          }
+        }
+      }
+    },
+    "Your week on VisionBoard": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu semana en VisionBoard"
+          }
+        }
+      }
+    },
+    "Your words are sent to Anthropic to write your goals, and search words to Unsplash to find photos. Nothing else from your board is sent.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tus palabras se envían a Anthropic para escribir tus metas, y las palabras de búsqueda a Unsplash para buscar fotos. No se envía nada más de tu tablero."
+          }
+        }
+      }
+    },
+    "days you looked at your board": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "días que miraste tu tablero"
+          }
+        }
+      }
+    },
+    "goals achieved": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "metas logradas"
+          }
+        }
+      }
+    },
+    "photos added": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "fotos agregadas"
+          }
+        }
+      }
+    },
+    "this board": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "este tablero"
+          }
+        }
+      }
+    },
+    "this template": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "esta plantilla"
           }
         }
       }

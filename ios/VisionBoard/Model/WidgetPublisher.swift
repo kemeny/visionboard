@@ -14,18 +14,18 @@ enum WidgetPublisher {
         guard let folder = WidgetSnapshot.folder else { return }
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
 
-        let today = WidgetSnapshot.dayStart(.now)
+        let now = Date.now
         var entries: [WidgetSnapshot.Day] = []
         var written: Set<String> = []
         for offset in 0..<days {
-            let start = today.addingTimeInterval(Double(offset) * 86_400)
+            let start = WidgetSnapshot.dayStart(now, adding: offset)
             let card = DailyCard.pick(from: items, on: start)
             var file: String?
             if let content = card.image {
                 let name = fileName(for: content)
                 if written.contains(name) || FileManager.default.fileExists(atPath: folder.appending(path: name).path(percentEncoded: false)) {
                     file = name
-                } else if let image = await ImageStore.shared.image(for: content), let jpeg = shrink(image) {
+                } else if let image = await ImageStore.shared.image(for: content, maxPixels: maxEdge), let jpeg = shrink(image) {
                     try? jpeg.write(to: folder.appending(path: name), options: .atomic)
                     file = name
                 }

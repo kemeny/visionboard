@@ -80,6 +80,38 @@ export interface BoardItem {
   originalContent?: string // stores original image before bg removal
   locked?: boolean
   liked?: boolean // hearted in the feed; synced with the board
+  achievedAt?: string // ISO 8601 time it was marked "I did it"; absent while still a goal
+  credit?: ImageCredit // who took the photo, for stock photos that need attribution
+}
+
+// Attribution kept with a photo, e.g. Unsplash photos added by the iOS AI board.
+// Same shape as ios/VisionBoard/Model/BoardItem.swift (BoardItem.Credit).
+export interface ImageCredit {
+  name: string // the photographer
+  url?: string // their profile page
+  source?: string // where the photo came from, e.g. "unsplash"
+}
+
+export const UNSPLASH_REFERRAL_URL = 'https://unsplash.com/?utm_source=visionboard&utm_medium=referral'
+
+// Unsplash photos are hotlinked from their CDN, as Unsplash's API guidelines
+// ask, and never copied into our own image storage
+export function isUnsplashImage(content: string | undefined): boolean {
+  return typeof content === 'string' && content.startsWith('https://images.unsplash.com/')
+}
+
+// A credit link comes from synced board JSON that anyone with the sync key
+// can write, so only an https link to unsplash.com is ever made clickable
+export function safeCreditUrl(url: string | undefined): string | undefined {
+  if (!url) return undefined
+  try {
+    const parsed = new URL(url)
+    if (parsed.protocol !== 'https:') return undefined
+    const host = parsed.hostname.toLowerCase()
+    return host === 'unsplash.com' || host.endsWith('.unsplash.com') ? parsed.toString() : undefined
+  } catch {
+    return undefined
+  }
 }
 
 export interface BoardState {

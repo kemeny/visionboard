@@ -1,4 +1,5 @@
 import CoreImage.CIFilterBuiltins
+import StoreKit
 import SwiftUI
 import VisionKit
 
@@ -8,6 +9,7 @@ struct SettingsView: View {
     @Environment(Reminders.self) private var reminders
     @Environment(AppRouter.self) private var router
     @Environment(BoardLibrary.self) private var library
+    @Environment(ProAccess.self) private var pro
 
     @State private var keyInput = ""
     @State private var joining = false
@@ -16,13 +18,19 @@ struct SettingsView: View {
     @State private var confirmDelete = false
     @State private var confirmJoin = false
     @State private var reminderTime = Date()
+    @State private var showManageSubscriptions = false
     @AppStorage("appearance") private var appearance: Appearance = .system
     @AppStorage("canvas-paper") private var paper: PaperColor = .moleskine
+    @AppStorage("analytics-opted-out") private var analyticsOptedOut = false
+    // Same key as Recaps.enabledKey; on unless turned off here
+    @AppStorage("checkins-enabled") private var checkins = true
 
     var body: some View {
         NavigationStack {
             Form {
+                proSection
                 syncSection
+                AccountSection()
                 remindersSection
                 Section {
                     Picker(selection: $appearance) {
@@ -41,7 +49,35 @@ struct SettingsView: View {
                     Text("The board paper and the words written on it switch between day and night versions with the appearance.")
                 }
                 Section {
+                    Toggle("Share Anonymous Usage", systemImage: "chart.bar", isOn: Binding(
+                        get: { !analyticsOptedOut },
+                        set: { share in
+                            Analytics.optedOut = !share
+                            analyticsOptedOut = !share
+                        }
+                    ))
+                    if let privacy = Self.webPage("/privacy") {
+                        Link(destination: privacy) {
+                            Label("Privacy Policy", systemImage: "hand.raised")
+                        }
+                    }
+                } header: {
+                    Text("Privacy")
+                } footer: {
+                    Text("Helps us see which features people use. Only taps, counts and the plan you pick are sent, with a random ID. Your goals and photos are never sent.")
+                }
+                Section {
                     LabeledContent("Version", value: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "")
+                    if let support = Self.webPage("/support") {
+                        Link(destination: support) {
+                            Label("Help and Support", systemImage: "questionmark.circle")
+                        }
+                    }
+                    if let terms = Self.webPage("/terms") {
+                        Link(destination: terms) {
+                            Label("Terms of Use", systemImage: "doc.text")
+                        }
+                    }
                     if let site = URL(string: "https://kemenystudio.com") {
                         Link(destination: site) {
                             Label("Made by Kemeny Studio", systemImage: "safari")
@@ -58,7 +94,11 @@ struct SettingsView: View {
                 }
             }
             .confirmationDialog("Open the synced board on this iPhone?", isPresented: $confirmJoin, titleVisibility: .visible) {
-                Button(store.items.isEmpty ? "Open Board" : "Add as New Board") { Task { await join(keyInput) } }
+                Button(store.items.isEmpty ? "Open Board" : "Add as New Board") {
+                    // Adding a board past the free plan's limit asks for Pro
+                    guard store.items.isEmpty || pro.canCreateBoard(currentCount: library.boards.count) || pro.requirePro(from: "join_board") else { return }
+                    Task { await join(keyInput) }
+                }
             } message: {
                 Text(store.items.isEmpty
                     ? "The board from your other device opens here."
@@ -71,8 +111,43 @@ struct SettingsView: View {
             } message: {
                 Text("Your board stays on this iPhone, but every other device stops syncing and its photos are removed from the cloud.")
             }
+            .manageSubscriptionsSheet(isPresented: $showManageSubscriptions)
             .onAppear { takeIncomingKey() }
             .onChange(of: router.incomingSyncKey) { takeIncomingKey() }
+        }
+    }
+
+    // MARK: Pro
+
+    private var proSection: some View {
+        Section {
+            LabeledContent("Status") {
+                if pro.isPro {
+                    Text("Pro")
+                } else {
+                    Text("Free")
+                }
+            }
+            if pro.isPro {
+                Button("Manage Subscription", systemImage: "creditcard") { showManageSubscriptions = true }
+            } else {
+                Button("Upgrade to Pro", systemImage: "sparkles") { _ = pro.requirePro(from: "settings") }
+            }
+            Button("Restore Purchases", systemImage: "arrow.clockwise") { Task { await pro.restore() } }
+                .disabled(pro.isRestoring)
+            if let error = pro.errorMessage, router.paywallSource == nil {
+                Label(error, systemImage: "exclamationmark.triangle")
+                    .foregroundStyle(.red)
+                    .font(.callout)
+            }
+        } header: {
+            Text("VisionBoard Pro")
+        } footer: {
+            if pro.isPro {
+                Text("Thank you for supporting an indie studio.")
+            } else {
+                Text("Unlimited boards, boards made with AI, and shares and wallpapers without the VisionBoard mark.")
+            }
         }
     }
 
@@ -155,7 +230,7 @@ struct SettingsView: View {
     }
 
     private var syncHeader: String {
-        library.boards.count > 1 ? String(localized: "Sync for \(library.current?.name ?? String(localized: "This Board"))") : "Sync"
+        library.boards.count > 1 ? String(localized: "Sync for \(library.current?.name ?? String(localized: "This Board"))") : String(localized: "Sync")
     }
 
     private var statusText: String {
@@ -173,7 +248,7 @@ struct SettingsView: View {
         // Keep what's here: a synced board joins as a board of its own
         var created: BoardLibrary.Board?
         if !store.items.isEmpty {
-            created = await library.create(named: "Synced Board")
+            created = await library.create(named: String(localized: "Synced Board"))
         }
         do {
             try await sync.connect(input)
@@ -194,6 +269,13 @@ struct SettingsView: View {
         confirmJoin = true
     }
 
+    // A page on the web app, in Spanish when the app is
+    private static func webPage(_ path: String) -> URL? {
+        let lang = Bundle.main.preferredLocalizations.first?.hasPrefix("es") == true ? "es" : "en"
+        let full = path + "?lang=" + lang
+        return SyncAPI.absoluteURL(for: full) ?? URL(string: "https://visionboard.kemenystudio.com" + full)
+    }
+
     // MARK: Reminders
 
     private var remindersSection: some View {
@@ -202,7 +284,7 @@ struct SettingsView: View {
                 get: { reminders.isEnabled },
                 set: { on in
                     if on {
-                        Task { await reminders.enable(hour: reminders.hour, items: store.items) }
+                        Task { await reminders.enable(hour: reminders.hour, minute: reminders.minute, items: store.items) }
                     } else {
                         reminders.disable()
                     }
@@ -210,10 +292,10 @@ struct SettingsView: View {
             ))
             if reminders.isEnabled {
                 DatePicker("Time", selection: Binding(
-                    get: { Calendar.current.date(bySettingHour: reminders.hour, minute: 0, second: 0, of: .now) ?? .now },
+                    get: { Calendar.current.date(bySettingHour: reminders.hour, minute: reminders.minute, second: 0, of: .now) ?? .now },
                     set: { date in
-                        let hour = Calendar.current.component(.hour, from: date)
-                        Task { await reminders.enable(hour: hour, items: store.items) }
+                        let parts = Calendar.current.dateComponents([.hour, .minute], from: date)
+                        Task { await reminders.enable(hour: parts.hour ?? 8, minute: parts.minute ?? 0, items: store.items) }
                     }
                 ), displayedComponents: .hourAndMinute)
                 Button("Send a Test", systemImage: "paperplane") { Task { await reminders.sendTest(items: store.items) } }
@@ -228,11 +310,26 @@ struct SettingsView: View {
                     .foregroundStyle(.red)
                     .font(.callout)
             }
+            Toggle("Weekly Recap and Check-ins", systemImage: "calendar.badge.checkmark", isOn: Binding(
+                get: { checkins },
+                set: { on in
+                    checkins = on
+                    Task { await Recaps.setEnabled(on, store: store, library: library, reminders: reminders) }
+                }
+            ))
         } header: {
             Text("Reminders")
         } footer: {
-            Text("Each day at this hour you'll get one goal and one photo from your board. Reminders go out on the hour.")
+            Text("Each day at this time you'll get one goal and one photo from your board. The weekly recap comes on Sunday, and if you're away for a week, a check-in brings your board back.")
         }
+        // The recap follows the reminder time, and the check-in steps aside while daily reminders are on
+        .onChange(of: reminders.isEnabled) { rescheduleRecaps() }
+        .onChange(of: reminders.hour) { rescheduleRecaps() }
+        .onChange(of: reminders.minute) { rescheduleRecaps() }
+    }
+
+    private func rescheduleRecaps() {
+        Task { await Recaps.reschedule(store: store, library: library, reminders: reminders) }
     }
 }
 

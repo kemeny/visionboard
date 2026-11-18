@@ -1,4 +1,5 @@
 import type { BoardItem } from './types'
+import { ACHIEVED_WEIGHT, isAchieved } from './progress'
 
 // Ranking for the feed: an Instagram-style "for you" order over the board's
 // clippings. Likes live on the items (so they sync); views and dwell time are
@@ -14,7 +15,8 @@ export type FeedStats = Record<string, ItemStats>
 
 const STATS_KEY = 'visionboard-feed-stats'
 const HOUR = 60 * 60 * 1000
-const PLACEHOLDER_TEXT = 'Click to style, triple-click to edit'
+// New text clippings start with this hint, in the language the board was made in
+const PLACEHOLDER_TEXTS = new Set(['Click to style, triple-click to edit', 'Toca para dar estilo, triple toque para editar'])
 
 export function loadFeedStats(): FeedStats {
   try {
@@ -36,7 +38,7 @@ export function recordView(stats: FeedStats, id: string, dwellMs: number, now = 
 }
 
 export const isFeedItem = (i: BoardItem) =>
-  i.type === 'image' ? !!i.content : !!i.content.trim() && i.content !== PLACEHOLDER_TEXT
+  i.type === 'image' ? !!i.content : !!i.content.trim() && !PLACEHOLDER_TEXTS.has(i.content.trim())
 
 // Higher is shown sooner. Weights are deliberately gentle so the jitter keeps
 // every load a little different, and nothing is ever buried for good.
@@ -65,7 +67,11 @@ export function buildFeedRound(
 ): BoardItem[] {
   const now = options.now ?? Date.now()
   const random = options.random ?? Math.random
-  const pool = items.filter(isFeedItem).filter((i) => !options.likedOnly || i.liked)
+  const eligible = items.filter(isFeedItem).filter((i) => !options.likedOnly || i.liked)
+  // Done goals still come back, just less often. Liked keeps everything liked,
+  // and a board where everything is done still has a feed.
+  const thin = !options.likedOnly && eligible.some((i) => !isAchieved(i))
+  const pool = thin ? eligible.filter((i) => !isAchieved(i) || random() < ACHIEVED_WEIGHT) : eligible
   const ranked = pool
     .map((item) => ({ item, score: scoreItem(item, stats[item.id], now, random) }))
     .sort((a, b) => b.score - a.score)

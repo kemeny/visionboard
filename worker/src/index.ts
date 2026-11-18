@@ -3,23 +3,68 @@
 // Auth is a "sync key": a random secret generated in the browser. The Worker
 // only ever stores its SHA-256, which doubles as the board id.
 
+import { handleAI, overLimit, pruneRateLimits, type AIEnv } from './ai'
 import { generateVapidKeys, sendPush, type PushSubscriptionJSON, type VapidKeys } from './webpush'
+import {
+  DEFAULT_BUNDLE_ID,
+  TokenError,
+  cleanBackup,
+  decryptAppleToken,
+  decryptBackup,
+  encryptAppleToken,
+  encryptBackup,
+  exchangeAppleCode,
+  revokeAppleToken,
+  signSession,
+  type AppleClientConfig,
+  verifyAppleToken,
+  verifySession,
+} from './account'
 
-interface Env {
+interface Env extends AIEnv {
   DB: D1Database
   IMAGES: R2Bucket
   VAPID_SUBJECT: string
+  // Secret (wrangler secret put ACCOUNT_SECRET): signs sessions and derives backup keys
+  ACCOUNT_SECRET?: string
+  // The iOS app's bundle id, the audience of its Apple identity tokens
+  APPLE_BUNDLE_ID?: string
+  // Secrets for the Sign in with Apple REST API (token revocation on delete)
+  APPLE_TEAM_ID?: string
+  APPLE_KEY_ID?: string
+  APPLE_PRIVATE_KEY?: string
+}
+
+// Sign-ins per address per hour
+const SIGNIN_LIMIT_PER_IP = 30
+
+function appleClient(env: Env): AppleClientConfig | null {
+  if (!env.APPLE_TEAM_ID || !env.APPLE_KEY_ID || !env.APPLE_PRIVATE_KEY) return null
+  return {
+    teamId: env.APPLE_TEAM_ID,
+    keyId: env.APPLE_KEY_ID,
+    privateKey: env.APPLE_PRIVATE_KEY,
+    clientId: env.APPLE_BUNDLE_ID || DEFAULT_BUNDLE_ID,
+  }
 }
 
 interface BoardItem {
   type: 'image' | 'text'
   content: string
+  achievedAt?: string
+  credit?: { name?: unknown; source?: unknown }
 }
+
+// Create with AI photos are hotlinked from Unsplash's CDN, never stored in R2
+const UNSPLASH_IMAGE_PREFIX = 'https://images.unsplash.com/'
+const isReminderImage = (content: string) =>
+  content.startsWith('/') || content.startsWith(UNSPLASH_IMAGE_PREFIX)
 
 const MAX_BOARD_BYTES = 2 * 1024 * 1024
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024
 const MIN_KEY_LENGTH = 20
-const PLACEHOLDER_TEXT = 'Click to style, triple-click to edit'
+// Kept in step with lib/feed.ts: the hint a new text clipping starts with, in English and Spanish
+const PLACEHOLDER_TEXTS = new Set(['Click to style, triple-click to edit', 'Toca para dar estilo, triple toque para editar'])
 
 const json = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } })
@@ -49,18 +94,41 @@ async function getVapidKeys(env: Env): Promise<VapidKeys> {
 }
 
 // Pick today's reminder, rotating through the board so each day shows something different
+// Goals marked done ("I did it") step aside: today's goal is one still to do,
+// unless every goal is done. Done photos come round 3 times in 10. The iOS app
+// (DailyCard.pick) uses the same rotation, so phone and web agree.
 export function pickReminder(items: BoardItem[], day: number) {
-  const texts = items
-    .filter((i) => i.type === 'text' && i.content.trim() && i.content !== PLACEHOLDER_TEXT)
-    .map((i) => i.content.trim())
-  const images = items.filter((i) => i.type === 'image' && i.content.startsWith('/')).map((i) => i.content)
+  const allTexts = items.filter((i) => i.type === 'text' && i.content.trim() && !PLACEHOLDER_TEXTS.has(i.content.trim()))
+  const openTexts = allTexts.filter((i) => !i.achievedAt)
+  const texts = (openTexts.length ? openTexts : allTexts).map((i) => i.content.trim())
+  const imageItems = items.filter((i) => i.type === 'image' && typeof i.content === 'string' && isReminderImage(i.content))
+  const images = imageItems.some((i) => i.achievedAt)
+    ? [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].flatMap((round) =>
+        imageItems.filter((i) => !i.achievedAt || (round % 3 === 0 && round < 9))
+      )
+    : imageItems
+  const picked = images.length ? images[day % images.length] : undefined
+  // Unsplash photos are shown with their photographer's name
+  const name = picked?.credit?.name
+  const credit =
+    picked && picked.content.startsWith(UNSPLASH_IMAGE_PREFIX) && typeof name === 'string' && name.trim()
+      ? name.trim().slice(0, 100)
+      : undefined
   return {
     body: texts.length ? texts[day % texts.length] : 'Take a minute with your vision board today.',
-    image: images.length ? images[day % images.length] : undefined,
+    image: picked?.content,
+    credit,
   }
 }
 
-function localTime(timezone: string, now: Date) {
+// The subscriber's own calendar day as a day count, so the goal turns over at
+// their midnight like on iOS, not at midnight UTC. Same number as the UTC day
+// index on a UTC clock.
+export function localDayNumber(timezone: string, now: Date): number {
+  return Math.floor(Date.parse(`${localTime(timezone, now).day}T00:00:00Z`) / 86_400_000)
+}
+
+export function localTime(timezone: string, now: Date) {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: timezone,
     year: 'numeric',
@@ -76,17 +144,24 @@ function localTime(timezone: string, now: Date) {
 async function sendReminder(env: Env, vapid: VapidKeys, row: SubscriptionRow, now: Date): Promise<number> {
   const board = await env.DB.prepare('SELECT data FROM boards WHERE id = ?').bind(row.board_id).first<{ data: string }>()
   const items: BoardItem[] = board ? JSON.parse(board.data).items || [] : []
-  const { body, image } = pickReminder(items, Math.floor(now.getTime() / 86_400_000))
+  let day: number
+  try {
+    day = localDayNumber(row.timezone, now)
+  } catch {
+    day = Math.floor(now.getTime() / 86_400_000)
+  }
+  const { body, image, credit } = pickReminder(items, day)
   const origin = row.app_origin || ''
   // Tapping the notification opens today's goal and photo full screen. iOS
   // never shows images inside web notifications, so this is where they appear.
-  const card = new URLSearchParams({ text: body, ...(image && { image }) })
+  const card = new URLSearchParams({ text: body, ...(image && { image }), ...(credit && { credit }) })
+  const absoluteImage = image ? (image.startsWith('https://') ? image : origin ? origin + image : undefined) : undefined
   const status = await sendPush(
     JSON.parse(row.subscription) as PushSubscriptionJSON,
     {
       title: 'Your vision board',
       body,
-      image: image && origin ? origin + image : undefined,
+      image: absoluteImage,
       url: `${origin}/#today&${card}`,
     },
     vapid,
@@ -133,6 +208,12 @@ async function handle(request: Request, env: Env): Promise<Response> {
   if (path === '/push/public-key' && method === 'GET') {
     return json({ publicKey: (await getVapidKeys(env)).publicKey })
   }
+
+  if (path === '/account' || path.startsWith('/account/')) return handleAccount(path, method, request, env)
+
+  // AI board generation needs no sync key (see ai.ts)
+  const ai = await handleAI(request, env, path)
+  if (ai) return ai
 
   const boardId = await boardIdFrom(request)
   if (!boardId) return error('Missing or invalid sync key', 401)
@@ -237,6 +318,141 @@ async function handle(request: Request, env: Env): Promise<Response> {
   return error('Not found', 404)
 }
 
+// Optional Sign in with Apple account: backs up the list of boards (name and
+// sync key) so a new device can reconnect them. Auth is a session token.
+async function handleAccount(path: string, method: string, request: Request, env: Env): Promise<Response> {
+  const secret = env.ACCOUNT_SECRET
+  if (!secret || secret.length < 32) return error('Accounts are not set up on this server', 503)
+
+  if (path === '/account/signin' && method === 'POST') {
+    if (await overLimit(env, request, 'signin', SIGNIN_LIMIT_PER_IP)) return error('Too many sign-ins. Try again later.', 429)
+    let body: { identityToken?: unknown; nonce?: unknown; authorizationCode?: unknown }
+    try {
+      body = await request.json()
+    } catch {
+      return error('Invalid JSON', 400)
+    }
+    if (typeof body.identityToken !== 'string' || !body.identityToken) return error('identityToken is required', 400)
+    if (typeof body.nonce !== 'string' || !body.nonce) return error('nonce is required', 400)
+    let identity
+    try {
+      identity = await verifyAppleToken(body.identityToken, env.APPLE_BUNDLE_ID || DEFAULT_BUNDLE_ID, body.nonce)
+    } catch (e) {
+      if (e instanceof TokenError) return error(`Sign in failed: ${e.message}`, 401)
+      throw e
+    }
+    // Apple's refresh token, so deleting the account can revoke it. Every
+    // account must hold one: a failed exchange only falls back to the token
+    // an existing account already has, and a new account isn't created
+    // without it (the app shows the error and the person can try again).
+    const client = appleClient(env)
+    if (!client) return error('Sign in with Apple is not set up on this server', 503)
+    let refreshCiphertext: string | null = null
+    if (typeof body.authorizationCode === 'string' && body.authorizationCode) {
+      const refreshToken = await exchangeAppleCode(body.authorizationCode, client).catch((e) => {
+        console.error('apple token exchange failed', e)
+        return null
+      })
+      if (refreshToken) refreshCiphertext = await encryptAppleToken(refreshToken, secret, identity.sub)
+    }
+    if (!refreshCiphertext) {
+      const existing = await env.DB.prepare('SELECT apple_refresh_ciphertext FROM accounts WHERE id = ?')
+        .bind(identity.sub)
+        .first<{ apple_refresh_ciphertext: string | null }>()
+      if (!existing?.apple_refresh_ciphertext) return error('Sign in with Apple could not be completed. Please try again.', 502)
+    }
+    const now = Date.now()
+    // Apple only sends the email when it was shared, so keep the one we have
+    await env.DB.prepare(
+      `INSERT INTO accounts (id, email, created_at, updated_at, apple_refresh_ciphertext) VALUES (?1, ?2, ?3, ?3, ?4)
+       ON CONFLICT(id) DO UPDATE SET email = COALESCE(?2, email), updated_at = ?3,
+         apple_refresh_ciphertext = COALESCE(?4, apple_refresh_ciphertext)`
+    )
+      .bind(identity.sub, identity.email, now, refreshCiphertext)
+      .run()
+    const row = await env.DB.prepare('SELECT email, boards_ciphertext, created_at FROM accounts WHERE id = ?')
+      .bind(identity.sub)
+      .first<{ email: string | null; boards_ciphertext: string | null; created_at: number }>()
+    if (!row) return error('Server error', 500)
+    return json({
+      sessionToken: await signSession(identity.sub, row.created_at, secret),
+      email: row.email ?? null,
+      hasBackup: Boolean(row.boards_ciphertext),
+    })
+  }
+
+  const auth = request.headers.get('Authorization') || ''
+  const session = auth.startsWith('Bearer ') ? await verifySession(auth.slice(7).trim(), secret) : null
+  if (!session) return error('Please sign in again', 401)
+  const accountId = session.sub
+
+  const account = await env.DB.prepare(
+    'SELECT email, boards_ciphertext, updated_at, created_at, apple_refresh_ciphertext FROM accounts WHERE id = ?'
+  )
+    .bind(accountId)
+    .first<{
+      email: string | null
+      boards_ciphertext: string | null
+      updated_at: number
+      created_at: number
+      apple_refresh_ciphertext: string | null
+    }>()
+  // A token from before the account was deleted and made again is void
+  if (!account || account.created_at !== session.ep) return error('Please sign in again', 401)
+
+  if (path === '/account/backup' && method === 'GET') {
+    let boards: Awaited<ReturnType<typeof decryptBackup>> = []
+    if (account.boards_ciphertext) {
+      try {
+        boards = await decryptBackup(account.boards_ciphertext, secret, accountId)
+      } catch (e) {
+        // ACCOUNT_SECRET changed: the app uploads a fresh backup
+        console.error('backup unreadable', e)
+        return error('backup_unreadable', 409)
+      }
+    }
+    return json({ boards, email: account.email, updatedAt: account.updated_at })
+  }
+
+  if (path === '/account/backup' && method === 'PUT') {
+    let body: { boards?: unknown }
+    try {
+      body = await request.json()
+    } catch {
+      return error('Invalid JSON', 400)
+    }
+    const boards = cleanBackup(body.boards)
+    if (!boards) return error('boards must be a list of {name, syncKey}', 400)
+    const updatedAt = Date.now()
+    await env.DB.prepare('UPDATE accounts SET boards_ciphertext = ?1, updated_at = ?2 WHERE id = ?3')
+      .bind(await encryptBackup(boards, secret, accountId), updatedAt, accountId)
+      .run()
+    return json({ ok: true, updatedAt })
+  }
+
+  if (path === '/account' && method === 'DELETE') {
+    // Revoke the app's Apple tokens first (guideline 5.1.1(v)). If Apple
+    // can't be reached the account stays, so the person can try again.
+    const client = appleClient(env)
+    if (client && account.apple_refresh_ciphertext) {
+      let refreshToken: string | null = null
+      try {
+        refreshToken = await decryptAppleToken(account.apple_refresh_ciphertext, secret, accountId)
+      } catch (e) {
+        console.error('apple token unreadable', e)
+      }
+      if (refreshToken && !(await revokeAppleToken(refreshToken, client))) {
+        return error("Couldn't reach Apple to finish deleting your account. Try again in a moment.", 502)
+      }
+    }
+    // Boards stay under their sync keys; the app deletes those itself when asked to
+    await env.DB.prepare('DELETE FROM accounts WHERE id = ?').bind(accountId).run()
+    return json({ ok: true })
+  }
+
+  return error('Not found', 404)
+}
+
 export default {
   async fetch(request, env): Promise<Response> {
     try {
@@ -249,6 +465,7 @@ export default {
 
   async scheduled(_event, env, ctx): Promise<void> {
     const now = new Date()
+    ctx.waitUntil(pruneRateLimits(env, now.getTime()).catch((e) => console.error('prune ai_rate', e)))
     const { results } = await env.DB.prepare('SELECT * FROM push_subscriptions').all<SubscriptionRow>()
     const due = results.filter((row) => {
       try {

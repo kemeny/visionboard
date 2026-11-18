@@ -26,7 +26,7 @@ struct TodayEntry: TimelineEntry {
     let text: String
     let imageURL: URL?
 
-    static let sample = TodayEntry(date: .now, text: "Run the Patagonia marathon", imageURL: nil)
+    static let sample = TodayEntry(date: .now, text: String(localized: "Run the Patagonia marathon"), imageURL: nil)
     static let empty = TodayEntry(date: .now, text: String(localized: "Open VisionBoard to start your board."), imageURL: nil)
 }
 
@@ -49,9 +49,17 @@ struct TodayProvider: TimelineProvider {
 
     private func entries() -> [TodayEntry] {
         guard let snapshot = WidgetSnapshot.load() else { return [] }
-        let today = WidgetSnapshot.dayStart(.now)
-        return snapshot.days
-            .filter { $0.start >= today }
+        // Start from the day that holds now. Matching on "the last day that
+        // has begun" rather than on today's midnight keeps the right day after
+        // a time zone change, until the app writes the days again.
+        let now = Date.now
+        let days = snapshot.days.sorted { $0.start < $1.start }
+        guard let current = days.lastIndex(where: { $0.start <= now }) ?? days.indices.first else { return [] }
+        // Every written day is over: show the empty state until the app writes more
+        if current == days.count - 1, WidgetSnapshot.dayStart(days[current].start, adding: 1) <= now {
+            return []
+        }
+        return days[current...]
             .map { day in
                 // The first entry shows now, the rest at their day boundary
                 TodayEntry(date: max(day.start, .now), text: day.text, imageURL: snapshot.imageURL(for: day))

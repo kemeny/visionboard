@@ -15,3 +15,6 @@ node_modules
 .next/
 .DS_Store
 *.tsbuildinfo
+
+# Worker secrets for wrangler dev
+.dev.vars

@@ -83,14 +83,44 @@ struct WallpaperSheet: View {
         }
     }
 
-    private var screenSize: CGSize {
+    private func render() async -> UIImage? {
+        await WallpaperRenderer.render(style, items: items, paper: paper, colorScheme: colorScheme, scale: displayScale)
+    }
+
+    private func save() async {
+        guard let rendered else { return }
+        saving = true
+        defer { saving = false }
+        switch await WallpaperRenderer.saveToPhotos(rendered) {
+        case .saved:
+            status = String(localized: "Saved. In Photos, open it, tap Share, then Use as Wallpaper.")
+            Analytics.capture("wallpaper_made", ["kind": style.rawValue])
+        case .denied:
+            status = String(localized: "VisionBoard can't save to Photos. Turn it on in Settings > Apps > VisionBoard > Photos.")
+        case .failed(let message):
+            status = String(localized: "Couldn't save: \(message)")
+        }
+    }
+}
+
+// Draws a wallpaper at this iPhone's screen size and saves it to Photos.
+// Shared by the wallpaper sheet and onboarding.
+@MainActor
+enum WallpaperRenderer {
+    enum SaveResult {
+        case saved
+        case denied
+        case failed(String)
+    }
+
+    static var screenSize: CGSize {
         let screen = UIApplication.shared.connectedScenes
             .compactMap { ($0 as? UIWindowScene)?.screen }
             .first
         return screen?.bounds.size ?? CGSize(width: 393, height: 852)
     }
 
-    private func render() async -> UIImage? {
+    static func render(_ style: WallpaperSheet.Style, items: [BoardItem], paper: PaperColor, colorScheme: ColorScheme, scale: CGFloat) async -> UIImage? {
         let size = screenSize
         let card = DailyCard.pick(from: items)
         var photos: [String: UIImage] = [:]
@@ -99,37 +129,33 @@ struct WallpaperSheet: View {
             photos[content] = await ImageStore.shared.image(for: content)
         }
 
+        // Free plans get a tiny mark above the home indicator; Pro has none
+        let mark = !ProAccess.shared.isPro
         let content = Group {
             switch style {
-            case .board: BoardWallpaper(items: items, paper: paper, size: size)
-            case .today: TodayWallpaper(card: card, paper: paper, size: size)
+            case .board: BoardWallpaper(items: items, paper: paper, size: size, showMark: mark)
+            case .today: TodayWallpaper(card: card, paper: paper, size: size, showMark: mark)
             }
         }
         .environment(\.preloadedImages, photos)
         .environment(\.colorScheme, colorScheme)
 
         let renderer = ImageRenderer(content: content)
-        renderer.scale = displayScale
+        renderer.scale = scale
         renderer.proposedSize = ProposedViewSize(size)
         return renderer.uiImage
     }
 
-    private func save() async {
-        guard let rendered else { return }
-        saving = true
-        defer { saving = false }
+    static func saveToPhotos(_ image: UIImage) async -> SaveResult {
         let access = await PHPhotoLibrary.requestAuthorization(for: .addOnly)
-        guard access == .authorized || access == .limited else {
-            status = String(localized: "VisionBoard can't save to Photos. Turn it on in Settings > Apps > VisionBoard > Photos.")
-            return
-        }
+        guard access == .authorized || access == .limited else { return .denied }
         do {
             try await PHPhotoLibrary.shared().performChanges {
-                PHAssetChangeRequest.creationRequestForAsset(from: rendered)
+                PHAssetChangeRequest.creationRequestForAsset(from: image)
             }
-            status = String(localized: "Saved. In Photos, open it, tap Share, then Use as Wallpaper.")
+            return .saved
         } catch {
-            status = String(localized: "Couldn't save: \(error.localizedDescription)")
+            return .failed(error.localizedDescription)
         }
     }
 }
@@ -140,6 +166,7 @@ private struct BoardWallpaper: View {
     let items: [BoardItem]
     let paper: PaperColor
     let size: CGSize
+    let showMark: Bool
 
     var body: some View {
         let area = CGSize(width: size.width, height: size.height * 0.58)
@@ -160,6 +187,9 @@ private struct BoardWallpaper: View {
         }
         .frame(width: size.width, height: size.height, alignment: .topLeading)
         .clipped()
+        .overlay(alignment: .bottom) {
+            if showMark { WallpaperMark(color: .primary) }
+        }
     }
 }
 
@@ -168,6 +198,7 @@ private struct TodayWallpaper: View {
     let card: DailyCard
     let paper: PaperColor
     let size: CGSize
+    let showMark: Bool
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -189,5 +220,21 @@ private struct TodayWallpaper: View {
                 .padding(.bottom, size.height * 0.2)
         }
         .frame(width: size.width, height: size.height)
+        .overlay(alignment: .bottom) {
+            if showMark { WallpaperMark(color: card.image == nil ? .primary : .white) }
+        }
+    }
+}
+
+// A tiny, quiet "Made with VisionBoard" just above the home indicator,
+// between the flashlight and camera buttons
+private struct WallpaperMark: View {
+    let color: Color
+
+    var body: some View {
+        Text("Made with VisionBoard")
+            .font(.system(size: 9, weight: .medium))
+            .foregroundStyle(color.opacity(0.35))
+            .padding(.bottom, 40)
     }
 }

@@ -1,11 +1,13 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { Heart, X } from "lucide-react"
+import { BadgeCheck, Heart, X } from "lucide-react"
 import { BoardItem } from "@/lib/types"
 import { buildFeedRound, loadFeedStats, recordView, saveFeedStats, type FeedStats } from "@/lib/feed"
 import { getTextStyle } from "./board-item"
 import { cn } from "@/lib/utils"
+import { useT } from "@/lib/i18n"
+import { PhotoCredit } from "./photo-credit"
 
 type Tab = "foryou" | "liked"
 
@@ -18,10 +20,12 @@ const MIN_VIEW_MS = 600
 interface Props {
   items: BoardItem[]
   onToggleLike: (id: string, liked: boolean) => void
+  onToggleAchieved: (id: string, achieved: boolean) => void
   onClose: () => void
 }
 
-export function FeedView({ items, onToggleLike, onClose }: Props) {
+export function FeedView({ items, onToggleLike, onToggleAchieved, onClose }: Props) {
+  const { t } = useT()
   const [tab, setTab] = useState<Tab>("foryou")
   const [feed, setFeed] = useState<BoardItem[]>([])
   const [index, setIndex] = useState(0)
@@ -33,6 +37,7 @@ export function FeedView({ items, onToggleLike, onClose }: Props) {
 
   // Likes change while the feed is open; read them live rather than from the snapshot
   const liked = useMemo(() => new Set(items.filter((i) => i.liked).map((i) => i.id)), [items])
+  const achieved = useMemo(() => new Set(items.filter((i) => i.achievedAt).map((i) => i.id)), [items])
 
   const nextRound = useCallback(
     (avoid: string[]) => buildFeedRound(items, stats.current, { avoid, likedOnly: tab === "liked" }),
@@ -107,19 +112,19 @@ export function FeedView({ items, onToggleLike, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-[90] bg-black text-white" role="dialog" aria-label="Feed">
+    <div className="fixed inset-0 z-[90] bg-black text-white" role="dialog" aria-label={t("feed.aria")}>
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-between bg-gradient-to-b from-black/60 to-transparent px-4 pb-6 pt-[max(0.75rem,env(safe-area-inset-top))]">
-        <button aria-label="Back to board" className="pointer-events-auto rounded-full p-1.5" onClick={close}>
+        <button aria-label={t("feed.back")} className="pointer-events-auto rounded-full p-1.5" onClick={close}>
           <X className="h-6 w-6" />
         </button>
         <div className="pointer-events-auto flex gap-5 text-sm font-semibold">
-          {(["foryou", "liked"] as Tab[]).map((t) => (
+          {(["foryou", "liked"] as Tab[]).map((name) => (
             <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={cn("pb-1 transition-opacity", tab === t ? "border-b-2 border-white" : "opacity-60")}
+              key={name}
+              onClick={() => setTab(name)}
+              className={cn("pb-1 transition-opacity", tab === name ? "border-b-2 border-white" : "opacity-60")}
             >
-              {t === "foryou" ? "For you" : "Liked"}
+              {name === "foryou" ? t("feed.forYou") : t("feed.liked")}
             </button>
           ))}
         </div>
@@ -130,12 +135,12 @@ export function FeedView({ items, onToggleLike, onClose }: Props) {
         <div className="flex h-full flex-col items-center justify-center gap-2 px-8 text-center">
           <Heart className="h-10 w-10 opacity-60" />
           <p className="text-lg font-semibold">
-            {tab === "liked" ? "Nothing liked yet" : "Your board is empty"}
+            {tab === "liked" ? t("feed.emptyLiked") : t("feed.emptyBoard")}
           </p>
           <p className="text-sm text-white/60">
             {tab === "liked"
-              ? "Double-tap clippings you love in For you, and they'll collect here."
-              : "Add photos and words to your board to fill your feed."}
+              ? t("feed.emptyLikedBody")
+              : t("feed.emptyBoardBody")}
           </p>
         </div>
       ) : (
@@ -159,9 +164,40 @@ export function FeedView({ items, onToggleLike, onClose }: Props) {
                 />
               )}
 
+              {achieved.has(item.id) && (
+                <div className="pointer-events-none absolute left-4 top-[max(4.5rem,calc(env(safe-area-inset-top)+3.5rem))] flex items-center gap-1.5 rounded-full bg-emerald-500/90 px-3 py-1 text-xs font-semibold text-white shadow animate-in zoom-in-75 fade-in duration-300">
+                  <BadgeCheck className="h-3.5 w-3.5" />
+                  {t("progress.done")}
+                </div>
+              )}
+
+              {item.type === "image" && item.credit && (
+                <PhotoCredit
+                  credit={item.credit}
+                  className="absolute bottom-[max(1.5rem,env(safe-area-inset-bottom))] left-4 max-w-[calc(100%-6rem)] truncate rounded-full bg-black/40 px-3 py-1 text-xs text-white backdrop-blur"
+                />
+              )}
+
               <div className="absolute bottom-[max(1.5rem,env(safe-area-inset-bottom))] right-4 flex flex-col items-center gap-1">
                 <button
-                  aria-label={liked.has(item.id) ? "Unlike" : "Like"}
+                  aria-label={achieved.has(item.id) ? t("progress.notDone") : t("progress.didIt")}
+                  aria-pressed={achieved.has(item.id)}
+                  title={achieved.has(item.id) ? t("progress.notDone") : t("progress.didIt")}
+                  className="rounded-full p-2 transition-transform active:scale-90"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onToggleAchieved(item.id, !achieved.has(item.id))
+                  }}
+                >
+                  <BadgeCheck
+                    className={cn(
+                      "h-8 w-8 drop-shadow transition-colors",
+                      achieved.has(item.id) ? "fill-emerald-500 text-white" : "text-white"
+                    )}
+                  />
+                </button>
+                <button
+                  aria-label={liked.has(item.id) ? t("feed.unlike") : t("feed.like")}
                   aria-pressed={liked.has(item.id)}
                   className="rounded-full p-2 transition-transform active:scale-90"
                   onClick={(e) => {

@@ -33,10 +33,16 @@ import {
   RotateCw,
   Cloud,
   GalleryVerticalEnd,
+  Smartphone,
+  ArrowRight,
+  Share2,
+  BadgeCheck,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { BoardItem, TEXT_COLORS, FONT_SIZES, TEXT_STYLES, FontStyle } from "@/lib/types"
+import { daysSinceCreated } from "@/lib/progress"
 
 const LEGACY_STYLE_MAP: Record<string, FontStyle> = {
   normal: 'clean', bold: 'loud', italic: 'editorial', serif: 'elegant',
@@ -64,16 +70,21 @@ import {
   takeTodayFromUrl,
   type TodayCard as TodayCardData,
 } from "@/lib/sync"
-import { TEMPLATES } from "@/lib/templates"
+import { TEMPLATES, localizeTemplate } from "@/lib/templates"
+import { track } from "@/lib/analytics"
+import { useT, type MessageKey } from "@/lib/i18n"
+import { renderBoardStory, shareOrDownloadImage } from "@/lib/share-image"
 import { BoardItemComponent } from "./board-item"
 import { SyncDialog } from "./sync-dialog"
 import { TodayCard } from "./today-card"
+import { PhotoCredit } from "./photo-credit"
 import { FeedView } from "./feed-view"
 import { useBoardSync } from "@/hooks/use-board-sync"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
@@ -82,16 +93,38 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 
+// Set in Vercel once the app is live; the App Store pill stays hidden until then
+const APP_STORE_URL = process.env.NEXT_PUBLIC_APP_STORE_URL || ""
+
+// Looks for the clippings the welcome goals turn into
+const GOAL_LOOKS: Pick<BoardItem, "fontStyle" | "bgColor" | "color">[] = [
+  { fontStyle: "loud", bgColor: "rgba(0,0,0,0.8)", color: "#ffffff" },
+  { fontStyle: "editorial", bgColor: "rgba(59,130,246,0.85)", color: "#ffffff" },
+  { fontStyle: "elegant", bgColor: "rgba(236,72,153,0.85)", color: "#ffffff" },
+  { fontStyle: "poster", bgColor: "rgba(234,179,8,0.9)", color: "#1a1a1a" },
+  { fontStyle: "handwritten", bgColor: "rgba(255,255,255,0.9)", color: "#1a1a1a" },
+  { fontStyle: "mono", bgColor: "rgba(139,92,246,0.85)", color: "#ffffff" },
+  { fontStyle: "compact", bgColor: "rgba(34,197,94,0.85)", color: "#ffffff" },
+]
+
+// Staggered spots for up to three goals, so they read like a collage
+const GOAL_SPOTS = [
+  { x: 120, y: 100, rotation: -2 },
+  { x: 420, y: 270, rotation: 2 },
+  { x: 160, y: 450, rotation: -1 },
+]
+
 export function VisionBoard() {
+  const { t, lang, setLang } = useT()
   const canvasPatternOptions = ['canvas-dots', 'canvas-grid', 'canvas-blank'] as const
   type CanvasPattern = typeof canvasPatternOptions[number]
 
   const canvasBgColors = [
-    { id: 'canvas-bg-warm', label: 'Moleskine', color: '#f5f0e8' },
-    { id: 'canvas-bg-cream', label: 'Cream', color: '#faf6ef' },
-    { id: 'canvas-bg-gray', label: 'Gray', color: '#f0f0ee' },
-    { id: 'canvas-bg-stone', label: 'Stone', color: '#eae6df' },
-    { id: 'canvas-bg-white', label: 'White', color: '#ffffff' },
+    { id: 'canvas-bg-warm', label: 'canvas.moleskine', color: '#f5f0e8' },
+    { id: 'canvas-bg-cream', label: 'canvas.cream', color: '#faf6ef' },
+    { id: 'canvas-bg-gray', label: 'canvas.gray', color: '#f0f0ee' },
+    { id: 'canvas-bg-stone', label: 'canvas.stone', color: '#eae6df' },
+    { id: 'canvas-bg-white', label: 'canvas.white', color: '#ffffff' },
   ] as const
   type CanvasBgColor = typeof canvasBgColors[number]['id']
 
@@ -103,11 +136,19 @@ export function VisionBoard() {
   const [isRemovingBg, setIsRemovingBg] = useState(false)
   const [canvasBgColor, setCanvasBgColor] = useState<CanvasBgColor>('canvas-bg-warm')
   const [zoom, setZoom] = useState(1)
+  // For analytics: how many clippings the board has, without re-creating callbacks
+  const itemCountRef = useRef(0)
+  itemCountRef.current = items.length
   const [showBackupReminder, setShowBackupReminder] = useState(false)
   const [syncOpen, setSyncOpen] = useState(false)
   const [linkKey, setLinkKey] = useState<string | null>(null)
   const [todayCard, setTodayCard] = useState<TodayCardData | null>(null)
   const [feedOpen, setFeedOpen] = useState(false)
+  const [goals, setGoals] = useState(["", "", ""])
+  const goalRefs = useRef<(HTMLInputElement | null)[]>([])
+  // True while the empty-board welcome is up, until the first board is made
+  const onboardingActive = useRef(false)
+  const onboardingSeen = useRef(false)
   const canvasRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const importInputRef = useRef<HTMLInputElement>(null)
@@ -163,7 +204,11 @@ export function VisionBoard() {
     if (!isLoaded) return
     const check = () => {
       const card = takeTodayFromUrl()
-      if (card) setTodayCard(card)
+      if (card) {
+        setTodayCard(card)
+        track("reminder_opened", { kind: "daily" })
+        track("today_viewed", { surface: "reminder" })
+      }
       const key = takeSyncKeyFromUrl()
       if (!key) return
       setLinkKey(key)
@@ -220,7 +265,23 @@ export function VisionBoard() {
     saveMaxZDB(maxZIndex).catch(() => {})
   }, [maxZIndex, isLoaded])
 
-  const generateId = () => Math.random().toString(36).substring(2, 9)
+  // Millisecond prefix, like iOS ids, so both apps can tell when an item was added
+  const generateId = () => `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+
+  // The welcome overlay is onboarding: count it once per visit when it shows
+  const showWelcome = isLoaded && items.length === 0
+  useEffect(() => {
+    if (!showWelcome || onboardingSeen.current) return
+    onboardingSeen.current = true
+    onboardingActive.current = true
+    track("onboarding_started", { surface: "welcome" })
+  }, [showWelcome])
+
+  const finishOnboarding = useCallback((path: "goals" | "template" | "blank", goalsCount = 0) => {
+    if (!onboardingActive.current) return
+    onboardingActive.current = false
+    track("onboarding_completed", { path, goals_count: goalsCount })
+  }, [])
 
   const selectedItem = selectedIds.size === 1 ? items.find((i) => selectedIds.has(i.id)) : null
   const selectedItems = items.filter((i) => selectedIds.has(i.id))
@@ -233,7 +294,7 @@ export function VisionBoard() {
       y: 100 + Math.random() * 200,
       width: 220,
       height: 120,
-      content: "Click to style, triple-click to edit",
+      content: t("item.newText"),
       zIndex: maxZIndex,
       fontStyle: "clean",
       fontSize: 18,
@@ -243,11 +304,14 @@ export function VisionBoard() {
     setItems((prev) => [...prev, newItem])
     setMaxZIndex((prev) => prev + 1)
     setSelectedIds(new Set([newItem.id]))
-  }, [maxZIndex])
+    track("item_added", { source: "text", board_item_count: itemCountRef.current + 1 })
+    finishOnboarding("blank")
+  }, [maxZIndex, t, finishOnboarding])
 
   const loadTemplate = useCallback((templateId: string) => {
-    const template = TEMPLATES.find((t) => t.id === templateId)
-    if (!template) return
+    const found = TEMPLATES.find((tmpl) => tmpl.id === templateId)
+    if (!found) return
+    const template = localizeTemplate(found, lang)
     const newItems: BoardItem[] = template.items.map((item, i) => ({
       ...item,
       id: generateId(),
@@ -257,18 +321,58 @@ export function VisionBoard() {
     setMaxZIndex(newItems.length + 1)
     setSelectedIds(new Set())
     setZoom(1)
-  }, [])
+    // Same meaning as on iOS: blank paper is blank_started, an example is template_loaded
+    const surface = onboardingActive.current ? "onboarding" : "board"
+    if (templateId === "blank") track("blank_started", { surface })
+    else track("template_loaded", { template: templateId, surface })
+    finishOnboarding(templateId === "blank" ? "blank" : "template")
+  }, [lang, finishOnboarding])
+
+  // Welcome goals: each one becomes a styled text clipping
+  const makeGoalsBoard = useCallback(() => {
+    const filled = goals.map((g) => g.trim()).filter(Boolean).slice(0, GOAL_SPOTS.length)
+    if (filled.length === 0) return
+    const looks = [...GOAL_LOOKS]
+    for (let i = looks.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [looks[i], looks[j]] = [looks[j], looks[i]]
+    }
+    const newItems: BoardItem[] = filled.map((content, i) => {
+      const spot = GOAL_SPOTS[i]
+      const long = content.length > 22
+      return {
+        id: generateId(),
+        type: "text",
+        x: spot.x,
+        y: spot.y,
+        width: long ? 380 : 340,
+        height: long ? 150 : 110,
+        content,
+        zIndex: i + 1,
+        fontSize: long ? 24 : 28,
+        rotation: spot.rotation,
+        ...looks[i],
+      }
+    })
+    setItems(newItems)
+    setMaxZIndex(newItems.length + 1)
+    setSelectedIds(new Set())
+    setZoom(1)
+    setGoals(["", "", ""])
+    finishOnboarding("goals", filled.length)
+  }, [goals, finishOnboarding])
 
   const resetBoard = useCallback(() => {
-    if (!window.confirm("Clear the whole board? This can't be undone. Export a backup first if you want to keep it.")) return
+    if (!window.confirm(t("menu.resetConfirm"))) return
     setItems([])
     setMaxZIndex(1)
     setSelectedIds(new Set())
     setZoom(1)
-  }, [])
+    track("board_reset", { surface: "board" })
+  }, [t])
 
   const handleImageUpload = useCallback(
-    (file: File) => {
+    (file: File, source: "upload" | "drop" | "paste" = "upload") => {
       const reader = new FileReader()
       reader.onload = (e) => {
         const dataUrl = e.target?.result as string
@@ -288,10 +392,12 @@ export function VisionBoard() {
         setItems((prev) => [...prev, newItem])
         setMaxZIndex((prev) => prev + 1)
         setSelectedIds(new Set([newItem.id]))
+        track("item_added", { source, board_item_count: itemCountRef.current + 1 })
+        finishOnboarding("blank")
       }
       reader.readAsDataURL(file)
     },
-    [maxZIndex]
+    [maxZIndex, finishOnboarding]
   )
 
   const handleFileSelect = useCallback(
@@ -315,7 +421,7 @@ export function VisionBoard() {
         if (clipItem.type.startsWith("image/")) {
           const file = clipItem.getAsFile()
           if (file) {
-            handleImageUpload(file)
+            handleImageUpload(file, "paste")
           }
           break
         }
@@ -335,6 +441,7 @@ export function VisionBoard() {
   // On phones the app reopens in whichever view you left it in
   const openFeed = useCallback((open: boolean) => {
     setFeedOpen(open)
+    if (open) track("feed_viewed", { board_item_count: itemCountRef.current })
     try {
       localStorage.setItem("visionboard-view", open ? "feed" : "board")
     } catch {}
@@ -345,6 +452,7 @@ export function VisionBoard() {
     try {
       if (window.matchMedia("(max-width: 640px)").matches && localStorage.getItem("visionboard-view") === "feed") {
         setFeedOpen(true)
+        track("feed_viewed", { board_item_count: items.length })
       }
     } catch {}
     // Only decide once the board has loaded
@@ -418,7 +526,7 @@ export function VisionBoard() {
       const files = Array.from(e.dataTransfer.files)
       const imageFile = files.find((f) => f.type.startsWith("image/"))
       if (imageFile) {
-        handleImageUpload(imageFile)
+        handleImageUpload(imageFile, "drop")
       }
     },
     [handleImageUpload]
@@ -704,6 +812,33 @@ export function VisionBoard() {
     setShowBackupReminder(false)
   }, [items, maxZIndex])
 
+  // Board menu > Share as image: the clippings in view (or the whole board
+  // when none are) as a 1080 x 1920 story with the VisionBoard mark
+  const [sharingImage, setSharingImage] = useState(false)
+  const shareAsImage = useCallback(async () => {
+    const el = canvasRef.current
+    if (!el || items.length === 0 || sharingImage) return
+    setSharingImage(true)
+    try {
+      const left = el.scrollLeft / zoom
+      const top = el.scrollTop / zoom
+      const right = left + el.clientWidth / zoom
+      const bottom = top + el.clientHeight / zoom
+      const inView = items.filter(
+        (i) => i.x < right && i.x + i.width > left && i.y < bottom && i.y + i.height > top,
+      )
+      const paper = canvasBgColors.find((c) => c.id === canvasBgColor)?.color ?? '#f5f0e8'
+      const blob = await renderBoardStory(inView.length > 0 ? inView : items, paper, { mark: true, markLabel: t("share.mark") })
+      if (!blob) return
+      const method = await shareOrDownloadImage(blob, `visionboard-${new Date().toISOString().slice(0, 10)}.png`)
+      if (method) {
+        track("board_shared", { platform: "web", format: "story", method, has_mark: true, board_item_count: items.length })
+      }
+    } finally {
+      setSharingImage(false)
+    }
+  }, [items, zoom, canvasBgColor, canvasBgColors, sharingImage, t])
+
   const importBoard = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -741,6 +876,23 @@ export function VisionBoard() {
       selectedIds.forEach((id) => updateItem(id, updates))
     },
     [selectedIds, updateItem]
+  )
+
+  // "I did it": marks a goal done (or back to a goal). The clipping stays on the board.
+  const setAchieved = useCallback(
+    (id: string, achieved: boolean) => {
+      const item = items.find((i) => i.id === id)
+      if (!item || !!item.achievedAt === achieved) return
+      updateItem(id, { achievedAt: achieved ? new Date().toISOString() : undefined })
+      const type = item.type === "image" ? "photo" : "text"
+      if (achieved) {
+        const days = daysSinceCreated(item)
+        track("goal_achieved", days === null ? { type } : { type, days_since_created: days })
+      } else {
+        track("goal_unachieved", { type })
+      }
+    },
+    [items, updateItem]
   )
 
   const toggleLock = useCallback(() => {
@@ -804,7 +956,7 @@ export function VisionBoard() {
           variant="ghost"
           size="sm"
           className="hidden sm:flex h-8 w-8 p-0 text-muted-foreground"
-          title={canvasPattern === 'canvas-dots' ? 'Dots' : canvasPattern === 'canvas-grid' ? 'Grid' : 'Blank'}
+          title={canvasPattern === 'canvas-dots' ? t('toolbar.dots') : canvasPattern === 'canvas-grid' ? t('toolbar.grid') : t('toolbar.blank')}
           onClick={cycleCanvasPattern}
         >
           {canvasPattern === 'canvas-dots' && (
@@ -830,7 +982,7 @@ export function VisionBoard() {
         {/* Canvas bg color picker */}
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="sm" className="hidden sm:flex h-8 w-8 p-0" title="Canvas color">
+            <Button variant="ghost" size="sm" className="hidden sm:flex h-8 w-8 p-0" title={t("toolbar.canvasColor")}>
               <div
                 className="h-4 w-4 rounded-full border border-border"
                 style={{ backgroundColor: canvasBgColors.find(c => c.id === canvasBgColor)?.color }}
@@ -842,7 +994,7 @@ export function VisionBoard() {
               {canvasBgColors.map((bg) => (
                 <button
                   key={bg.id}
-                  title={bg.label}
+                  title={t(bg.label as MessageKey)}
                   className={`h-6 w-6 rounded-full border-2 transition-transform hover:scale-110 ${
                     canvasBgColor === bg.id
                       ? "border-blue-500 scale-110"
@@ -861,17 +1013,17 @@ export function VisionBoard() {
 
         {/* Zoom controls */}
         <div className="flex items-center gap-0.5 ml-1">
-          <Button variant="ghost" size="sm" className="hidden sm:flex h-8 w-8 p-0 text-muted-foreground" title="Zoom out" onClick={zoomOut}>
+          <Button variant="ghost" size="sm" className="hidden sm:flex h-8 w-8 p-0 text-muted-foreground" title={t("toolbar.zoomOut")} onClick={zoomOut}>
             <ZoomOut className="h-4 w-4" />
           </Button>
           <button
             className="hidden sm:block text-xs text-muted-foreground w-10 text-center hover:text-foreground transition-colors"
-            title="Reset zoom"
+            title={t("toolbar.resetZoom")}
             onClick={resetZoom}
           >
             {Math.round(zoom * 100)}%
           </button>
-          <Button variant="ghost" size="sm" className="hidden sm:flex h-8 w-8 p-0 text-muted-foreground" title="Zoom in" onClick={zoomIn}>
+          <Button variant="ghost" size="sm" className="hidden sm:flex h-8 w-8 p-0 text-muted-foreground" title={t("toolbar.zoomIn")} onClick={zoomIn}>
             <ZoomIn className="h-4 w-4" />
           </Button>
           {items.length > 0 && (
@@ -879,14 +1031,14 @@ export function VisionBoard() {
               variant="ghost"
               size="sm"
               className="h-8 gap-1.5 px-2 text-muted-foreground"
-              title="Feed"
+              title={t("toolbar.feed")}
               onClick={() => openFeed(true)}
             >
               <GalleryVerticalEnd className="h-4 w-4" />
-              <span className="hidden sm:inline text-xs">Feed</span>
+              <span className="hidden sm:inline text-xs">{t("toolbar.feed")}</span>
             </Button>
           )}
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground" title="Fit all" onClick={fitAll}>
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground" title={t("toolbar.fitAll")} onClick={fitAll}>
             <Maximize className="h-4 w-4" />
           </Button>
         </div>
@@ -895,17 +1047,17 @@ export function VisionBoard() {
           <DropdownMenuTrigger asChild>
             <Button size="sm" variant="outline" className="gap-2 text-sm">
               <Plus className="h-4 w-4" />
-              Add
+              {t("toolbar.add")}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={addTextItem}>
               <Type className="mr-2 h-4 w-4" />
-              Text
+              {t("toolbar.text")}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
               <ImageIcon className="mr-2 h-4 w-4" />
-              Image
+              {t("toolbar.image")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -920,7 +1072,7 @@ export function VisionBoard() {
         {/* Board menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label={t("toolbar.menu")}>
               <MoreVertical className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -928,23 +1080,66 @@ export function VisionBoard() {
             {sync.status !== "unavailable" && (
               <DropdownMenuItem onClick={() => setSyncOpen(true)}>
                 <Cloud className="mr-2 h-4 w-4" />
-                Sync & reminders
+                {t("menu.sync")}
+              </DropdownMenuItem>
+            )}
+            {items.length > 0 && (
+              <DropdownMenuItem onClick={shareAsImage} disabled={sharingImage}>
+                <Share2 className="mr-2 h-4 w-4" />
+                {t("menu.shareImage")}
               </DropdownMenuItem>
             )}
             <DropdownMenuItem onClick={exportBoard}>
               <Download className="mr-2 h-4 w-4" />
-              Export board
+              {t("menu.export")}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => importInputRef.current?.click()}>
               <Upload className="mr-2 h-4 w-4" />
-              Import board
+              {t("menu.import")}
             </DropdownMenuItem>
             {items.length > 0 && (
               <DropdownMenuItem onClick={resetBoard} className="text-destructive focus:text-destructive">
                 <RotateCw className="mr-2 h-4 w-4" />
-                Reset board
+                {t("menu.reset")}
               </DropdownMenuItem>
             )}
+            {APP_STORE_URL && (
+              <DropdownMenuItem asChild>
+                <a
+                  href={APP_STORE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => track("app_store_clicked", { surface: "menu" })}
+                >
+                  <Smartphone className="mr-2 h-4 w-4" />
+                  {t("menu.getApp")}
+                </a>
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuSeparator />
+            <div className="flex items-center justify-between gap-3 px-2 py-1.5 text-sm">
+              <span className="text-muted-foreground">{t("menu.language")}</span>
+              <div className="flex rounded-md border p-0.5 text-xs" role="group" aria-label={t("menu.language")}>
+                {(["en", "es"] as const).map((l) => (
+                  <button
+                    key={l}
+                    aria-pressed={lang === l}
+                    className={cn(
+                      "rounded px-2 py-0.5 font-medium transition-colors",
+                      lang === l ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
+                    )}
+                    onClick={() => setLang(l)}
+                  >
+                    {l.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-3 px-2 pb-1.5 pt-1 text-xs text-muted-foreground">
+              <a href={`/privacy?lang=${lang}`} className="hover:text-foreground">{t("legal.privacy")}</a>
+              <a href={`/terms?lang=${lang}`} className="hover:text-foreground">{t("legal.terms")}</a>
+              <a href={`/support?lang=${lang}`} className="hover:text-foreground">{t("legal.support")}</a>
+            </div>
           </DropdownMenuContent>
         </DropdownMenu>
         <input
@@ -956,37 +1151,86 @@ export function VisionBoard() {
         />
       </div>
 
-      {/* Welcome overlay — outside the transformed canvas so fixed positioning works */}
-      {isLoaded && items.length === 0 && (
-        <div className="absolute inset-0 top-[41px] sm:top-[49px] flex flex-col items-center justify-center z-20 pointer-events-none overflow-auto">
-          <div className="flex flex-col items-center max-w-lg w-full px-4 sm:px-6 py-6 pointer-events-auto">
+      {/* Welcome overlay, outside the transformed canvas so fixed positioning works */}
+      {showWelcome && (
+        <div className="absolute inset-0 top-[41px] sm:top-[49px] flex flex-col items-center z-20 pointer-events-none overflow-auto">
+          <div className="my-auto flex flex-col items-center max-w-lg w-full px-4 sm:px-6 py-6 pointer-events-auto">
             {/* Hero */}
-            <div className="text-center mb-6 sm:mb-8">
+            <div className="text-center mb-5 sm:mb-6">
               <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground mb-2">
-                What are you dreaming about?
+                {t("welcome.title")}
               </h2>
               <p className="text-xs sm:text-sm text-muted-foreground">
-                Drop images, add words, arrange freely. This is your space.
+                {t("welcome.subtitle")}
               </p>
             </div>
 
+            {/* Goals: three short fields that become the first board */}
+            <form
+              className="w-full rounded-xl border border-border/60 bg-background/80 backdrop-blur-sm p-3 sm:p-4 mb-6 sm:mb-8 shadow-sm"
+              onSubmit={(e) => {
+                e.preventDefault()
+                makeGoalsBoard()
+              }}
+            >
+              <p className="text-xs sm:text-sm font-medium text-foreground mb-2.5">{t("welcome.goalsLabel")}</p>
+              <div className="flex flex-col gap-2">
+                {goals.map((goal, i) => (
+                  <Input
+                    key={i}
+                    ref={(el) => { goalRefs.current[i] = el }}
+                    value={goal}
+                    maxLength={80}
+                    enterKeyHint={i < goals.length - 1 ? "next" : "done"}
+                    aria-label={t("welcome.goalAria", { n: i + 1 })}
+                    placeholder={t(`welcome.goal${i + 1}` as MessageKey)}
+                    // 16px on phones so iOS doesn't zoom the page when focused
+                    className="h-10 bg-background text-base sm:text-sm"
+                    onChange={(e) => {
+                      const value = e.target.value
+                      setGoals((prev) => prev.map((g, j) => (j === i ? value : g)))
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key !== "Enter" || e.nativeEvent.isComposing) return
+                      if (i < goals.length - 1) {
+                        e.preventDefault()
+                        goalRefs.current[i + 1]?.focus()
+                      }
+                    }}
+                  />
+                ))}
+              </div>
+              <Button
+                type="submit"
+                className="mt-3 w-full gap-1.5"
+                disabled={!goals.some((g) => g.trim())}
+              >
+                {t("welcome.make")}
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </form>
+
             {/* Templates */}
+            <p className="self-start text-xs font-medium text-muted-foreground mb-2">{t("welcome.orExample")}</p>
             <div className="grid grid-cols-2 gap-2 sm:gap-3 w-full mb-6 sm:mb-8">
-              {TEMPLATES.map((tmpl) => (
-                <button
-                  key={tmpl.id}
-                  onClick={() => loadTemplate(tmpl.id)}
-                  className="group flex flex-col items-start gap-1 sm:gap-1.5 rounded-xl border border-border/60 bg-background/70 backdrop-blur-sm p-3 sm:p-4 text-left transition-all hover:border-border hover:bg-background hover:shadow-md active:scale-[0.98]"
-                >
-                  <span className="text-lg sm:text-xl">{tmpl.emoji}</span>
-                  <span className="text-xs sm:text-sm font-medium text-foreground">{tmpl.name}</span>
-                  <span className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed">{tmpl.description}</span>
-                </button>
-              ))}
+              {TEMPLATES.map((base) => {
+                const tmpl = localizeTemplate(base, lang)
+                return (
+                  <button
+                    key={tmpl.id}
+                    onClick={() => loadTemplate(tmpl.id)}
+                    className="group flex flex-col items-start gap-1 sm:gap-1.5 rounded-xl border border-border/60 bg-background/70 backdrop-blur-sm p-3 sm:p-4 text-left transition-all hover:border-border hover:bg-background hover:shadow-md active:scale-[0.98]"
+                  >
+                    <span className="text-lg sm:text-xl">{tmpl.emoji}</span>
+                    <span className="text-xs sm:text-sm font-medium text-foreground">{tmpl.name}</span>
+                    <span className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed">{tmpl.description}</span>
+                  </button>
+                )
+              })}
             </div>
 
             {/* Quick actions */}
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
               <Button
                 variant="outline"
                 size="sm"
@@ -994,7 +1238,7 @@ export function VisionBoard() {
                 onClick={() => fileInputRef.current?.click()}
               >
                 <ImageIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                Drop an image
+                {t("welcome.dropImage")}
               </Button>
               <Button
                 variant="outline"
@@ -1003,7 +1247,7 @@ export function VisionBoard() {
                 onClick={addTextItem}
               >
                 <Type className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                Add words
+                {t("welcome.addWords")}
               </Button>
             </div>
 
@@ -1015,13 +1259,32 @@ export function VisionBoard() {
                 onClick={() => setSyncOpen(true)}
               >
                 <Cloud className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                Open my board from another device
+                {t("welcome.openOther")}
               </Button>
             )}
 
+            {APP_STORE_URL && (
+              <a
+                href={APP_STORE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => track("app_store_clicked", { surface: "welcome" })}
+                className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-foreground px-4 py-2 text-xs sm:text-sm font-medium text-background shadow-sm transition-opacity hover:opacity-90"
+              >
+                <Smartphone className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                {t("welcome.getApp")}
+              </a>
+            )}
+
             <p className="text-[10px] sm:text-xs text-muted-foreground/50 mt-4 sm:mt-6">
-              Paste from clipboard &middot; Drag files onto the canvas
+              {t("welcome.hint")}
             </p>
+
+            <nav className="mt-3 flex gap-4 text-[10px] sm:text-xs text-muted-foreground/60">
+              <a href={`/privacy?lang=${lang}`} className="hover:text-muted-foreground">{t("legal.privacy")}</a>
+              <a href={`/terms?lang=${lang}`} className="hover:text-muted-foreground">{t("legal.terms")}</a>
+              <a href={`/support?lang=${lang}`} className="hover:text-muted-foreground">{t("legal.support")}</a>
+            </nav>
           </div>
         </div>
       )}
@@ -1088,7 +1351,7 @@ export function VisionBoard() {
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="ghost" size="sm" className="h-8 px-2.5 text-xs gap-1.5">
-                <span className="font-medium">{TEXT_STYLES.find((s) => s.id === resolveStyle(selectedItem.fontStyle))?.label || 'Clean'}</span>
+                <span className="font-medium">{TEXT_STYLES.find((st) => st.id === resolveStyle(selectedItem.fontStyle))?.label || 'Clean'}</span>
                 <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><path d="M1 3l3 3 3-3" /></svg>
               </Button>
             </PopoverTrigger>
@@ -1176,7 +1439,7 @@ export function VisionBoard() {
           {/* Background color picker */}
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Background color">
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title={t("sel.bgColor")}>
                 <PaintBucket className="h-4 w-4" style={{ color: selectedItem.bgColor && selectedItem.bgColor !== 'transparent' ? selectedItem.bgColor : undefined }} />
               </Button>
             </PopoverTrigger>
@@ -1220,18 +1483,31 @@ export function VisionBoard() {
               onClick={() => updateSelectedItem({ rotation: 0 })}
             >
               <RotateCcw className="h-3 w-3" />
-              Reset
+              {t("sel.reset")}
             </Button>
           )}
 
           <div className="mx-1 h-5 w-px bg-border" />
+
+          {/* I did it */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn("h-8 gap-1.5 text-xs", selectedItem.achievedAt && "text-emerald-600")}
+            title={selectedItem.achievedAt ? t("progress.notDone") : t("progress.markDone")}
+            aria-pressed={!!selectedItem.achievedAt}
+            onClick={() => setAchieved(selectedItem.id, !selectedItem.achievedAt)}
+          >
+            <BadgeCheck className="h-3.5 w-3.5" />
+            {selectedItem.achievedAt ? t("progress.notDoneShort") : t("progress.didIt")}
+          </Button>
 
           {/* Lock control */}
           <Button
             variant="ghost"
             size="sm"
             className={cn("h-8 w-8 p-0", selectedItem.locked && "text-amber-500")}
-            title={selectedItem.locked ? "Unlock" : "Lock"}
+            title={selectedItem.locked ? t("sel.unlock") : t("sel.lock")}
             onClick={toggleLock}
           >
             {selectedItem.locked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
@@ -1242,7 +1518,7 @@ export function VisionBoard() {
             variant="ghost"
             size="sm"
             className="h-8 w-8 p-0"
-            title="Bring to front"
+            title={t("sel.front")}
             onClick={() => selectedIds.forEach((id) => bringToFront(id))}
           >
             <ArrowUpToLine className="h-3.5 w-3.5" />
@@ -1251,7 +1527,7 @@ export function VisionBoard() {
             variant="ghost"
             size="sm"
             className="h-8 w-8 p-0"
-            title="Send to back"
+            title={t("sel.back")}
             onClick={() => selectedIds.forEach((id) => sendToBack(id))}
           >
             <ArrowDownToLine className="h-3.5 w-3.5" />
@@ -1266,7 +1542,7 @@ export function VisionBoard() {
             className="h-8 gap-1.5 text-xs text-destructive hover:text-destructive"
           >
             <Trash2 className="h-3.5 w-3.5" />
-            Delete
+            {t("sel.delete")}
           </Button>
         </div>
       )}
@@ -1274,43 +1550,43 @@ export function VisionBoard() {
       {/* Bottom toolbar - multi-select alignment */}
       {selectedIds.size > 1 && (
         <div className="flex items-center gap-1.5 border-t border-border bg-background/80 backdrop-blur-sm px-3 sm:px-4 py-2 z-10 overflow-x-auto">
-          <span className="text-xs text-muted-foreground mr-1">{selectedIds.size} selected</span>
+          <span className="text-xs text-muted-foreground mr-1">{t("sel.count", { n: selectedIds.size })}</span>
 
           <div className="mx-1 h-5 w-px bg-border" />
 
           {/* Align */}
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Align left" onClick={() => alignItems('left')}>
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title={t("sel.alignLeft")} onClick={() => alignItems('left')}>
             <AlignStartVertical className="h-3.5 w-3.5" />
           </Button>
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Align center" onClick={() => alignItems('centerH')}>
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title={t("sel.alignCenter")} onClick={() => alignItems('centerH')}>
             <AlignCenterVertical className="h-3.5 w-3.5" />
           </Button>
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Align right" onClick={() => alignItems('right')}>
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title={t("sel.alignRight")} onClick={() => alignItems('right')}>
             <AlignEndVertical className="h-3.5 w-3.5" />
           </Button>
 
           <div className="mx-0.5 h-5 w-px bg-border" />
 
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Align top" onClick={() => alignItems('top')}>
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title={t("sel.alignTop")} onClick={() => alignItems('top')}>
             <AlignStartHorizontal className="h-3.5 w-3.5" />
           </Button>
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Align middle" onClick={() => alignItems('centerV')}>
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title={t("sel.alignMiddle")} onClick={() => alignItems('centerV')}>
             <AlignCenterHorizontal className="h-3.5 w-3.5" />
           </Button>
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Align bottom" onClick={() => alignItems('bottom')}>
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title={t("sel.alignBottom")} onClick={() => alignItems('bottom')}>
             <AlignEndHorizontal className="h-3.5 w-3.5" />
           </Button>
 
           {selectedIds.size >= 3 && (
             <>
               <div className="mx-0.5 h-5 w-px bg-border" />
-              <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs" title="Distribute horizontally" onClick={() => distributeItems('horizontal')}>
+              <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs" title={t("sel.distH")} onClick={() => distributeItems('horizontal')}>
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
                   <line x1="1" y1="1" x2="1" y2="13" /><line x1="13" y1="1" x2="13" y2="13" />
                   <rect x="5" y="3" width="4" height="8" rx="0.5" />
                 </svg>
               </Button>
-              <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs" title="Distribute vertically" onClick={() => distributeItems('vertical')}>
+              <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs" title={t("sel.distV")} onClick={() => distributeItems('vertical')}>
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
                   <line x1="1" y1="1" x2="13" y2="1" /><line x1="1" y1="13" x2="13" y2="13" />
                   <rect x="3" y="5" width="8" height="4" rx="0.5" />
@@ -1322,7 +1598,7 @@ export function VisionBoard() {
           <div className="mx-0.5 h-5 w-px bg-border" />
 
           {/* Grid arrange */}
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Arrange as collage" onClick={arrangeCollage}>
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title={t("sel.collage")} onClick={arrangeCollage}>
             <LayoutGrid className="h-3.5 w-3.5" />
           </Button>
 
@@ -1333,17 +1609,17 @@ export function VisionBoard() {
             variant="ghost"
             size="sm"
             className={cn("h-8 w-8 p-0", selectedItems.every((i) => i.locked) && "text-amber-500")}
-            title={selectedItems.some((i) => !i.locked) ? "Lock all" : "Unlock all"}
+            title={selectedItems.some((i) => !i.locked) ? t("sel.lockAll") : t("sel.unlockAll")}
             onClick={toggleLock}
           >
             {selectedItems.every((i) => i.locked) ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
           </Button>
 
           {/* Layer controls */}
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Bring to front" onClick={() => selectedIds.forEach((id) => bringToFront(id))}>
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title={t("sel.front")} onClick={() => selectedIds.forEach((id) => bringToFront(id))}>
             <ArrowUpToLine className="h-3.5 w-3.5" />
           </Button>
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Send to back" onClick={() => selectedIds.forEach((id) => sendToBack(id))}>
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title={t("sel.back")} onClick={() => selectedIds.forEach((id) => sendToBack(id))}>
             <ArrowDownToLine className="h-3.5 w-3.5" />
           </Button>
 
@@ -1356,7 +1632,7 @@ export function VisionBoard() {
             className="h-8 gap-1.5 text-xs text-destructive hover:text-destructive"
           >
             <Trash2 className="h-3.5 w-3.5" />
-            Delete
+            {t("sel.delete")}
           </Button>
         </div>
       )}
@@ -1377,7 +1653,7 @@ export function VisionBoard() {
             ) : (
               <Eraser className="h-3.5 w-3.5" />
             )}
-            {isRemovingBg ? 'Removing…' : 'Remove BG'}
+            {isRemovingBg ? t("sel.removingBg") : t("sel.removeBg")}
           </Button>
           {selectedItem.originalContent && (
             <Button
@@ -1387,8 +1663,12 @@ export function VisionBoard() {
               onClick={() => restoreBackground(selectedItem.id)}
             >
               <RotateCcw className="h-3 w-3" />
-              Restore BG
+              {t("sel.restoreBg")}
             </Button>
+          )}
+
+          {selectedItem.credit && (
+            <PhotoCredit credit={selectedItem.credit} className="px-2 text-xs text-muted-foreground" />
           )}
 
           <div className="mx-1 h-5 w-px bg-border" />
@@ -1402,16 +1682,29 @@ export function VisionBoard() {
               onClick={() => updateSelectedItem({ rotation: 0 })}
             >
               <RotateCcw className="h-3 w-3" />
-              Reset rotation
+              {t("sel.resetRotation")}
             </Button>
           )}
+
+          {/* I did it */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn("h-8 gap-1.5 text-xs", selectedItem.achievedAt && "text-emerald-600")}
+            title={selectedItem.achievedAt ? t("progress.notDone") : t("progress.markDone")}
+            aria-pressed={!!selectedItem.achievedAt}
+            onClick={() => setAchieved(selectedItem.id, !selectedItem.achievedAt)}
+          >
+            <BadgeCheck className="h-3.5 w-3.5" />
+            {selectedItem.achievedAt ? t("progress.notDoneShort") : t("progress.didIt")}
+          </Button>
 
           {/* Lock control */}
           <Button
             variant="ghost"
             size="sm"
             className={cn("h-8 w-8 p-0", selectedItem.locked && "text-amber-500")}
-            title={selectedItem.locked ? "Unlock" : "Lock"}
+            title={selectedItem.locked ? t("sel.unlock") : t("sel.lock")}
             onClick={toggleLock}
           >
             {selectedItem.locked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
@@ -1422,7 +1715,7 @@ export function VisionBoard() {
             variant="ghost"
             size="sm"
             className="h-8 w-8 p-0"
-            title="Bring to front"
+            title={t("sel.front")}
             onClick={() => selectedIds.forEach((id) => bringToFront(id))}
           >
             <ArrowUpToLine className="h-3.5 w-3.5" />
@@ -1431,7 +1724,7 @@ export function VisionBoard() {
             variant="ghost"
             size="sm"
             className="h-8 w-8 p-0"
-            title="Send to back"
+            title={t("sel.back")}
             onClick={() => selectedIds.forEach((id) => sendToBack(id))}
           >
             <ArrowDownToLine className="h-3.5 w-3.5" />
@@ -1446,7 +1739,7 @@ export function VisionBoard() {
             className="h-8 gap-1.5 text-xs text-destructive hover:text-destructive"
           >
             <Trash2 className="h-3.5 w-3.5" />
-            Delete
+            {t("sel.delete")}
           </Button>
         </div>
       )}
@@ -1454,7 +1747,14 @@ export function VisionBoard() {
       {feedOpen && (
         <FeedView
           items={items}
-          onToggleLike={(id, liked) => updateItem(id, { liked })}
+          onToggleLike={(id, liked) => {
+            updateItem(id, { liked })
+            if (liked) {
+              const type = items.find((i) => i.id === id)?.type
+              track("item_liked", { type: type === "image" ? "photo" : "text" })
+            }
+          }}
+          onToggleAchieved={setAchieved}
           onClose={() => openFeed(false)}
         />
       )}
@@ -1473,17 +1773,17 @@ export function VisionBoard() {
       {showBackupReminder && (
         <div className="fixed top-[49px] sm:top-[57px] left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-lg border bg-background/95 backdrop-blur px-3 py-2 shadow-sm text-xs max-w-[calc(100vw-32px)]">
           <span className="text-muted-foreground">
-            Your board is saved only in this browser. Keep a backup file.
+            {t("backup.text")}
           </span>
           {sync.status !== "unavailable" && (
             <Button variant="outline" size="sm" className="h-7 text-xs shrink-0" onClick={() => setSyncOpen(true)}>
               <Cloud className="mr-1.5 h-3.5 w-3.5" />
-              Sync
+              {t("backup.sync")}
             </Button>
           )}
           <Button size="sm" className="h-7 text-xs shrink-0" onClick={exportBoard}>
             <Download className="mr-1.5 h-3.5 w-3.5" />
-            Back up
+            {t("backup.backUp")}
           </Button>
           <Button
             variant="ghost"
@@ -1491,7 +1791,7 @@ export function VisionBoard() {
             className="h-7 text-xs shrink-0"
             onClick={() => { snoozeBackupReminder(); setShowBackupReminder(false) }}
           >
-            Later
+            {t("backup.later")}
           </Button>
         </div>
       )}

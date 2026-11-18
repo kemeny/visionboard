@@ -110,6 +110,7 @@ struct BoardCanvas: View {
                     }
                 }
                 .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)
+                .environment(\.boardImageZoom, BoardImage.zoomStep(camera.zoom))
                 .scaleEffect(camera.zoom, anchor: .topLeading)
                 .offset(camera.offset)
                 .allowsHitTesting(false)
@@ -319,6 +320,14 @@ struct BoardCanvas: View {
                 store.toggleLike(id)
             },
             DialAction(
+                id: "done",
+                title: item.isAchieved ? String(localized: "Mark as Not Done") : String(localized: "I Did It"),
+                symbol: item.isAchieved ? "checkmark.seal.fill" : "checkmark.seal",
+                tint: .green
+            ) {
+                Celebrate.toggleAchieved(item, in: store)
+            },
+            DialAction(
                 id: "lock",
                 title: item.isLocked ? String(localized: "Unlock") : String(localized: "Lock"),
                 symbol: item.isLocked ? "lock.open" : "lock"
@@ -468,6 +477,14 @@ struct BoardItemView: View, Equatable {
             .overlay(alignment: .bottomTrailing) {
                 if isSelected && !item.isLocked { resizeHandle }
             }
+            .overlay(alignment: .topLeading) {
+                if item.isAchieved {
+                    AchievedSeal(size: 24 / zoom)
+                        .offset(x: -10 / zoom, y: -10 / zoom)
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
+                }
+            }
             // Picked up: a little bigger, with a deeper shadow, above everything else
             .animation(.snappy(duration: 0.2)) { content in
                 content
@@ -484,6 +501,7 @@ struct BoardItemView: View, Equatable {
             .sensoryFeedback(.alignment, trigger: snappedTo) { _, new in new != nil }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(item.type == .text ? item.content : String(localized: "Photo"))
+            .accessibilityValue(item.isAchieved ? String(localized: "Done") : "")
             .accessibilityHint(item.type == .text ? String(localized: "Selects this goal. Double-tap twice to edit it.") : String(localized: "Selects this photo."))
             .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
             .accessibilityAction { onSelect() }
@@ -564,8 +582,25 @@ struct BoardImage: View {
     let content: String
     var mode: ContentMode = .fill
     @Environment(\.preloadedImages) private var preloaded
+    @Environment(\.boardImageZoom) private var zoom
+    @Environment(\.displayScale) private var displayScale
     @State private var image: UIImage?
     @State private var failed = false
+    @State private var size: CGSize = .zero
+
+    // What to decode: this photo, at the pixels it covers on screen
+    private struct Request: Hashable {
+        var content: String
+        var width: Int
+        var height: Int
+    }
+
+    private var request: Request {
+        // Rounded up to 64 px so small layout changes don't decode again
+        let factor = displayScale * zoom
+        func px(_ points: CGFloat) -> Int { Int((max(points, 0) * factor / 64).rounded(.up)) * 64 }
+        return Request(content: content, width: px(size.width), height: px(size.height))
+    }
 
     var body: some View {
         ZStack {
@@ -586,16 +621,38 @@ struct BoardImage: View {
                     }
             }
         }
-        .task(id: content) {
-            guard preloaded[content] == nil else { return }
-            image = await ImageStore.shared.image(for: content)
-            failed = image == nil
+        .background {
+            GeometryReader { proxy in
+                Color.clear
+                    .onAppear { size = proxy.size }
+                    .onChange(of: proxy.size) { _, newSize in size = newSize }
+            }
         }
+        .task(id: request) {
+            guard preloaded[content] == nil else { return }
+            // Wait for the first layout so the photo is decoded once, at its real size
+            guard request.width > 0, request.height > 0 else { return }
+            let box = CGSize(width: request.width, height: request.height)
+            let loaded = await ImageStore.shared.image(for: content, fitting: box, fill: mode == .fill)
+            guard !Task.isCancelled else { return }
+            // Keep showing the old copy if a new size fails to load
+            if let loaded { image = loaded }
+            failed = loaded == nil && image == nil
+        }
+    }
+
+    // Board zoom in powers of two, so a pinch decodes photos again only when
+    // it doubles or halves their size on screen
+    static func zoomStep(_ zoom: CGFloat) -> CGFloat {
+        let step = pow(2.0, (log2(Double(max(zoom, 0.01)))).rounded(.up))
+        return CGFloat(min(4, max(1.0 / 16, step)))
     }
 }
 
 extension EnvironmentValues {
     @Entry var preloadedImages: [String: UIImage] = [:]
+    // How much the board is zoomed (BoardImage.zoomStep), so photos decode at the size they appear
+    @Entry var boardImageZoom: CGFloat = 1
 }
 
 // Shared by the context menu, VoiceOver actions and the inspector
@@ -616,6 +673,10 @@ struct ItemActions: View {
         ShareClippingButton(item: item)
         Button(item.isLiked ? String(localized: "Unlike") : String(localized: "Like"), systemImage: item.isLiked ? "heart.slash" : "heart") {
             store.toggleLike(item.id)
+        }
+        Button(item.isAchieved ? String(localized: "Mark as Not Done") : String(localized: "I Did It"),
+               systemImage: item.isAchieved ? "checkmark.seal.fill" : "checkmark.seal") {
+            Celebrate.toggleAchieved(item, in: store)
         }
         Button("Bring to Front", systemImage: "square.3.layers.3d.top.filled") { store.bringToFront(item.id) }
         Button("Send to Back", systemImage: "square.3.layers.3d.bottom.filled") { store.sendToBack(item.id) }

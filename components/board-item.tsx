@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react"
 import { BoardItem, FontStyle, TEXT_STYLES } from "@/lib/types"
 import { cn } from "@/lib/utils"
+import { useT } from "@/lib/i18n"
 
 interface BoardItemComponentProps {
   item: BoardItem
@@ -39,6 +40,7 @@ export function BoardItemComponent({
   onMultiDragStart,
   onMultiDragMove,
 }: BoardItemComponentProps) {
+  const { t } = useT()
   const [isDragging, setIsDragging] = useState(false)
   const [isResizing, setIsResizing] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
@@ -334,7 +336,7 @@ export function BoardItemComponent({
       {item.type === "image" ? (
         <img
           src={item.content}
-          alt="Vision board item"
+          alt={t("item.imageAlt")}
           className="h-full w-full rounded-xl object-cover shadow-lg"
           draggable={false}
         />
@@ -377,6 +379,20 @@ export function BoardItemComponent({
               </p>
             )
           })()}
+        </div>
+      )}
+
+      {/* Achieved seal */}
+      {item.achievedAt && (
+        <div
+          className="pointer-events-none absolute -top-2.5 -left-2.5 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 shadow-md ring-2 ring-white animate-in zoom-in-50 fade-in duration-300"
+          role="img"
+          aria-label={t("progress.done")}
+          title={t("progress.done")}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 6 9 17l-5-5" />
+          </svg>
         </div>
       )}
 

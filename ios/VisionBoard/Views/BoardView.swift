@@ -6,6 +6,7 @@ struct BoardView: View {
     @Environment(SyncService.self) private var sync
     @Environment(AppRouter.self) private var router
     @Environment(BoardLibrary.self) private var library
+    @Environment(ProAccess.self) private var pro
 
     @State private var selection: String?
     @State private var showStyle = false
@@ -19,105 +20,46 @@ struct BoardView: View {
     @State private var pendingTemplate: BoardTemplate?
     @State private var importError: String?
     @State private var showWallpaper = false
+    @State private var sharingBoard = false
     @State private var naming: Naming?
     @State private var boardName = ""
     @State private var confirmDeleteBoard = false
+    @State private var showAIBoard = false
+    @State private var aiBoardSource = "board_menu"
 
     enum Naming { case new, rename }
     @AppStorage("canvas-pattern") private var pattern: CanvasPattern = .dots
     @AppStorage("canvas-paper") private var paper: PaperColor = .moleskine
+    @AppStorage("onboarded") private var onboarded = false
 
     var body: some View {
         NavigationStack {
-            BoardCanvas(
-                selection: $selection,
-                camera: $camera,
-                viewport: $viewport,
-                bottomInset: $bottomInset,
-                pattern: pattern,
-                paper: paper,
-                onEditText: { editingTextID = $0 },
-                onShowStyle: { showStyle = true }
-            )
-            .ignoresSafeArea(edges: .bottom)
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                if !store.items.isEmpty {
-                    BoardActionBar(
-                        selection: $selection,
-                        onEditText: { editingTextID = $0 },
-                        onShowStyle: { showStyle = true },
-                        onFit: fitBoard
-                    )
-                }
-            }
-            .overlay {
-                if store.items.isEmpty { emptyState }
-            }
-            .navigationTitle(library.current?.name ?? "Board")
-            .toolbarTitleMenu { boardMenu }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar { toolbar }
-            .boardOverflowMenu { overflowMenu }
-            .prefersToolbarItemsWhenCompressed()
-            .inspector(isPresented: $showStyle) {
-                ItemInspector(itemID: selection, onEditText: { editingTextID = $0 }, onDone: { showStyle = false })
-                    .inspectorColumnWidth(min: 280, ideal: 320, max: 400)
-                    .presentationDetents([.medium, .large])
-            }
-            .photosPicker(isPresented: $showPhotoPicker, selection: $pickedPhotos, maxSelectionCount: 10, matching: .images)
-            .onChange(of: pickedPhotos) { _, items in
-                guard !items.isEmpty else { return }
-                pickedPhotos = []
-                Task { await importPhotos(items) }
-            }
-            .fullScreenCover(isPresented: $showCamera) {
-                CameraCapture { data in
-                    Task { await importCameraPhoto(data) }
-                }
-                .ignoresSafeArea()
-            }
-            .alert(naming == .new ? "New Board" : "Rename Board", isPresented: Binding(get: { naming != nil }, set: { if !$0 { naming = nil } })) {
-                TextField("Name", text: $boardName)
-                Button("Cancel", role: .cancel) {}
-                Button(naming == .new ? "Create" : "Save") { saveBoardName() }
-            } message: {
-                if naming == .new { Text("For example 2027, Career or Travel.") }
-            }
-            .confirmationDialog("Delete \u{201C}\(library.current?.name ?? "this board")\u{201D}?", isPresented: $confirmDeleteBoard, titleVisibility: .visible) {
-                Button("Delete Board", role: .destructive) {
-                    Task {
-                        selection = nil
-                        await library.delete(library.currentID)
-                        fitBoard()
-                    }
-                }
-            } message: {
-                Text("Its photos and goals are removed from this iPhone. If the board syncs, the cloud copy stays for your other devices.")
-            }
-            .sheet(isPresented: $showWallpaper) {
-                WallpaperSheet(items: store.sortedItems, paper: paper)
-            }
-            .task(id: router.sharedArrivals) {
+            presentedLayer
+                .task(id: router.sharedArrivals) {
                 guard router.sharedArrivals > 0 else { return }
                 await importShared()
             }
-            .onChange(of: selection) { _, id in
+                .onChange(of: selection) { _, id in
                 if id == nil { showStyle = false }
             }
+            // Onboarding fills the board behind its sheet; frame what it made
+                .onChange(of: onboarded) { _, done in
+                if done { fitBoard() }
+            }
             // "Show on Board" from the Feed: pick the clipping and bring it to the middle
-            .task(id: router.focusItem) {
+                .task(id: router.focusItem) {
                 guard let id = router.focusItem else { return }
                 router.focusItem = nil
                 focus(on: id)
             }
-            .sheet(item: Binding(
+                .sheet(item: Binding(
                 get: { editingTextID.map(EditTarget.init) },
                 set: { editingTextID = $0?.id }
             )) { target in
                 TextEditSheet(itemID: target.id)
             }
-            .confirmationDialog(
-                "Replace your board with \(pendingTemplate?.name ?? "this template")?",
+                .confirmationDialog(
+                "Replace your board with \(pendingTemplate?.name ?? String(localized: "this template"))?",
                 isPresented: Binding(get: { pendingTemplate != nil }, set: { if !$0 { pendingTemplate = nil } }),
                 titleVisibility: .visible
             ) {
@@ -127,13 +69,99 @@ struct BoardView: View {
             } message: {
                 Text("Everything on your current board will be removed.")
             }
-            .alert("Couldn't Add Photo", isPresented: Binding(get: { importError != nil }, set: { if !$0 { importError = nil } })) {
+                .alert("Couldn't Add Photo", isPresented: Binding(get: { importError != nil }, set: { if !$0 { importError = nil } })) {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text(importError ?? "")
             }
         }
     }
+
+    // Split out of body so the compiler can type-check each chain in time
+    private var canvasLayer: some View {
+        BoardCanvas(
+            selection: $selection,
+            camera: $camera,
+            viewport: $viewport,
+            bottomInset: $bottomInset,
+            pattern: pattern,
+            paper: paper,
+            onEditText: { editingTextID = $0 },
+            onShowStyle: { showStyle = true }
+        )
+        .ignoresSafeArea(edges: .bottom)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if !store.items.isEmpty {
+                BoardActionBar(
+                    selection: $selection,
+                    onEditText: { editingTextID = $0 },
+                    onShowStyle: { showStyle = true },
+                    onFit: fitBoard
+                )
+            }
+        }
+        .overlay {
+            if store.items.isEmpty { emptyState }
+        }
+        .overlay(alignment: .top) {
+            BackupBanner()
+        }
+        .navigationTitle(library.current?.name ?? "Board")
+        .toolbarTitleMenu { boardMenu }
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar { toolbar }
+        .boardOverflowMenu { overflowMenu }
+        .prefersToolbarItemsWhenCompressed()
+}
+
+private var presentedLayer: some View {
+        canvasLayer
+        .inspector(isPresented: $showStyle) {
+            ItemInspector(itemID: selection, onEditText: { editingTextID = $0 }, onDone: { showStyle = false })
+                .inspectorColumnWidth(min: 280, ideal: 320, max: 400)
+                .presentationDetents([.medium, .large])
+        }
+        .photosPicker(isPresented: $showPhotoPicker, selection: $pickedPhotos, maxSelectionCount: 10, matching: .images)
+        .onChange(of: pickedPhotos) { _, items in
+            guard !items.isEmpty else { return }
+            pickedPhotos = []
+            Task { await importPhotos(items) }
+        }
+        .fullScreenCover(isPresented: $showCamera) {
+            CameraCapture { data in
+                Task { await importCameraPhoto(data) }
+            }
+            .ignoresSafeArea()
+        }
+        .alert(naming == .new ? "New Board" : "Rename Board", isPresented: Binding(get: { naming != nil }, set: { if !$0 { naming = nil } })) {
+            TextField("Name", text: $boardName)
+            Button("Cancel", role: .cancel) {}
+            Button(naming == .new ? "Create" : "Save") { saveBoardName() }
+        } message: {
+            if naming == .new { Text("For example 2027, Career or Travel.") }
+        }
+        .confirmationDialog("Delete \u{201C}\(library.current?.name ?? String(localized: "this board"))\u{201D}?", isPresented: $confirmDeleteBoard, titleVisibility: .visible) {
+            Button("Delete Board", role: .destructive) {
+                Task {
+                    selection = nil
+                    await library.delete(library.currentID)
+                    fitBoard()
+                }
+            }
+        } message: {
+            Text("Its photos and goals are removed from this iPhone. If the board syncs, the cloud copy stays for your other devices.")
+        }
+        .sheet(isPresented: $showWallpaper) {
+            WallpaperSheet(items: store.sortedItems, paper: paper)
+        }
+        .sheet(isPresented: $showAIBoard) {
+            AIBoardView(center: visibleCenter, source: aiBoardSource) { added in
+                selection = nil
+                guard !added.isEmpty else { return }
+                withAnimation(.snappy) { camera = .fitting(added, in: viewport, bottomInset: bottomInset) }
+            }
+        }
+}
 
     // HIG order for side bars on iPhone Duo: navigation first, then the
     // prominent action. Every item has a title and a symbol so the system can
@@ -160,6 +188,7 @@ struct BoardView: View {
                 Button("Camera", systemImage: "camera") { showCamera = true }
             }
             Button("Goal", systemImage: "textformat") { addText() }
+            Button("Create with AI", systemImage: "sparkles") { openAIBoard(from: "board_menu") }
             Menu {
                 templateButtons
             } label: {
@@ -198,6 +227,8 @@ struct BoardView: View {
         .pickerStyle(.menu)
         Button("Make Wallpaper", systemImage: "iphone.gen3") { showWallpaper = true }
             .disabled(store.items.isEmpty)
+        Button("Share Board", systemImage: "square.and.arrow.up") { shareBoard() }
+            .disabled(store.items.isEmpty || sharingBoard)
         if sync.isOn {
             Button("Sync Now", systemImage: "arrow.triangle.2.circlepath") { Task { await sync.syncNow() } }
         }
@@ -221,6 +252,7 @@ struct BoardView: View {
             Button("Add Photos", systemImage: "photo.on.rectangle") { showPhotoPicker = true }
                 .buttonStyle(.borderedProminent)
             Button("Add a Goal", systemImage: "textformat") { addText() }
+            Button("Create with AI", systemImage: "sparkles") { openAIBoard(from: "empty_board") }
             Menu {
                 templateButtons
             } label: {
@@ -231,10 +263,10 @@ struct BoardView: View {
 
     private var syncLabel: String {
         switch sync.status {
-        case .unavailable, .off: "Not Synced"
-        case .syncing: "Syncing"
-        case .synced: "Synced"
-        case .error: "Sync Problem"
+        case .unavailable, .off: String(localized: "Not Synced")
+        case .syncing: String(localized: "Syncing")
+        case .synced: String(localized: "Synced")
+        case .error: String(localized: "Sync Problem")
         }
     }
 
@@ -249,6 +281,17 @@ struct BoardView: View {
 
     private var visibleCenter: CGPoint {
         camera.toCanvas(CGPoint(x: viewport.width / 2, y: (viewport.height - bottomInset) / 2))
+    }
+
+    // A Pro feature: without Pro this shows the paywall instead
+    private func openAIBoard(from source: String) {
+        guard ProAccess.shared.requirePro(from: "ai_board") else { return }
+        aiBoardSource = source
+        showAIBoard = true
+    }
+
+    private func logAdded(_ source: String) {
+        Analytics.capture("item_added", ["source": source, "board_item_count": store.items.count])
     }
 
     private func focus(on id: String) {
@@ -270,6 +313,7 @@ struct BoardView: View {
 
     private func addText() {
         let item = store.addText(at: visibleCenter)
+        logAdded("text")
         selection = item.id
         editingTextID = item.id
     }
@@ -281,6 +325,7 @@ struct BoardView: View {
                 guard let data = try await photo.loadTransferable(type: Data.self) else { continue }
                 let imported = try await ImageStore.shared.importPhoto(data)
                 let item = store.addImage(content: imported.content, aspect: imported.aspect, at: center)
+                logAdded("photo")
                 selection = item.id
                 center.x += 30
                 center.y += 30
@@ -294,6 +339,7 @@ struct BoardView: View {
         do {
             let imported = try await ImageStore.shared.importPhoto(data)
             let item = store.addImage(content: imported.content, aspect: imported.aspect, at: visibleCenter)
+            logAdded("camera")
             selection = item.id
         } catch {
             importError = error.localizedDescription
@@ -333,6 +379,7 @@ struct BoardView: View {
                 do {
                     let imported = try await ImageStore.shared.importPhoto(data)
                     last = store.addImage(content: imported.content, aspect: imported.aspect, at: center)
+                    logAdded("share_sheet")
                 } catch {
                     importError = error.localizedDescription
                     continue
@@ -341,6 +388,7 @@ struct BoardView: View {
                 guard let text = item.text else { continue }
                 let added = store.addText(at: center, content: text)
                 store.update(added.id) { $0.applyRandomLook() }
+                logAdded("share_sheet")
                 last = added
             }
             center.x += 30
@@ -360,6 +408,8 @@ struct BoardView: View {
         }
         Divider()
         Button("New Board", systemImage: "plus.rectangle.on.rectangle") {
+            // The free plan keeps one board; existing extra boards stay
+            guard pro.canCreateBoard(currentCount: library.boards.count) || pro.requirePro(from: "board_limit") else { return }
             boardName = ""
             naming = .new
         }
@@ -396,6 +446,18 @@ struct BoardView: View {
         naming = nil
     }
 
+    // The whole board as a story-sized picture, with a link to the web app
+    private func shareBoard() {
+        guard !sharingBoard else { return }
+        sharingBoard = true
+        let items = store.sortedItems
+        let paperColor = self.paper
+        Task {
+            await BoardShare.share(items, paper: paperColor)
+            sharingBoard = false
+        }
+    }
+
     private func fitBoard() {
         withAnimation(.snappy) { camera = .fitting(store.items, in: viewport, bottomInset: bottomInset) }
     }
@@ -403,6 +465,7 @@ struct BoardView: View {
     private func apply(_ template: BoardTemplate) {
         guard let file = template.load() else { return }
         store.replaceBoard(with: file)
+        Analytics.capture("template_loaded", ["template": template.id, "surface": "board"])
         selection = nil
         pendingTemplate = nil
         withAnimation(.snappy) { camera = .fitting(file.items, in: viewport, bottomInset: bottomInset) }
@@ -446,7 +509,7 @@ struct TextEditSheet: View {
         .presentationDetents([.medium, .large])
         .onAppear {
             let current = store.item(itemID)?.content ?? ""
-            text = current == placeholderText ? "" : current
+            text = isPlaceholderText(current) ? "" : current
             focused = true
         }
     }

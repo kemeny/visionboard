@@ -11,6 +11,7 @@ struct FeedView: View {
     enum Filter: String, CaseIterable, Identifiable {
         case forYou = "For You", liked = "Liked"
         var id: String { rawValue }
+        var label: String { self == .forYou ? String(localized: "For You") : String(localized: "Liked") }
     }
 
     private struct Page: Identifiable, Hashable {
@@ -55,7 +56,7 @@ struct FeedView: View {
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Picker("Feed", selection: $filter) {
-                        ForEach(Filter.allCases) { Text($0.rawValue).tag($0) }
+                        ForEach(Filter.allCases) { Text($0.label).tag($0) }
                     }
                     .pickerStyle(.segmented)
                     .fixedSize()
@@ -72,7 +73,10 @@ struct FeedView: View {
                 if justHidden != nil { undoHideBar }
             }
         }
-        .onAppear(perform: rebuild)
+        .onAppear {
+            rebuild()
+            Analytics.capture("feed_viewed", ["filter": filter == .liked ? "liked" : "for_you", "board_item_count": store.items.count])
+        }
         .onChange(of: filter) { rebuild() }
         .onDisappear { logView(position) }
     }
@@ -130,11 +134,56 @@ struct FeedView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .contentShape(Rectangle())
         .onTapGesture(count: 2) { like(item, page: page) }
+        .overlay(alignment: .topLeading) {
+            if item.isAchieved {
+                HStack(spacing: 6) {
+                    AchievedSeal(size: 20)
+                    Text("Done")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white)
+                }
+                .padding(.leading, 6)
+                .padding(.trailing, 12)
+                .padding(.vertical, 6)
+                .background(Color.black.opacity(0.45), in: Capsule())
+                .padding(20)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+            }
+        }
+        .overlay(alignment: .bottomLeading) {
+            // Unsplash photos always show who took them
+            if item.type == .image, let credit = item.credit {
+                Text(credit.source == "unsplash"
+                    ? String(localized: "Photo by \(credit.name) on Unsplash")
+                    : String(localized: "Photo by \(credit.name)"))
+                    .font(.caption)
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(Color.black.opacity(0.45), in: Capsule())
+                    .padding(.leading, 20)
+                    .padding(.trailing, 96)
+                    .padding(.bottom, 32)
+            }
+        }
         .gesture(DialPress { dialActions(itemID: item.id, page: page) })
         .overlay(alignment: .bottomTrailing) {
             VStack(spacing: 18) {
                 Button {
-                    share(item)
+                    Celebrate.toggleAchieved(item, in: store)
+                } label: {
+                    Label(item.isAchieved ? String(localized: "Mark as Not Done") : String(localized: "I Did It"), systemImage: item.isAchieved ? "checkmark.seal.fill" : "checkmark.seal")
+                        .labelStyle(.iconOnly)
+                        .font(.title)
+                        .foregroundStyle(item.isAchieved ? Color.green : Color.white)
+                        .symbolEffect(.bounce, value: item.isAchieved)
+                        .frame(minWidth: 44, minHeight: 44)
+                }
+                Menu {
+                    Button("Share", systemImage: "square.and.arrow.up") { share(item, format: .original) }
+                    Button("Share as Story", systemImage: "rectangle.portrait") { share(item, format: .story) }
                 } label: {
                     Label("Share", systemImage: "square.and.arrow.up")
                         .labelStyle(.iconOnly)
@@ -160,7 +209,9 @@ struct FeedView: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(item.type == .text ? item.content : "Photo from your board")
+        .accessibilityValue(item.isAchieved ? String(localized: "Done") : "")
         .accessibilityAction(named: item.isLiked ? "Unlike" : "Like") { store.toggleLike(item.id) }
+        .accessibilityAction(named: item.isAchieved ? String(localized: "Mark as Not Done") : String(localized: "I Did It")) { Celebrate.toggleAchieved(item, in: store) }
         .accessibilityAction(named: "Share") { share(item) }
     }
 
@@ -237,11 +288,11 @@ struct FeedView: View {
         rebuild()
     }
 
-    private func share(_ item: BoardItem) {
+    private func share(_ item: BoardItem, format: ClippingShare.Format = .original) {
         guard sharing == nil else { return }
         sharing = item.id
         Task {
-            await ClippingShare.share(item)
+            await ClippingShare.share(item, format: format)
             sharing = nil
         }
     }
