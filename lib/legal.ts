@@ -62,7 +62,7 @@ export const PRIVACY: Record<Lang, LegalDoc> = {
       {
         heading: 'Optional account',
         body: [
-          'On iPhone you can sign in with Apple to back up your boards. We then store the stable user ID Apple gives us for VisionBoard, the email Apple shares (if you choose to share it, often a private relay address), and the list of your boards: each board\'s name and sync key. That list is encrypted on our servers. Signing in also turns on Sync for every board.',
+          'On iPhone you can sign in with Apple to back up your boards. We then store the stable user ID Apple gives us for VisionBoard, the email Apple shares (if you choose to share it, often a private relay address), and the list of your boards: each board\'s name and sync key. That list is encrypted on our servers. We also keep a token from Apple, encrypted, only so we can end the sign-in when you delete your account. Signing in also turns on Sync for every board.',
           'We use this only to bring your boards back on a new device. We never email you for marketing.',
           'To delete it, go to Settings > Account > Delete Account in the app. This deletes the account and the backed-up list, and can also delete the cloud copy of every board. You can also stop using Sign in with Apple for VisionBoard in your iPhone\'s Apple Account settings.',
         ],
@@ -77,13 +77,15 @@ export const PRIVACY: Record<Lang, LegalDoc> = {
       {
         heading: 'Purchases',
         body: [
-          'VisionBoard Pro is sold through the App Store. Apple processes the payment. We never see your card or billing details. The app only learns from Apple whether your subscription is active.',
+          'VisionBoard Pro is sold through the App Store. Apple processes the payment. We never see your card or billing details. The app learns from Apple whether your subscription is active, and sends Apple\'s signed proof of it to our server when you use a Pro feature that runs there.',
+          'When you start a trial or subscribe, our anonymous analytics record the plan and its price, never your payment details.',
         ],
       },
       {
         heading: 'AI board generation (optional)',
         body: [
           'If you ask the app to make a board for you, the text you type is sent to Anthropic (anthropic.com) to write short phrases for the board, and search words are sent to Unsplash (unsplash.com) to find photos. We send only that text, not your other goals or photos.',
+          'The app asks before the first time it sends anything. The photos are shown straight from Unsplash\'s servers, so Unsplash sees the request for each photo, like any website that shows an image.',
           'This feature runs only when you use it.',
         ],
       },
@@ -131,7 +133,7 @@ export const PRIVACY: Record<Lang, LegalDoc> = {
       {
         heading: 'Cuenta opcional',
         body: [
-          'En iPhone puedes iniciar sesión con Apple para respaldar tus tableros. En ese caso guardamos el ID de usuario que Apple nos da para VisionBoard, el correo que Apple comparte (si eliges compartirlo, muchas veces una dirección privada de reenvío) y la lista de tus tableros: el nombre y la clave de sincronización de cada uno. Esa lista se guarda cifrada en nuestros servidores. Al iniciar sesión también se activa la sincronización de todos tus tableros.',
+          'En iPhone puedes iniciar sesión con Apple para respaldar tus tableros. En ese caso guardamos el ID de usuario que Apple nos da para VisionBoard, el correo que Apple comparte (si eliges compartirlo, muchas veces una dirección privada de reenvío) y la lista de tus tableros: el nombre y la clave de sincronización de cada uno. Esa lista se guarda cifrada en nuestros servidores. También guardamos, cifrado, un token de Apple, solo para cerrar la sesión con Apple cuando borras tu cuenta. Al iniciar sesión también se activa la sincronización de todos tus tableros.',
           'Solo usamos esto para recuperar tus tableros en un dispositivo nuevo. Nunca te enviamos correos de marketing.',
           'Para borrarla, ve a Ajustes > Cuenta > Borrar cuenta en la app. Se borran la cuenta y la lista respaldada, y también puedes borrar la copia en la nube de cada tablero. Además puedes dejar de usar Iniciar sesión con Apple para VisionBoard en los ajustes de tu cuenta de Apple en el iPhone.',
         ],
@@ -146,13 +148,15 @@ export const PRIVACY: Record<Lang, LegalDoc> = {
       {
         heading: 'Compras',
         body: [
-          'VisionBoard Pro se vende en el App Store. Apple procesa el pago. Nunca vemos tu tarjeta ni tus datos de cobro. La app solo sabe por Apple si tu suscripción está activa.',
+          'VisionBoard Pro se vende en el App Store. Apple procesa el pago. Nunca vemos tu tarjeta ni tus datos de cobro. La app sabe por Apple si tu suscripción está activa, y envía a nuestro servidor la prueba firmada por Apple cuando usas una función Pro que funciona ahí.',
+          'Cuando empiezas una prueba o te suscribes, nuestras estadísticas anónimas registran el plan y su precio, nunca tus datos de pago.',
         ],
       },
       {
         heading: 'Tableros creados con IA (opcional)',
         body: [
           'Si le pides a la app que cree un tablero por ti, el texto que escribes se envía a Anthropic (anthropic.com) para escribir frases cortas, y las palabras de búsqueda se envían a Unsplash (unsplash.com) para encontrar fotos. Solo enviamos ese texto, no tus otras metas ni tus fotos.',
+          'La app te pregunta antes de enviar algo por primera vez. Las fotos se muestran directo desde los servidores de Unsplash, así que Unsplash ve la solicitud de cada foto, como cualquier sitio web que muestra una imagen.',
           'Esta función solo se usa cuando tú la pides.',
         ],
       },
@@ -285,6 +289,12 @@ export const SUPPORT: Record<Lang, LegalDoc> = {
         ],
       },
       {
+        heading: 'Delete my account',
+        body: [
+          'If you signed in with Apple, go to Settings > Account > Delete Account in the app. This deletes your account and its backup from our server and signs VisionBoard out of your Apple Account. You can also delete the cloud copy of every board there.',
+        ],
+      },
+      {
         heading: 'Subscriptions',
         body: [
           'Subscriptions are billed by Apple. To cancel or ask for a refund, go to your iPhone Settings > your Apple ID > Subscriptions, or reportaproblem.apple.com.',
@@ -312,6 +322,12 @@ export const SUPPORT: Record<Lang, LegalDoc> = {
         heading: 'Borrar mis datos',
         body: [
           'Usa Eliminar copia en la nube, en Sincronización, para quitar un tablero y sus fotos de nuestros servidores. Al borrar la app se borra todo lo del dispositivo. Más detalles en la Política de privacidad.',
+        ],
+      },
+      {
+        heading: 'Borrar mi cuenta',
+        body: [
+          'Si iniciaste sesión con Apple, ve a Ajustes > Cuenta > Borrar cuenta en la app. Se borran tu cuenta y su respaldo de nuestro servidor, y VisionBoard se desconecta de tu cuenta de Apple. Ahí también puedes borrar la copia en la nube de cada tablero.',
         ],
       },
       {
