@@ -103,9 +103,15 @@ struct DailyCard: Equatable, Hashable {
         }
         let images: [String]
         if imageItems.contains(where: \.isAchieved) {
-            images = (0..<10).flatMap { round in
-                imageItems.filter { !$0.isAchieved || (round % 3 == 0 && round < 9) }.map(\.content)
+            // Done photos join rounds 0, 3 and 6 only: 3 in 10.
+            var rotation: [String] = []
+            for round in 0..<10 {
+                let includeDone: Bool = round % 3 == 0 && round < 9
+                for item in imageItems where includeDone || !item.isAchieved {
+                    rotation.append(item.content)
+                }
             }
+            images = rotation
         } else {
             images = imageItems.map(\.content)
         }
