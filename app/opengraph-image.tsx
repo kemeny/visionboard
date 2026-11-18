@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og'
 
 export const runtime = 'edge'
-export const alt = 'Vision Board — See your goals. Build your life.'
+export const alt = 'VisionBoard: your 2027 vision board, every day'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
@@ -48,16 +48,16 @@ export default async function Image() {
         {/* Center content */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, zIndex: 1 }}>
           <span style={{ fontSize: 72, fontWeight: 900, color: '#1a1a1a', letterSpacing: '-0.03em', textTransform: 'uppercase' as const, lineHeight: 1 }}>
-            Vision Board
+            VisionBoard
           </span>
           <span style={{ fontSize: 24, color: '#6b7280', fontWeight: 400 }}>
-            See your goals. Build your life.
+            Your 2027 vision board, every day
           </span>
         </div>
 
         {/* Footer */}
         <div style={{ position: 'absolute', bottom: 30, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 14, color: '#9ca3af' }}>kemenystudio.com</span>
+          <span style={{ fontSize: 14, color: '#9ca3af' }}>visionboard.kemenystudio.com · Free on web and iPhone</span>
         </div>
       </div>
     ),
