@@ -1,11 +1,14 @@
 // "Tell me about your 2027": turns a few sentences into board clippings.
 // Claude writes short first-person goals, each with an English photo search;
 // Unsplash finds one portrait photo per goal. Only the iOS app calls this.
+// Photo search (/ai/photos) lets people search Unsplash from the board's add
+// menu on iOS and the web. It needs only UNSPLASH_ACCESS_KEY and is free.
 //
 // Secrets (set with `wrangler secret put`, never in wrangler.jsonc):
 //   ANTHROPIC_API_KEY    Claude Messages API
 //   UNSPLASH_ACCESS_KEY  Unsplash API access key ("Client-ID")
-// Without either one the routes answer 503 {error: "ai_unavailable"}.
+// Without either one /ai/board answers 503 {error: "ai_unavailable"}; photo
+// search and download pings only need the Unsplash key.
 //
 // Create with AI is a Pro feature: /ai/board needs the app's signed App Store
 // transaction for an active plan in X-VB-Pro (see storekit.ts), and answers
@@ -42,20 +45,26 @@ const MODEL = 'claude-haiku-5-5'
 const ANTHROPIC_VERSION = '2026-10-21'
 
 // Per caller and overall, per clock hour. The overall caps bound cost even if
-// someone rotates addresses, and keep Unsplash under its hourly quota: half of
-// it for searches (one per clipping, so a board can use up to MAX_ITEMS) and
-// half for download pings.
+// someone rotates addresses, and keep Unsplash under its hourly quota: 40% for
+// AI boards (one search per clipping, so a board can use up to MAX_ITEMS), 20%
+// for photo search from the add menu, and 40% for download pings.
 const BOARD_LIMIT_PER_IP = 10
+const SEARCH_LIMIT_PER_IP = 60
 const DOWNLOAD_LIMIT_PER_IP = 120
 const DEFAULT_UNSPLASH_QUOTA = 5000
 
 export function globalLimits(env: Pick<AIEnv, 'UNSPLASH_HOURLY_QUOTA'>) {
   const quota = Number(env.UNSPLASH_HOURLY_QUOTA) > 0 ? Number(env.UNSPLASH_HOURLY_QUOTA) : DEFAULT_UNSPLASH_QUOTA
   return {
-    boards: Math.max(1, Math.floor(quota / 2 / MAX_ITEMS)),
-    downloads: Math.max(1, Math.floor(quota / 2)),
+    boards: Math.max(1, Math.floor((quota * 0.4) / MAX_ITEMS)),
+    searches: Math.max(1, Math.floor(quota * 0.2)),
+    downloads: Math.max(1, Math.floor(quota * 0.4)),
   }
 }
+
+export const MAX_SEARCH_CHARS = 80
+const SEARCH_PAGE_SIZE = 24
+const MAX_SEARCH_PAGE = 10
 
 const UTM = 'utm_source=visionboard&utm_medium=referral'
 
@@ -250,9 +259,65 @@ async function askClaude(env: AIEnv, prompt: string, lang: 'en' | 'es', count: n
 // MARK: Unsplash
 
 interface UnsplashPhoto {
-  urls?: { regular?: string }
+  width?: number
+  height?: number
+  alt_description?: string | null
+  urls?: { regular?: string; small?: string }
   user?: { name?: string; links?: { html?: string } }
   links?: { download_location?: string }
+}
+
+export interface SearchPhoto {
+  imageUrl: string
+  thumbUrl: string
+  width: number
+  height: number
+  alt: string | null
+  photographer: string | null
+  photographerUrl: string | null
+  unsplashDownloadUrl: string | null
+}
+
+// Keeps only photos with https addresses on Unsplash's CDN and a real size
+export function toSearchPhotos(results: UnsplashPhoto[] | undefined): SearchPhoto[] {
+  const photos: SearchPhoto[] = []
+  for (const photo of results || []) {
+    const imageUrl = photo.urls?.regular
+    const thumbUrl = photo.urls?.small || imageUrl
+    if (!imageUrl?.startsWith('https://images.unsplash.com/') || !thumbUrl?.startsWith('https://images.unsplash.com/')) continue
+    if (!(Number(photo.width) > 0) || !(Number(photo.height) > 0)) continue
+    const profile = photo.user?.links?.html
+    photos.push({
+      imageUrl,
+      thumbUrl,
+      width: Number(photo.width),
+      height: Number(photo.height),
+      alt: photo.alt_description?.trim() || null,
+      photographer: photo.user?.name?.trim() || null,
+      photographerUrl: profile?.startsWith('https://') ? withUTM(profile) : null,
+      unsplashDownloadUrl: photo.links?.download_location || null,
+    })
+  }
+  return photos
+}
+
+async function searchPhotos(env: AIEnv, query: string, page: number) {
+  const params = new URLSearchParams({
+    query,
+    page: String(page),
+    per_page: String(SEARCH_PAGE_SIZE),
+    content_filter: 'high',
+  })
+  const response = await fetch(`https://api.unsplash.com/search/photos?${params}`, {
+    headers: { Authorization: `Client-ID ${env.UNSPLASH_ACCESS_KEY}`, 'Accept-Version': 'v1' },
+  })
+  if (!response.ok) {
+    console.error('unsplash photo search', response.status)
+    throw new AIError('search_failed', 502)
+  }
+  const data = await response.json<{ results?: UnsplashPhoto[]; total_pages?: number }>()
+  const totalPages = Math.min(Number(data.total_pages) || 0, MAX_SEARCH_PAGE)
+  return { photos: toSearchPhotos(data.results), hasMore: page < totalPages }
 }
 
 function withUTM(url: string): string {
@@ -289,13 +354,17 @@ async function findPhoto(env: AIEnv, query: string): Promise<Omit<AIItem, 'text'
 
 // MARK: Routes
 
-const configured = (env: AIEnv) => Boolean(env.ANTHROPIC_API_KEY && env.UNSPLASH_ACCESS_KEY)
+const AI_PATHS = ['/ai/board', '/ai/photos', '/ai/unsplash-download']
 
 export async function handleAI(request: Request, env: AIEnv, path: string): Promise<Response | null> {
-  if (path !== '/ai/board' && path !== '/ai/unsplash-download') return null
+  if (!AI_PATHS.includes(path)) return null
   if (request.method !== 'POST') return fail('method_not_allowed', 405)
-  if (request.headers.get('X-VB-Client') !== 'ios') return fail('client_not_allowed', 403)
-  if (!configured(env)) return fail('ai_unavailable', 503)
+  // Create with AI is iOS only; photo search and its download pings also
+  // come from the web board
+  const client = request.headers.get('X-VB-Client')
+  if (client !== 'ios' && (path === '/ai/board' || client !== 'web')) return fail('client_not_allowed', 403)
+  const ready = path === '/ai/board' ? Boolean(env.ANTHROPIC_API_KEY && env.UNSPLASH_ACCESS_KEY) : Boolean(env.UNSPLASH_ACCESS_KEY)
+  if (!ready) return fail('ai_unavailable', 503)
 
   let body: Record<string, unknown>
   try {
@@ -319,6 +388,23 @@ export async function handleAI(request: Request, env: AIEnv, path: string): Prom
       headers: { Authorization: `Client-ID ${env.UNSPLASH_ACCESS_KEY}`, 'Accept-Version': 'v1' },
     })
     return json({ ok: response.ok }, response.ok ? 200 : 502)
+  }
+
+  if (path === '/ai/photos') {
+    const query = typeof body.query === 'string' ? body.query.trim().replace(/\s+/g, ' ') : ''
+    if (!query || query.length > MAX_SEARCH_CHARS) return fail('invalid_query', 400)
+    const page = body.page === undefined ? 1 : Number(body.page)
+    if (!Number.isInteger(page) || page < 1 || page > MAX_SEARCH_PAGE) return fail('invalid_page', 400)
+    if (await overLimit(env, request, 'search', SEARCH_LIMIT_PER_IP, globalLimits(env).searches)) {
+      return fail('rate_limited', 429)
+    }
+    try {
+      return json(await searchPhotos(env, query, page))
+    } catch (e) {
+      if (e instanceof AIError) return fail(e.reason, e.status)
+      console.error('photo search failed', e)
+      return fail('search_failed', 502)
+    }
   }
 
   const prompt = typeof body.prompt === 'string' ? body.prompt.trim() : ''

@@ -1,7 +1,7 @@
 // Checks the AI board's output validation and its guard rails, without
 // calling Claude or Unsplash.
 import assert from 'node:assert/strict'
-import { AIError, clientIP, globalLimits, handleAI, parseDrafts } from '../src/ai.ts'
+import { AIError, clientIP, globalLimits, handleAI, parseDrafts, toSearchPhotos } from '../src/ai.ts'
 
 const item = (text: string, photo_query = 'mountain lake sunrise') => ({ text, photo_query })
 const six = Array.from({ length: 6 }, (_, i) => item(`I hike a new trail number ${i + 1}`))
@@ -56,7 +56,31 @@ assert.equal(
 assert.equal(clientIP(headers({ 'CF-Connecting-IP': '1.1.1.1', 'X-Forwarded-For': '9.9.9.9', 'X-VB-Proxy': 'wrong!' }), 'secret'), '1.1.1.1')
 
 // Global caps follow the Unsplash quota: a board can make up to 9 searches
-assert.deepEqual(globalLimits({}), { boards: 277, downloads: 2500 })
-assert.deepEqual(globalLimits({ UNSPLASH_HOURLY_QUOTA: '50' }), { boards: 2, downloads: 25 })
+assert.deepEqual(globalLimits({}), { boards: 222, searches: 1000, downloads: 2000 })
+assert.deepEqual(globalLimits({ UNSPLASH_HOURLY_QUOTA: '50' }), { boards: 2, searches: 10, downloads: 20 })
+
+// Photo search: web and iOS may search, only the Unsplash key is needed
+const search = (headers: Record<string, string>, body: unknown = { query: 'beach house' }) =>
+  new Request('https://x/api/sync/ai/photos', { method: 'POST', headers, body: JSON.stringify(body) })
+assert.equal((await handleAI(search({}), env, '/ai/photos'))!.status, 403)
+assert.equal((await handleAI(search({ 'X-VB-Client': 'web' }), env, '/ai/photos'))!.status, 503)
+const unsplashOnly = { DB: undefined as unknown as D1Database, UNSPLASH_ACCESS_KEY: 'u' }
+assert.equal((await handleAI(search({ 'X-VB-Client': 'web' }, { query: '  ' }), unsplashOnly, '/ai/photos'))!.status, 400)
+assert.equal((await handleAI(search({ 'X-VB-Client': 'ios' }, { query: 'x'.repeat(81) }), unsplashOnly, '/ai/photos'))!.status, 400)
+assert.equal((await handleAI(search({ 'X-VB-Client': 'web' }, { query: 'sea', page: 11 }), unsplashOnly, '/ai/photos'))!.status, 400)
+// The web still can't make AI boards
+assert.equal((await handleAI(new Request('https://x/', { method: 'POST', headers: { 'X-VB-Client': 'web' }, body: '{}' }), configuredEnv, '/ai/board'))!.status, 403)
+
+// Search results keep only Unsplash CDN photos with a size
+const cdn = 'https://images.unsplash.com/photo-1'
+const photos = toSearchPhotos([
+  { width: 4000, height: 6000, urls: { regular: cdn, small: cdn + '?w=400' }, user: { name: ' Ana ', links: { html: 'https://unsplash.com/@ana' } }, links: { download_location: 'https://api.unsplash.com/photos/a/download' } },
+  { width: 10, height: 10, urls: { regular: 'https://evil.example/x.jpg' } },
+  { urls: { regular: cdn } },
+])
+assert.equal(photos.length, 1)
+assert.equal(photos[0].photographer, 'Ana')
+assert.equal(photos[0].photographerUrl, 'https://unsplash.com/@ana?utm_source=visionboard&utm_medium=referral')
+assert.equal(photos[0].thumbUrl, cdn + '?w=400')
 
 console.log('ai ok')

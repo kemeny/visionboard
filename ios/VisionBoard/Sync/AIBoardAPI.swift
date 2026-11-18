@@ -63,6 +63,48 @@ enum AIBoardAPI {
         }
     }
 
+    // MARK: Photo search
+
+    // One Unsplash result for Search Photos in the board's add menu
+    struct Photo: Identifiable, Hashable, Decodable {
+        let imageUrl: String
+        let thumbUrl: String
+        let width: Double
+        let height: Double
+        let alt: String?
+        let photographer: String?
+        let photographerUrl: String?
+        let unsplashDownloadUrl: String?
+
+        var id: String { imageUrl }
+        var aspect: Double { width / max(height, 1) }
+
+        var credit: BoardItem.Credit? {
+            guard let photographer, !photographer.isEmpty else { return nil }
+            return BoardItem.Credit(name: photographer, url: photographerUrl, source: "unsplash")
+        }
+    }
+
+    static let maxSearchLength = 80
+
+    // Free for everyone: no Pro proof. 24 photos a page, up to 10 pages.
+    static func searchPhotos(_ query: String, page: Int = 1) async throws -> (photos: [Photo], hasMore: Bool) {
+        struct Response: Decodable {
+            let photos: [Photo]
+            let hasMore: Bool?
+        }
+        let body: [String: Any] = ["query": String(query.prefix(maxSearchLength)), "page": page]
+        let data = try await post("/ai/photos", body: body, timeout: 20)
+        guard let response = try? JSONDecoder().decode(Response.self, from: data) else {
+            throw Failure(reason: "bad_response")
+        }
+        // Only hotlink Unsplash's own CDN
+        let photos = response.photos.filter {
+            ImageStore.isUnsplash($0.imageUrl) && ImageStore.isUnsplash($0.thumbUrl) && $0.width > 0 && $0.height > 0
+        }
+        return (photos, response.hasMore ?? false)
+    }
+
     // Unsplash asks apps to report each photo they actually use. Best effort.
     static func reportDownload(_ url: String) async {
         _ = try? await post("/ai/unsplash-download", body: ["url": url], timeout: 20)

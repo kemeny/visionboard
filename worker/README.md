@@ -9,6 +9,8 @@ reminder notifications. The free tier covers it comfortably.
   and clears expired AI rate-limit counters
 - **AI board** (`src/ai.ts`): `POST /api/sync/ai/board` turns "tell me about your
   2027" into 6 to 9 goals with Unsplash photos, for the iOS app
+- **Photo search** (`src/ai.ts`): `POST /api/sync/ai/photos` searches Unsplash for the
+  board's "Search Photos", on iOS and the web
 - **Accounts** (optional, Sign in with Apple from the iOS app): back up the list of a person's boards so a new device can reconnect them
 
 ## AI board
@@ -93,6 +95,18 @@ rejects, so set them before submitting the app.
 only if the app's bundle id changes. Without `ACCOUNT_SECRET` the account
 routes answer 503 and everything else works as before.
 
+## Photo search
+
+`POST /api/sync/ai/photos` with header `X-VB-Client: ios` or `web` and body
+`{"query": "beach house", "page": 1}` (query up to 80 characters, page 1 to 10).
+Returns 24 photos a page:
+`{"photos": [{"imageUrl", "thumbUrl", "width", "height", "alt", "photographer", "photographerUrl", "unsplashDownloadUrl"}], "hasMore": true}`.
+It needs only `UNSPLASH_ACCESS_KEY` and no Pro plan. Limits: 60 searches per
+caller per hour. Clients hotlink the photo, keep the photographer's credit on
+the clipping, and call `/ai/unsplash-download` for each photo they add (the web
+may call that route too). Errors: `client_not_allowed`, `ai_unavailable` (no
+Unsplash key), `invalid_query`, `invalid_page`, `rate_limited`, `search_failed`.
+
 ## Create with AI: Pro check and limits
 
 `POST /api/sync/ai/board` needs the app's signed App Store transaction for an
@@ -103,8 +117,8 @@ testing with Xcode's StoreKit configuration file, whose transactions aren't
 signed by Apple. TestFlight and App Store purchases are.
 
 Rate limits are per address and overall, per clock hour. The overall caps
-follow the Unsplash quota (`UNSPLASH_HOURLY_QUOTA`, default 5000): half for
-photo searches (up to 9 per board) and half for download pings. Set it to 50
+follow the Unsplash quota (`UNSPLASH_HOURLY_QUOTA`, default 5000): 40% for AI
+boards (up to 9 searches each), 20% for photo search and 40% for download pings. Set it to 50
 while the Unsplash app is still in demo mode.
 
 The address comes from `X-Forwarded-For`, which only the web app's proxy may

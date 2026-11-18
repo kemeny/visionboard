@@ -82,11 +82,12 @@ export const PRIVACY: Record<Lang, LegalDoc> = {
         ],
       },
       {
-        heading: 'AI board generation (optional)',
+        heading: 'AI boards and photo search (optional)',
         body: [
           'If you ask the app to make a board for you, the text you type is sent to Anthropic (anthropic.com) to write short phrases for the board, and search words are sent to Unsplash (unsplash.com) to find photos. We send only that text, not your other goals or photos.',
-          'The app asks before the first time it sends anything. The photos are shown straight from Unsplash\'s servers, so Unsplash sees the request for each photo, like any website that shows an image.',
-          'This feature runs only when you use it.',
+          'If you use Search photos, the words you type are sent to Unsplash to find photos. Nothing else from your board is sent.',
+          'For AI boards, the app asks before the first time it sends anything. The photos are shown straight from Unsplash\'s servers, so Unsplash sees the request for each photo, like any website that shows an image.',
+          'These features run only when you use them.',
         ],
       },
       {
@@ -153,11 +154,12 @@ export const PRIVACY: Record<Lang, LegalDoc> = {
         ],
       },
       {
-        heading: 'Tableros creados con IA (opcional)',
+        heading: 'Tableros con IA y búsqueda de fotos (opcional)',
         body: [
           'Si le pides a la app que cree un tablero por ti, el texto que escribes se envía a Anthropic (anthropic.com) para escribir frases cortas, y las palabras de búsqueda se envían a Unsplash (unsplash.com) para encontrar fotos. Solo enviamos ese texto, no tus otras metas ni tus fotos.',
-          'La app te pregunta antes de enviar algo por primera vez. Las fotos se muestran directo desde los servidores de Unsplash, así que Unsplash ve la solicitud de cada foto, como cualquier sitio web que muestra una imagen.',
-          'Esta función solo se usa cuando tú la pides.',
+          'Si usas Buscar fotos, las palabras que escribes se envían a Unsplash para encontrar fotos. No se envía nada más de tu tablero.',
+          'Para los tableros con IA, la app te pregunta antes de enviar algo por primera vez. Las fotos se muestran directo desde los servidores de Unsplash, así que Unsplash ve la solicitud de cada foto, como cualquier sitio web que muestra una imagen.',
+          'Estas funciones solo se usan cuando tú las pides.',
         ],
       },
       {
