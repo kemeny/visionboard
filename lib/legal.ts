@@ -49,7 +49,7 @@ export const PRIVACY: Record<Lang, LegalDoc> = {
   en: {
     title: 'Privacy Policy',
     intro:
-      'VisionBoard is made by Kemeny Studio. This policy explains what the iPhone app and the web app at visionboard.kemenystudio.com collect, why, and how you can control it. There is no account and no sign up.',
+      'VisionBoard is made by Kemeny Studio. This policy explains what the iPhone app and the web app at visionboard.kemenystudio.com collect, why, and how you can control it. You can use it without an account. Signing in is optional.',
     sections: [
       {
         heading: 'Your board',
@@ -67,6 +67,26 @@ export const PRIVACY: Record<Lang, LegalDoc> = {
         ],
       },
       {
+        heading: 'Sign in with Apple (optional)',
+        body: [
+          'On iPhone you can sign in with Apple to back up your boards and get them back on a new phone. If you do, we store your Apple account ID (a random identifier Apple gives us), your email address only if you choose to share it, and an encrypted list of your board sync keys so we can restore your boards.',
+          'You can sign out at any time. To delete this account data, use Delete Account in the app\'s Settings. This removes the Apple account ID, email and key list from our servers.',
+        ],
+      },
+      {
+        heading: 'Purchases',
+        body: [
+          'VisionBoard Pro is sold through the App Store. Apple processes the payment. We never see your card or billing details. The app only learns from Apple whether your subscription is active.',
+        ],
+      },
+      {
+        heading: 'AI board generation (optional)',
+        body: [
+          'If you ask the app to make a board for you, the text you type is sent to Anthropic (anthropic.com) to write short phrases for the board, and search words are sent to Unsplash (unsplash.com) to find photos. We send only that text, not your other goals or photos.',
+          'This feature runs only when you use it.',
+        ],
+      },
+      {
         heading: 'Anonymous usage analytics',
         body: [
           'We use PostHog (posthog.com) to understand which features people use. It receives an anonymous random ID made on your device, the taps and counts of what you do (for example "a photo was added" or "the board has 12 items"), the app version, the OS version and your language setting.',
@@ -78,7 +98,7 @@ export const PRIVACY: Record<Lang, LegalDoc> = {
         heading: 'Deleting your data',
         body: [
           'To delete the cloud copy of a board and its photos, open Sync (Settings on iPhone) and choose Delete Cloud Copy. This removes it for every device. The board stays on the device you used.',
-          'Deleting the app or clearing your browser data removes everything stored on that device. You can also email us to delete any data tied to a sync key.',
+          'If you signed in with Apple, Delete Account in Settings removes your account data. Deleting the app or clearing your browser data removes everything stored on that device. You can also email us to delete any data tied to a sync key or account.',
         ],
       },
       {
@@ -97,7 +117,7 @@ export const PRIVACY: Record<Lang, LegalDoc> = {
   es: {
     title: 'Política de privacidad',
     intro:
-      'VisionBoard es un producto de Kemeny Studio. Esta política explica qué datos recogen la app de iPhone y la app web en visionboard.kemenystudio.com, para qué, y cómo puedes controlarlos. No hay cuentas ni registro.',
+      'VisionBoard es un producto de Kemeny Studio. Esta política explica qué datos recogen la app de iPhone y la app web en visionboard.kemenystudio.com, para qué, y cómo puedes controlarlos. Puedes usarla sin cuenta. Iniciar sesión es opcional.',
     sections: [
       {
         heading: 'Tu tablero',
@@ -115,6 +135,26 @@ export const PRIVACY: Record<Lang, LegalDoc> = {
         ],
       },
       {
+        heading: 'Iniciar sesión con Apple (opcional)',
+        body: [
+          'En iPhone puedes iniciar sesión con Apple para respaldar tus tableros y recuperarlos en un teléfono nuevo. Si lo haces, guardamos tu ID de cuenta de Apple (un identificador aleatorio que nos da Apple), tu correo solo si eliges compartirlo, y una lista cifrada de las claves de sincronización de tus tableros para poder restaurarlos.',
+          'Puedes cerrar sesión cuando quieras. Para borrar estos datos, usa Eliminar cuenta en los Ajustes de la app. Así se borran de nuestros servidores el ID de Apple, el correo y la lista de claves.',
+        ],
+      },
+      {
+        heading: 'Compras',
+        body: [
+          'VisionBoard Pro se vende en el App Store. Apple procesa el pago. Nunca vemos tu tarjeta ni tus datos de cobro. La app solo sabe por Apple si tu suscripción está activa.',
+        ],
+      },
+      {
+        heading: 'Tableros creados con IA (opcional)',
+        body: [
+          'Si le pides a la app que cree un tablero por ti, el texto que escribes se envía a Anthropic (anthropic.com) para escribir frases cortas, y las palabras de búsqueda se envían a Unsplash (unsplash.com) para encontrar fotos. Solo enviamos ese texto, no tus otras metas ni tus fotos.',
+          'Esta función solo se usa cuando tú la pides.',
+        ],
+      },
+      {
         heading: 'Uso anónimo',
         body: [
           'Usamos PostHog (posthog.com) para entender qué funciones se usan. Recibe un ID anónimo y aleatorio creado en tu dispositivo, los toques y conteos de lo que haces (por ejemplo "se agregó una foto" o "el tablero tiene 12 elementos"), la versión de la app, la versión del sistema y tu idioma.',
@@ -126,7 +166,7 @@ export const PRIVACY: Record<Lang, LegalDoc> = {
         heading: 'Borrar tus datos',
         body: [
           'Para borrar la copia en la nube de un tablero y sus fotos, abre Sincronización (en Ajustes, en iPhone) y elige Eliminar copia en la nube. Se borra para todos los dispositivos. El tablero se queda en el dispositivo que usaste.',
-          'Al borrar la app o los datos de tu navegador se borra todo lo guardado en ese dispositivo. También puedes escribirnos para borrar cualquier dato ligado a una clave.',
+          'Si iniciaste sesión con Apple, Eliminar cuenta en Ajustes borra los datos de tu cuenta. Al borrar la app o los datos de tu navegador se borra todo lo guardado en ese dispositivo. También puedes escribirnos para borrar cualquier dato ligado a una clave o a una cuenta.',
         ],
       },
       {
