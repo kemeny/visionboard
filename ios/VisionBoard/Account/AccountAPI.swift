@@ -20,8 +20,10 @@ enum AccountAPI {
         let email: String?
     }
 
-    static func signIn(identityToken: String) async throws -> SignInResponse {
-        let body = try JSONEncoder().encode(["identityToken": identityToken])
+    static func signIn(identityToken: String, nonce: String, authorizationCode: String?) async throws -> SignInResponse {
+        var fields = ["identityToken": identityToken, "nonce": nonce]
+        if let authorizationCode { fields["authorizationCode"] = authorizationCode }
+        let body = try JSONEncoder().encode(fields)
         return try await request("/account/signin", session: nil, method: "POST", body: body)
     }
 

@@ -26,8 +26,15 @@ final class AccountService {
     @ObservationIgnored private let library: BoardLibrary
     @ObservationIgnored private let sync: SyncService
     @ObservationIgnored private let store: BoardStore
+    // The delay before a backup. Cancelling it only stops the wait.
     @ObservationIgnored private var backupTask: Task<Void, Never>?
+    // The upload talking to the server. Uploads run one after another and
+    // are never cancelled, so a quick second change can't cut one off.
+    @ObservationIgnored private var uploadTask: Task<Void, Never>?
     @ObservationIgnored private var revokedObserver: NSObjectProtocol?
+    // The random string whose SHA-256 went into the current Apple request.
+    // The Worker checks the identity token carries it, so a token can't be replayed.
+    @ObservationIgnored private var rawNonce: String?
 
     // Hashes of the sync keys this device had at its last backup. A key that
     // was here and is gone was removed on purpose, so it leaves the backup; a
@@ -58,6 +65,13 @@ final class AccountService {
 
     // MARK: Sign in
 
+    // For the Sign in with Apple request: a fresh nonce, hashed
+    func prepareNonce() -> String {
+        let raw = (0..<32).map { _ in String(format: "%02x", UInt8.random(in: 0...255)) }.joined()
+        rawNonce = raw
+        return Self.hash(raw)
+    }
+
     func handle(_ result: Result<ASAuthorization, Error>) async {
         switch result {
         case .failure(let error):
@@ -66,22 +80,27 @@ final class AccountService {
         case .success(let authorization):
             guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
                   let tokenData = credential.identityToken,
-                  let identityToken = String(data: tokenData, encoding: .utf8)
+                  let identityToken = String(data: tokenData, encoding: .utf8),
+                  let nonce = rawNonce
             else {
                 errorMessage = String(localized: "Sign in with Apple didn't finish. Try again.")
                 return
             }
-            await signIn(identityToken: identityToken, userID: credential.user, email: credential.email)
+            rawNonce = nil
+            // One-time code the Worker trades for a token it can revoke when
+            // the account is deleted
+            let code = credential.authorizationCode.flatMap { String(data: $0, encoding: .utf8) }
+            await signIn(identityToken: identityToken, nonce: nonce, authorizationCode: code, userID: credential.user, email: credential.email)
         }
     }
 
-    private func signIn(identityToken: String, userID: String, email: String?) async {
+    private func signIn(identityToken: String, nonce: String, authorizationCode: String?, userID: String, email: String?) async {
         busy = true
         errorMessage = nil
         notice = nil
         defer { busy = false }
         do {
-            let response = try await AccountAPI.signIn(identityToken: identityToken)
+            let response = try await AccountAPI.signIn(identityToken: identityToken, nonce: nonce, authorizationCode: authorizationCode)
             let newSession = AccountSession(token: response.sessionToken, userID: userID, email: response.email ?? email)
             AccountSession.save(newSession)
             session = newSession
@@ -121,6 +140,9 @@ final class AccountService {
         let remote: [AccountAPI.BackupBoard]
         do {
             remote = try await AccountAPI.fetchBackup(session: token).boards
+        } catch let failure as SyncAPI.Failure where failure.status == 409 {
+            // The server can't read the old backup; the next upload replaces it
+            return 0
         } catch {
             handleFailure(error)
             return 0
@@ -135,21 +157,21 @@ final class AccountService {
         for entry in missing where !localKeys.contains(entry.syncKey) {
             if looksFresh {
                 // The empty board on a new iPhone becomes the first restored board
-                do {
-                    try await sync.connect(entry.syncKey)
+                // `connect` joins nothing and returns false when another
+                // board opened while it loaded
+                if (try? await sync.connect(entry.syncKey)) == true {
                     library.rename(library.currentID, to: entry.name)
                     restored += 1
                     localKeys.insert(entry.syncKey)
-                } catch {
+                } else {
                     failed += 1
                 }
             } else {
                 let created = await library.create(named: entry.name)
-                do {
-                    try await sync.connect(entry.syncKey)
+                if (try? await sync.connect(entry.syncKey)) == true {
                     restored += 1
                     localKeys.insert(entry.syncKey)
-                } catch {
+                } else {
                     await library.delete(created.id)
                     failed += 1
                 }
@@ -195,7 +217,7 @@ final class AccountService {
             if board.id == library.currentID {
                 if !sync.isOn { await sync.enable() }
             } else if KeyStore.read(board: board.id) == nil {
-                await SyncService.enableStored(board: board.id)
+                await SyncService.enableStored(board: board.id, store: store)
             }
         }
     }
@@ -207,7 +229,17 @@ final class AccountService {
         backupTask = Task {
             try? await Task.sleep(for: Self.backupDelay)
             guard !Task.isCancelled else { return }
-            try? await uploadBackup()
+            queueUpload()
+        }
+    }
+
+    // Runs an upload after the one in flight, in a task of its own so
+    // cancelling the delay never cancels a request already sent
+    private func queueUpload() {
+        let previous = uploadTask
+        uploadTask = Task { [weak self] in
+            await previous?.value
+            try? await self?.uploadBackup()
         }
     }
 
@@ -233,8 +265,14 @@ final class AccountService {
         let localHashes = Set(list.map { Self.hash($0.syncKey) })
         let known = Set(UserDefaults.standard.stringArray(forKey: Self.knownKeysDefaultsKey) ?? [])
         do {
-            // Keep boards that other devices backed up and this one never had
-            let remote = try await AccountAPI.fetchBackup(session: token).boards
+            // Keep boards that other devices backed up and this one never had.
+            // An unreadable backup (409) is simply replaced.
+            let remote: [AccountAPI.BackupBoard]
+            do {
+                remote = try await AccountAPI.fetchBackup(session: token).boards
+            } catch let failure as SyncAPI.Failure where failure.status == 409 {
+                remote = []
+            }
             for entry in remote {
                 let hashed = Self.hash(entry.syncKey)
                 if !localHashes.contains(hashed), !known.contains(hashed), !list.contains(where: { $0.syncKey == entry.syncKey }) {
@@ -243,6 +281,8 @@ final class AccountService {
             }
             try await AccountAPI.uploadBackup(list, session: token)
         } catch {
+            // A cancelled request is not a problem worth showing
+            if error is CancellationError || (error as? URLError)?.code == .cancelled { throw error }
             handleFailure(error)
             throw error
         }
@@ -283,6 +323,9 @@ final class AccountService {
             if let failure = error as? SyncAPI.Failure, failure.status == 401 {
                 signOut()
                 errorMessage = String(localized: "Your sign-in expired. Sign in again, then delete your account.")
+            } else if let failure = error as? SyncAPI.Failure, failure.status == 502 {
+                // Apple couldn't be reached to revoke the sign-in; nothing was deleted
+                errorMessage = String(localized: "Couldn't reach Apple to finish deleting your account. Try again in a moment.")
             } else {
                 errorMessage = Self.describe(error)
             }

@@ -38,7 +38,10 @@ struct AccountSection: View {
         return Section {
             SignInWithAppleButton(
                 fresh ? .continue : .signIn,
-                onRequest: { request in request.requestedScopes = [.email] },
+                onRequest: { request in
+                    request.requestedScopes = [.email]
+                    request.nonce = account.prepareNonce()
+                },
                 onCompletion: { result in Task { await account.handle(result) } }
             )
             .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
