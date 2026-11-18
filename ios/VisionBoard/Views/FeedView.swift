@@ -2,8 +2,10 @@ import SwiftUI
 
 // A full-screen, endless feed of the board's clippings, one per page.
 // Double-tap to like; likes sync with the board. Share sends one to friends.
+// Press and hold for the action dial: Share, Like, Show on Board, Hide.
 struct FeedView: View {
     @Environment(BoardStore.self) private var store
+    @Environment(AppRouter.self) private var router
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     enum Filter: String, CaseIterable, Identifiable {
@@ -23,6 +25,9 @@ struct FeedView: View {
     @State private var shownAt = Date()
     @State private var burst: Int?
     @State private var sharing: String?
+    @State private var hidden: Set<String> = []
+    // The last clipping hidden, while its Undo shows
+    @State private var justHidden: String?
 
     // Under this, a glance doesn't count as a view
     private static let minViewSeconds = 0.6
@@ -30,7 +35,7 @@ struct FeedView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if pages.isEmpty {
+                if visiblePages.isEmpty {
                     ContentUnavailableView(
                         filter == .liked ? "No Likes Yet" : "Nothing to Show",
                         systemImage: filter == .liked ? "heart" : "rectangle.stack",
@@ -55,6 +60,16 @@ struct FeedView: View {
                     .pickerStyle(.segmented)
                     .fixedSize()
                 }
+                if !hidden.isEmpty && filter == .forYou {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Menu("More", systemImage: "ellipsis") {
+                            Button("Show Hidden Clippings", systemImage: "eye") { unhideAll() }
+                        }
+                    }
+                }
+            }
+            .overlay(alignment: .top) {
+                if justHidden != nil { undoHideBar }
             }
         }
         .onAppear(perform: rebuild)
@@ -65,7 +80,7 @@ struct FeedView: View {
     private var feed: some View {
         ScrollView(.vertical) {
             LazyVStack(spacing: 0) {
-                ForEach(pages) { page in
+                ForEach(visiblePages) { page in
                     if let item = store.item(page.itemID) {
                         card(item, page: page.id)
                             .containerRelativeFrame([.horizontal, .vertical])
@@ -75,13 +90,14 @@ struct FeedView: View {
             .scrollTargetLayout()
         }
         .scrollTargetBehavior(.paging)
+        .scrollDisabled(ActionDial.shared.isShown)
         .scrollPosition(id: $position)
         .scrollIndicators(.hidden)
         .onChange(of: position) { old, new in
             logView(old)
             shownAt = Date()
             // Endless: queue another round before the end comes into view
-            if let new, new >= pages.count - 3 {
+            if let new, new >= (pages.last?.id ?? 0) - 3 {
                 appendRound(avoid: pages.suffix(3).map(\.itemID))
             }
         }
@@ -114,6 +130,7 @@ struct FeedView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .contentShape(Rectangle())
         .onTapGesture(count: 2) { like(item, page: page) }
+        .gesture(DialPress { dialActions(itemID: item.id, page: page) })
         .overlay(alignment: .bottomTrailing) {
             VStack(spacing: 18) {
                 Button {
@@ -147,6 +164,79 @@ struct FeedView: View {
         .accessibilityAction(named: "Share") { share(item) }
     }
 
+    private var visiblePages: [Page] {
+        filter == .liked ? pages : pages.filter { !hidden.contains($0.itemID) }
+    }
+
+    private func dialActions(itemID: String, page: Int) -> [DialAction]? {
+        guard let item = store.item(itemID) else { return nil }
+        var actions = [
+            DialAction(id: "share", title: String(localized: "Share"), symbol: "square.and.arrow.up") { share(item) },
+            DialAction(
+                id: "like",
+                title: item.isLiked ? String(localized: "Unlike") : String(localized: "Like"),
+                symbol: item.isLiked ? "heart.slash" : "heart",
+                tint: .red
+            ) {
+                if item.isLiked { store.toggleLike(item.id) } else { like(item, page: page) }
+            },
+            DialAction(id: "board", title: String(localized: "Show on Board"), symbol: "square.on.square") {
+                router.focusItem = item.id
+                router.tab = .board
+            },
+        ]
+        if filter == .forYou {
+            actions.append(DialAction(id: "hide", title: String(localized: "Hide from Feed"), symbol: "eye.slash") { hide(item.id) })
+        }
+        return actions
+    }
+
+    private var undoHideBar: some View {
+        HStack(spacing: 14) {
+            Text("Hidden from Feed")
+            Button("Undo") { undoHide() }
+                .fontWeight(.semibold)
+        }
+        .font(.subheadline)
+        .foregroundStyle(.white)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 10)
+        .background(Color(white: 0.18), in: Capsule())
+        .padding(.top, 8)
+        .transition(.move(edge: .top).combined(with: .opacity))
+        .task(id: justHidden) {
+            // A newer hide restarts the clock
+            guard (try? await Task.sleep(for: .seconds(4))) != nil else { return }
+            withAnimation { justHidden = nil }
+        }
+    }
+
+    private func hide(_ id: String) {
+        withAnimation(.snappy) {
+            hidden.insert(id)
+            justHidden = id
+        }
+        Feed.saveHidden(hidden)
+        // The next clipping slides in; if that was the last one, start a new round
+        if visiblePages.isEmpty { appendRound(avoid: []) }
+    }
+
+    private func undoHide() {
+        guard let id = justHidden else { return }
+        withAnimation(.snappy) {
+            hidden.remove(id)
+            justHidden = nil
+        }
+        Feed.saveHidden(hidden)
+    }
+
+    private func unhideAll() {
+        hidden = []
+        justHidden = nil
+        Feed.saveHidden(hidden)
+        rebuild()
+    }
+
     private func share(_ item: BoardItem) {
         guard sharing == nil else { return }
         sharing = item.id
@@ -167,14 +257,15 @@ struct FeedView: View {
 
     private func rebuild() {
         stats = Feed.loadStats()
+        hidden = Feed.loadHidden()
         pages = []
         appendRound(avoid: [])
-        position = pages.first?.id
+        position = visiblePages.first?.id
         shownAt = Date()
     }
 
     private func appendRound(avoid: [String]) {
-        let round = Feed.round(store.items, stats: stats, avoid: avoid, likedOnly: filter == .liked)
+        let round = Feed.round(store.items, stats: stats, avoid: avoid, likedOnly: filter == .liked, hidden: hidden)
         let start = (pages.last?.id ?? -1) + 1
         pages += round.enumerated().map { Page(id: start + $0.offset, itemID: $0.element.id) }
     }

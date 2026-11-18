@@ -68,6 +68,8 @@ final class AppRouter {
 
     var tab: Tab = .board
     var todayCard: DailyCard?
+    // A clipping to find on the board, set from the Feed's long-press dial
+    var focusItem: String?
     var incomingSyncKey: String?
     // Bumped when the share sheet left something in the inbox
     var sharedArrivals = 0
