@@ -1,7 +1,7 @@
 import SwiftUI
 
 // A full-screen, endless feed of the board's clippings, one per page.
-// Double-tap to like; likes sync with the board.
+// Double-tap to like; likes sync with the board. Share sends one to friends.
 struct FeedView: View {
     @Environment(BoardStore.self) private var store
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -22,6 +22,7 @@ struct FeedView: View {
     @State private var stats: [String: Feed.Stats] = [:]
     @State private var shownAt = Date()
     @State private var burst: Int?
+    @State private var sharing: String?
 
     // Under this, a glance doesn't count as a view
     private static let minViewSeconds = 0.6
@@ -114,21 +115,45 @@ struct FeedView: View {
         .contentShape(Rectangle())
         .onTapGesture(count: 2) { like(item, page: page) }
         .overlay(alignment: .bottomTrailing) {
-            Button {
-                store.toggleLike(item.id)
-            } label: {
-                Label(item.isLiked ? "Unlike" : "Like", systemImage: item.isLiked ? "heart.fill" : "heart")
-                    .labelStyle(.iconOnly)
-                    .font(.title)
-                    .foregroundStyle(item.isLiked ? .red : .white)
-                    .frame(minWidth: 44, minHeight: 44)
+            VStack(spacing: 18) {
+                Button {
+                    share(item)
+                } label: {
+                    Label("Share", systemImage: "square.and.arrow.up")
+                        .labelStyle(.iconOnly)
+                        .font(.title)
+                        .foregroundStyle(.white)
+                        .opacity(sharing == item.id ? 0.4 : 1)
+                        .frame(minWidth: 44, minHeight: 44)
+                }
+                .disabled(sharing != nil)
+                Button {
+                    store.toggleLike(item.id)
+                } label: {
+                    Label(item.isLiked ? "Unlike" : "Like", systemImage: item.isLiked ? "heart.fill" : "heart")
+                        .labelStyle(.iconOnly)
+                        .font(.title)
+                        .foregroundStyle(item.isLiked ? .red : .white)
+                        .frame(minWidth: 44, minHeight: 44)
+                }
+                .sensoryFeedback(.impact(weight: .light), trigger: item.isLiked)
             }
-            .sensoryFeedback(.impact(weight: .light), trigger: item.isLiked)
+            .shadow(color: .black.opacity(0.35), radius: 6)
             .padding(24)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(item.type == .text ? item.content : "Photo from your board")
         .accessibilityAction(named: item.isLiked ? "Unlike" : "Like") { store.toggleLike(item.id) }
+        .accessibilityAction(named: "Share") { share(item) }
+    }
+
+    private func share(_ item: BoardItem) {
+        guard sharing == nil else { return }
+        sharing = item.id
+        Task {
+            await ClippingShare.share(item)
+            sharing = nil
+        }
     }
 
     private func like(_ item: BoardItem, page: Int) {

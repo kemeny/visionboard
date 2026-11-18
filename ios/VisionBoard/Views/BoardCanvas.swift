@@ -629,6 +629,7 @@ struct ItemActions: View {
             }
         }
         Button("Style", systemImage: "paintbrush", action: onShowStyle)
+        ShareClippingButton(item: item)
         Button(item.isLiked ? String(localized: "Unlike") : String(localized: "Like"), systemImage: item.isLiked ? "heart.slash" : "heart") {
             store.toggleLike(item.id)
         }
