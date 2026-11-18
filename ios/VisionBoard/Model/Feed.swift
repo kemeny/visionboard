@@ -83,7 +83,9 @@ struct DailyCard: Equatable, Hashable {
     var image: String?
 
     static func pick(from items: [BoardItem], on date: Date = .now) -> DailyCard {
-        let day = Int(floor(date.timeIntervalSince1970 / 86_400))
+        // Local calendar day, so the goal turns over at the user's own midnight.
+        // Kept non-negative for the modulo below.
+        let day = max(0, WidgetSnapshot.dayNumber(date))
         let texts = items
             .filter { $0.type == .text && Feed.isFeedItem($0) }
             .map { $0.content.trimmingCharacters(in: .whitespacesAndNewlines) }

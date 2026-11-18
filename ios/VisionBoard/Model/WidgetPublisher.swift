@@ -14,11 +14,11 @@ enum WidgetPublisher {
         guard let folder = WidgetSnapshot.folder else { return }
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
 
-        let today = WidgetSnapshot.dayStart(.now)
+        let now = Date.now
         var entries: [WidgetSnapshot.Day] = []
         var written: Set<String> = []
         for offset in 0..<days {
-            let start = today.addingTimeInterval(Double(offset) * 86_400)
+            let start = WidgetSnapshot.dayStart(now, adding: offset)
             let card = DailyCard.pick(from: items, on: start)
             var file: String?
             if let content = card.image {
