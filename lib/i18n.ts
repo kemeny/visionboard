@@ -42,6 +42,13 @@ const en = {
   'menu.getApp': 'Get the iPhone app',
   'menu.shareImage': 'Share as image',
   'share.mark': 'Made with VisionBoard',
+
+  // Progress
+  'progress.didIt': 'I did it',
+  'progress.done': 'Done',
+  'progress.notDone': 'Mark as not done',
+  'progress.notDoneShort': 'Not done',
+  'progress.markDone': 'Mark this goal as done',
   'legal.privacy': 'Privacy',
   'legal.terms': 'Terms',
   'legal.support': 'Support',
@@ -185,6 +192,13 @@ const es: Record<MessageKey, string> = {
   'menu.getApp': 'Descarga la app para iPhone',
   'menu.shareImage': 'Compartir como imagen',
   'share.mark': 'Hecho con VisionBoard',
+
+  // Progress
+  'progress.didIt': '¡Lo logré!',
+  'progress.done': 'Logrado',
+  'progress.notDone': 'Marcar como pendiente',
+  'progress.notDoneShort': 'Pendiente',
+  'progress.markDone': 'Marcar esta meta como lograda',
   'legal.privacy': 'Privacidad',
   'legal.terms': 'Términos',
   'legal.support': 'Ayuda',

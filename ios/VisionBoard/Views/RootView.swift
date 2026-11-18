@@ -34,6 +34,12 @@ struct RootView: View {
         .fullScreenCover(item: $router.todayCard) { card in
             TodayFullScreen(card: card)
         }
+        .sheet(isPresented: Binding(
+            get: { router.weeklyRecapSource != nil },
+            set: { if !$0 { router.weeklyRecapSource = nil } }
+        )) {
+            RecapView(source: router.weeklyRecapSource ?? "today")
+        }
         .sheet(isPresented: $showOnboarding) {
             OnboardingView {
                 onboarded = true

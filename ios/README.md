@@ -67,6 +67,20 @@ through `ProAccess`. Every share also carries
 Reminders are local notifications scheduled two weeks ahead on the device, so
 they need no server and work offline.
 
+**Progress.** Select a clipping and tap I Did It (bottom bar, long-press menu
+or Feed) to mark a goal done. It keeps its place with a small seal, and the
+item's `achievedAt` (ISO time, optional, same field as the web) syncs with the
+board. Done goals show up in about 3 feed rounds in 10, and Today, the widget
+and reminders pick a goal still to do unless every goal is done
+(`DailyCard.pick`, same rotation as the Worker). The app counts the days it
+was opened on this device (`Model/Progress.swift`). With Settings > Weekly
+Recap and Check-ins on (the default) and notifications already allowed, it
+schedules a Sunday recap at the reminder time (6 PM when daily reminders are
+off) that opens `RecapView`, and, while daily reminders are off, a "Your
+board misses you" check-in 7 days out that each open pushes back
+(`Model/Recaps.swift`). From December 15 to January 15 the Today tab shows a
+"Your Year" card with a shareable recap (`Views/YearRecapView.swift`).
+
 ## iPhone Duo
 
 Following Apple's [Designing for iPhone Duo](https://developer.apple.com/design/human-interface-guidelines/designing-for-iphone-duo):

@@ -332,6 +332,12 @@ struct BoardCanvas: View {
         edit.append(action(item.isLiked ? String(localized: "Unlike") : String(localized: "Like"), item.isLiked ? "heart.slash" : "heart") {
             store.toggleLike(id)
         })
+        edit.append(action(
+            item.isAchieved ? String(localized: "Mark as Not Done") : String(localized: "I Did It"),
+            item.isAchieved ? "checkmark.seal.fill" : "checkmark.seal"
+        ) {
+            Celebrate.toggleAchieved(item, in: store)
+        })
         let arrange: [UIMenuElement] = [
             action(String(localized: "Bring to Front"), "square.3.layers.3d.top.filled") { store.bringToFront(id) },
             action(String(localized: "Send to Back"), "square.3.layers.3d.bottom.filled") { store.sendToBack(id) },
@@ -485,6 +491,14 @@ struct BoardItemView: View, Equatable {
             .overlay(alignment: .bottomTrailing) {
                 if isSelected && !item.isLocked { resizeHandle }
             }
+            .overlay(alignment: .topLeading) {
+                if item.isAchieved {
+                    AchievedSeal(size: 24 / zoom)
+                        .offset(x: -10 / zoom, y: -10 / zoom)
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
+                }
+            }
             // Picked up: a little bigger, with a deeper shadow, above everything else
             .animation(.snappy(duration: 0.2)) { content in
                 content
@@ -501,6 +515,7 @@ struct BoardItemView: View, Equatable {
             .sensoryFeedback(.alignment, trigger: snappedTo) { _, new in new != nil }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(item.type == .text ? item.content : String(localized: "Photo"))
+            .accessibilityValue(item.isAchieved ? String(localized: "Done") : "")
             .accessibilityHint(item.type == .text ? String(localized: "Selects this goal. Double-tap twice to edit it.") : String(localized: "Selects this photo."))
             .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
             .accessibilityAction { onSelect() }
@@ -672,6 +687,10 @@ struct ItemActions: View {
         ShareClippingButton(item: item)
         Button(item.isLiked ? String(localized: "Unlike") : String(localized: "Like"), systemImage: item.isLiked ? "heart.slash" : "heart") {
             store.toggleLike(item.id)
+        }
+        Button(item.isAchieved ? String(localized: "Mark as Not Done") : String(localized: "I Did It"),
+               systemImage: item.isAchieved ? "checkmark.seal.fill" : "checkmark.seal") {
+            Celebrate.toggleAchieved(item, in: store)
         }
         Button("Bring to Front", systemImage: "square.3.layers.3d.top.filled") { store.bringToFront(item.id) }
         Button("Send to Back", systemImage: "square.3.layers.3d.bottom.filled") { store.sendToBack(item.id) }

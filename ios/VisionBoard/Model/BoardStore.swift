@@ -110,6 +110,7 @@ final class BoardStore {
         copy.y += 24
         copy.zIndex = nextZ()
         copy.locked = nil
+        copy.achievedAt = nil
         items.append(copy)
         commit()
         Analytics.capture("item_added", ["source": "duplicate", "board_item_count": items.count])
@@ -132,6 +133,24 @@ final class BoardStore {
         if !current.isLiked {
             Analytics.capture("item_liked", ["type": current.type == .image ? "photo" : "text"])
         }
+    }
+
+    // "I Did It": the clipping stays on the board with a seal and shows up
+    // less often in the feed and reminders. Returns true if anything changed.
+    @discardableResult
+    func setAchieved(_ id: String, _ achieved: Bool) -> Bool {
+        guard let current = item(id), current.isAchieved != achieved else { return false }
+        update(id) { $0.achievedAt = achieved ? BoardItem.isoString(Date()) : nil }
+        if achieved {
+            var properties: [String: Any] = ["type": current.type == .image ? "photo" : "text"]
+            if let created = current.createdDate {
+                properties["days_since_created"] = max(0, Calendar.current.dateComponents([.day], from: created, to: Date()).day ?? 0)
+            }
+            Analytics.capture("goal_achieved", properties)
+        } else {
+            Analytics.capture("goal_unachieved", ["type": current.type == .image ? "photo" : "text"])
+        }
+        return true
     }
 
     func replaceBoard(with file: BoardFile) {

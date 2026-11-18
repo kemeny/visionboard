@@ -36,11 +36,13 @@ import {
   Smartphone,
   ArrowRight,
   Share2,
+  BadgeCheck,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { BoardItem, TEXT_COLORS, FONT_SIZES, TEXT_STYLES, FontStyle } from "@/lib/types"
+import { daysSinceCreated } from "@/lib/progress"
 
 const LEGACY_STYLE_MAP: Record<string, FontStyle> = {
   normal: 'clean', bold: 'loud', italic: 'editorial', serif: 'elegant',
@@ -871,6 +873,23 @@ export function VisionBoard() {
     [selectedIds, updateItem]
   )
 
+  // "I did it": marks a goal done (or back to a goal). The clipping stays on the board.
+  const setAchieved = useCallback(
+    (id: string, achieved: boolean) => {
+      const item = items.find((i) => i.id === id)
+      if (!item || !!item.achievedAt === achieved) return
+      updateItem(id, { achievedAt: achieved ? new Date().toISOString() : undefined })
+      const type = item.type === "image" ? "photo" : "text"
+      if (achieved) {
+        const days = daysSinceCreated(item)
+        track("goal_achieved", days === null ? { type } : { type, days_since_created: days })
+      } else {
+        track("goal_unachieved", { type })
+      }
+    },
+    [items, updateItem]
+  )
+
   const toggleLock = useCallback(() => {
     const anyUnlocked = selectedItems.some((i) => !i.locked)
     selectedIds.forEach((id) => updateItem(id, { locked: anyUnlocked }))
@@ -1465,6 +1484,19 @@ export function VisionBoard() {
 
           <div className="mx-1 h-5 w-px bg-border" />
 
+          {/* I did it */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn("h-8 gap-1.5 text-xs", selectedItem.achievedAt && "text-emerald-600")}
+            title={selectedItem.achievedAt ? t("progress.notDone") : t("progress.markDone")}
+            aria-pressed={!!selectedItem.achievedAt}
+            onClick={() => setAchieved(selectedItem.id, !selectedItem.achievedAt)}
+          >
+            <BadgeCheck className="h-3.5 w-3.5" />
+            {selectedItem.achievedAt ? t("progress.notDoneShort") : t("progress.didIt")}
+          </Button>
+
           {/* Lock control */}
           <Button
             variant="ghost"
@@ -1645,6 +1677,19 @@ export function VisionBoard() {
             </Button>
           )}
 
+          {/* I did it */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn("h-8 gap-1.5 text-xs", selectedItem.achievedAt && "text-emerald-600")}
+            title={selectedItem.achievedAt ? t("progress.notDone") : t("progress.markDone")}
+            aria-pressed={!!selectedItem.achievedAt}
+            onClick={() => setAchieved(selectedItem.id, !selectedItem.achievedAt)}
+          >
+            <BadgeCheck className="h-3.5 w-3.5" />
+            {selectedItem.achievedAt ? t("progress.notDoneShort") : t("progress.didIt")}
+          </Button>
+
           {/* Lock control */}
           <Button
             variant="ghost"
@@ -1700,6 +1745,7 @@ export function VisionBoard() {
               track("item_liked", { type: type === "image" ? "photo" : "text" })
             }
           }}
+          onToggleAchieved={setAchieved}
           onClose={() => openFeed(false)}
         />
       )}

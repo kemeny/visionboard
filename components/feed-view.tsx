@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { Heart, X } from "lucide-react"
+import { BadgeCheck, Heart, X } from "lucide-react"
 import { BoardItem } from "@/lib/types"
 import { buildFeedRound, loadFeedStats, recordView, saveFeedStats, type FeedStats } from "@/lib/feed"
 import { getTextStyle } from "./board-item"
@@ -19,10 +19,11 @@ const MIN_VIEW_MS = 600
 interface Props {
   items: BoardItem[]
   onToggleLike: (id: string, liked: boolean) => void
+  onToggleAchieved: (id: string, achieved: boolean) => void
   onClose: () => void
 }
 
-export function FeedView({ items, onToggleLike, onClose }: Props) {
+export function FeedView({ items, onToggleLike, onToggleAchieved, onClose }: Props) {
   const { t } = useT()
   const [tab, setTab] = useState<Tab>("foryou")
   const [feed, setFeed] = useState<BoardItem[]>([])
@@ -35,6 +36,7 @@ export function FeedView({ items, onToggleLike, onClose }: Props) {
 
   // Likes change while the feed is open; read them live rather than from the snapshot
   const liked = useMemo(() => new Set(items.filter((i) => i.liked).map((i) => i.id)), [items])
+  const achieved = useMemo(() => new Set(items.filter((i) => i.achievedAt).map((i) => i.id)), [items])
 
   const nextRound = useCallback(
     (avoid: string[]) => buildFeedRound(items, stats.current, { avoid, likedOnly: tab === "liked" }),
@@ -161,7 +163,31 @@ export function FeedView({ items, onToggleLike, onClose }: Props) {
                 />
               )}
 
+              {achieved.has(item.id) && (
+                <div className="pointer-events-none absolute left-4 top-[max(4.5rem,calc(env(safe-area-inset-top)+3.5rem))] flex items-center gap-1.5 rounded-full bg-emerald-500/90 px-3 py-1 text-xs font-semibold text-white shadow animate-in zoom-in-75 fade-in duration-300">
+                  <BadgeCheck className="h-3.5 w-3.5" />
+                  {t("progress.done")}
+                </div>
+              )}
+
               <div className="absolute bottom-[max(1.5rem,env(safe-area-inset-bottom))] right-4 flex flex-col items-center gap-1">
+                <button
+                  aria-label={achieved.has(item.id) ? t("progress.notDone") : t("progress.didIt")}
+                  aria-pressed={achieved.has(item.id)}
+                  title={achieved.has(item.id) ? t("progress.notDone") : t("progress.didIt")}
+                  className="rounded-full p-2 transition-transform active:scale-90"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onToggleAchieved(item.id, !achieved.has(item.id))
+                  }}
+                >
+                  <BadgeCheck
+                    className={cn(
+                      "h-8 w-8 drop-shadow transition-colors",
+                      achieved.has(item.id) ? "fill-emerald-500 text-white" : "text-white"
+                    )}
+                  />
+                </button>
                 <button
                   aria-label={liked.has(item.id) ? t("feed.unlike") : t("feed.like")}
                   aria-pressed={liked.has(item.id)}

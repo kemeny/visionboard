@@ -37,7 +37,9 @@ struct VisionBoardApp: App {
                 .onOpenURL { url in router.open(url) }
                 .onChange(of: scenePhase, initial: true) { _, phase in
                     switch phase {
-                    case .active: AppLifecycleAnalytics.didBecomeActive()
+                    case .active:
+                        AppLifecycleAnalytics.didBecomeActive()
+                        ProgressLog.recordOpen()
                     case .background: AppLifecycleAnalytics.didEnterBackground()
                     default: break
                     }
@@ -52,13 +54,17 @@ struct VisionBoardApp: App {
                         router.sharedArrivals += 1
                     }
                     await reminders.reschedule(items: store.items)
+                    // Opening the app pushes the win-back another week out
+                    await Recaps.reschedule(store: store, library: library, reminders: reminders)
                     await WidgetPublisher.publish(items: store.items)
                 }
                 // A new local day, a time zone change or daylight saving time
                 // moves the reminder times, so lay the two weeks out again
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
                     Task {
+                        ProgressLog.recordOpen()
                         await reminders.reschedule(items: store.items)
+                        await Recaps.reschedule(store: store, library: library, reminders: reminders)
                         await WidgetPublisher.publish(items: store.items)
                     }
                 }
@@ -67,6 +73,7 @@ struct VisionBoardApp: App {
                     try? await Task.sleep(for: .seconds(2))
                     guard !Task.isCancelled else { return }
                     await reminders.reschedule(items: store.items)
+                    await Recaps.reschedule(store: store, library: library, reminders: reminders)
                     await WidgetPublisher.publish(items: store.items)
                 }
         }
@@ -86,6 +93,8 @@ final class AppRouter {
 
     var tab: Tab = .board
     var todayCard: DailyCard?
+    // Where the weekly recap sheet was opened from ("notification" or "today"); nil when closed
+    var weeklyRecapSource: String?
     var incomingSyncKey: String?
     // Bumped when the share sheet left something in the inbox
     var sharedArrivals = 0
@@ -120,6 +129,17 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
         let info = request.content.userInfo
         if request.identifier.hasPrefix("daily-") || request.identifier.hasPrefix("test-") {
             Analytics.capture("reminder_opened", ["kind": request.identifier.hasPrefix("test-") ? "test" : "daily"])
+        }
+        // The weekly recap opens its own sheet instead of today's card
+        if request.identifier == Recaps.weeklyID {
+            await MainActor.run {
+                AppRouter.shared.todayCard = nil
+                AppRouter.shared.weeklyRecapSource = "notification"
+            }
+            return
+        }
+        if request.identifier == Recaps.winbackID {
+            Analytics.capture("winback_opened")
         }
         let text = info["text"] as? String ?? ""
         let image = (info["image"] as? String).flatMap { $0.isEmpty ? nil : $0 }

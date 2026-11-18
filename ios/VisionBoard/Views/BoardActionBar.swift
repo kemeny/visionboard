@@ -71,13 +71,19 @@ struct BoardActionBar: View {
         }
         .foregroundStyle(item.isLiked ? Color.pink : Color.primary)
         .sensoryFeedback(.impact(weight: .light), trigger: item.isLiked)
-        if !item.isLocked {
-            Button("Duplicate", systemImage: "plus.square.on.square") {
-                withAnimation(.snappy) { selection = store.duplicate(item.id)?.id }
-            }
+        Button(item.isAchieved ? String(localized: "Mark as Not Done") : String(localized: "I Did It"),
+               systemImage: item.isAchieved ? "checkmark.seal.fill" : "checkmark.seal") {
+            Celebrate.toggleAchieved(item, in: store)
         }
+        .foregroundStyle(item.isAchieved ? Color.green : Color.primary)
+        .symbolEffect(.bounce, value: item.isAchieved)
         Menu {
             ShareClippingButton(item: item)
+            if !item.isLocked {
+                Button("Duplicate", systemImage: "plus.square.on.square") {
+                    withAnimation(.snappy) { selection = store.duplicate(item.id)?.id }
+                }
+            }
             if item.type == .text && !item.isLocked {
                 Button("Random Style", systemImage: "dice") {
                     withAnimation(.snappy) { store.update(item.id) { $0.applyRandomLook() } }
