@@ -83,14 +83,44 @@ struct WallpaperSheet: View {
         }
     }
 
-    private var screenSize: CGSize {
+    private func render() async -> UIImage? {
+        await WallpaperRenderer.render(style, items: items, paper: paper, colorScheme: colorScheme, scale: displayScale)
+    }
+
+    private func save() async {
+        guard let rendered else { return }
+        saving = true
+        defer { saving = false }
+        switch await WallpaperRenderer.saveToPhotos(rendered) {
+        case .saved:
+            status = String(localized: "Saved. In Photos, open it, tap Share, then Use as Wallpaper.")
+            Analytics.capture("wallpaper_made", ["kind": style.rawValue])
+        case .denied:
+            status = String(localized: "VisionBoard can't save to Photos. Turn it on in Settings > Apps > VisionBoard > Photos.")
+        case .failed(let message):
+            status = String(localized: "Couldn't save: \(message)")
+        }
+    }
+}
+
+// Draws a wallpaper at this iPhone's screen size and saves it to Photos.
+// Shared by the wallpaper sheet and onboarding.
+@MainActor
+enum WallpaperRenderer {
+    enum SaveResult {
+        case saved
+        case denied
+        case failed(String)
+    }
+
+    static var screenSize: CGSize {
         let screen = UIApplication.shared.connectedScenes
             .compactMap { ($0 as? UIWindowScene)?.screen }
             .first
         return screen?.bounds.size ?? CGSize(width: 393, height: 852)
     }
 
-    private func render() async -> UIImage? {
+    static func render(_ style: WallpaperSheet.Style, items: [BoardItem], paper: PaperColor, colorScheme: ColorScheme, scale: CGFloat) async -> UIImage? {
         let size = screenSize
         let card = DailyCard.pick(from: items)
         var photos: [String: UIImage] = [:]
@@ -109,28 +139,21 @@ struct WallpaperSheet: View {
         .environment(\.colorScheme, colorScheme)
 
         let renderer = ImageRenderer(content: content)
-        renderer.scale = displayScale
+        renderer.scale = scale
         renderer.proposedSize = ProposedViewSize(size)
         return renderer.uiImage
     }
 
-    private func save() async {
-        guard let rendered else { return }
-        saving = true
-        defer { saving = false }
+    static func saveToPhotos(_ image: UIImage) async -> SaveResult {
         let access = await PHPhotoLibrary.requestAuthorization(for: .addOnly)
-        guard access == .authorized || access == .limited else {
-            status = String(localized: "VisionBoard can't save to Photos. Turn it on in Settings > Apps > VisionBoard > Photos.")
-            return
-        }
+        guard access == .authorized || access == .limited else { return .denied }
         do {
             try await PHPhotoLibrary.shared().performChanges {
-                PHAssetChangeRequest.creationRequestForAsset(from: rendered)
+                PHAssetChangeRequest.creationRequestForAsset(from: image)
             }
-            status = String(localized: "Saved. In Photos, open it, tap Share, then Use as Wallpaper.")
-            Analytics.capture("wallpaper_made", ["kind": style.rawValue])
+            return .saved
         } catch {
-            status = String(localized: "Couldn't save: \(error.localizedDescription)")
+            return .failed(error.localizedDescription)
         }
     }
 }
