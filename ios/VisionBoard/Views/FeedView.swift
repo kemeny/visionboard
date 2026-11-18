@@ -135,6 +135,23 @@ struct FeedView: View {
                 .accessibilityHidden(true)
             }
         }
+        .overlay(alignment: .bottomLeading) {
+            // Unsplash photos always show who took them
+            if item.type == .image, let credit = item.credit {
+                Text(credit.source == "unsplash"
+                    ? String(localized: "Photo by \(credit.name) on Unsplash")
+                    : String(localized: "Photo by \(credit.name)"))
+                    .font(.caption)
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(Color.black.opacity(0.45), in: Capsule())
+                    .padding(.leading, 20)
+                    .padding(.trailing, 96)
+                    .padding(.bottom, 32)
+            }
+        }
         .overlay(alignment: .bottomTrailing) {
             VStack(spacing: 18) {
                 Button {

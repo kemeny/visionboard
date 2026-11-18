@@ -2,7 +2,8 @@ import Foundation
 
 // "Create with AI": the Worker's /api/sync/ai/* routes (worker/src/ai.ts).
 // Claude writes the goals and Unsplash finds a photo for each one. No sync
-// key is needed; the Worker only answers requests marked as coming from iOS.
+// key is needed. Board generation sends the active plan's signed App Store
+// transaction, and the Worker answers 402 "pro_required" without one.
 enum AIBoardAPI {
     struct Failure: Error {
         // The Worker's error code ("rate_limited", "ai_unavailable", …) or
@@ -43,7 +44,10 @@ enum AIBoardAPI {
         struct Response: Decodable { let items: [Wire] }
 
         let body: [String: Any] = ["prompt": String(prompt.prefix(maxPromptLength)), "lang": language, "count": count]
-        let data = try await post("/ai/board", body: body, timeout: 60)
+        // The Worker checks this signed App Store transaction before it runs
+        // anything, so Pro is enforced there too and not only in the app
+        let proof = await ProAccess.shared.entitlementJWS()
+        let data = try await post("/ai/board", body: body, timeout: 60, proof: proof)
         guard let response = try? JSONDecoder().decode(Response.self, from: data), !response.items.isEmpty else {
             throw Failure(reason: "bad_response")
         }
@@ -64,7 +68,7 @@ enum AIBoardAPI {
         _ = try? await post("/ai/unsplash-download", body: ["url": url], timeout: 20)
     }
 
-    private static func post(_ path: String, body: [String: Any], timeout: TimeInterval) async throws -> Data {
+    private static func post(_ path: String, body: [String: Any], timeout: TimeInterval, proof: String? = nil) async throws -> Data {
         guard let origin = SyncAPI.webOrigin, let url = URL(string: origin.absoluteString + "/api/sync" + path) else {
             throw Failure(reason: "not_configured")
         }
@@ -73,6 +77,7 @@ enum AIBoardAPI {
         request.timeoutInterval = timeout
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("ios", forHTTPHeaderField: "X-VB-Client")
+        if let proof { request.setValue(proof, forHTTPHeaderField: "X-VB-Pro") }
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
         let result: (Data, URLResponse)

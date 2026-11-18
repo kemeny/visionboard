@@ -2,7 +2,8 @@ import SwiftUI
 
 // "Create with AI": a few sentences about the year someone wants become goals
 // with photos. Claude writes the goals, Unsplash finds the photos (worker/src/ai.ts).
-// They pick what to keep, then the clippings are laid out on the board.
+// They pick what to keep, then the clippings are laid out on the board. The
+// first time, a short consent step says what goes to Anthropic and Unsplash.
 struct AIBoardView: View {
     @Environment(BoardStore.self) private var store
     @Environment(\.dismiss) private var dismiss
@@ -22,6 +23,9 @@ struct AIBoardView: View {
     @State private var removed: Set<Int> = []
     @State private var errorMessage: String?
     @State private var loggedStart = false
+    @State private var askingConsent = false
+    // Asked once, before the first board: what goes to Anthropic and Unsplash
+    @AppStorage("ai-consent-accepted") private var consentAccepted = false
     @FocusState private var editorFocused: Bool
 
     private var trimmedPrompt: String {
@@ -61,6 +65,18 @@ struct AIBoardView: View {
             .safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }
         }
         .interactiveDismissDisabled(phase == .generating || phase == .adding)
+        .sheet(isPresented: $askingConsent) {
+            AIConsentSheet {
+                consentAccepted = true
+                Analytics.capture("ai_consent_answered", ["accepted": true])
+                askingConsent = false
+                Task { await generate() }
+            } onDecline: {
+                Analytics.capture("ai_consent_answered", ["accepted": false])
+                askingConsent = false
+            }
+            .presentationDetents([.medium, .large])
+        }
         .onAppear {
             guard !loggedStart else { return }
             loggedStart = true
@@ -89,7 +105,10 @@ struct AIBoardView: View {
             } header: {
                 Text("Tell me about the year you want")
             } footer: {
-                Text("\(prompt.count) of \(AIBoardAPI.maxPromptLength)")
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("\(prompt.count) of \(AIBoardAPI.maxPromptLength)")
+                    Text("What you write here is sent to Anthropic to write your goals. Search words go to Unsplash to find photos.")
+                }
             }
 
             Section("Need Ideas?") {
@@ -161,7 +180,12 @@ struct AIBoardView: View {
             switch phase {
             case .writing, .generating:
                 Button {
-                    Task { await generate() }
+                    if consentAccepted {
+                        Task { await generate() }
+                    } else {
+                        editorFocused = false
+                        askingConsent = true
+                    }
                 } label: {
                     HStack(spacing: 8) {
                         if phase == .generating {
@@ -207,7 +231,7 @@ struct AIBoardView: View {
 
     private func generate() async {
         let text = trimmedPrompt
-        guard !text.isEmpty, phase == .writing else { return }
+        guard !text.isEmpty, phase == .writing, consentAccepted else { return }
         editorFocused = false
         errorMessage = nil
         phase = .generating
@@ -224,8 +248,19 @@ struct AIBoardView: View {
         } catch {
             let reason = (error as? AIBoardAPI.Failure)?.reason ?? "unknown"
             Analytics.capture("ai_board_failed", ["reason": reason])
-            errorMessage = Self.message(for: reason)
             phase = .writing
+            // The Worker found no active plan. When the app agrees, show the
+            // paywall; when it thinks Pro is on, StoreKit and the server
+            // disagree, so ask for a restore instead.
+            if reason == "pro_required", !ProAccess.shared.isPro {
+                dismiss()
+                Task {
+                    try? await Task.sleep(for: .milliseconds(600))
+                    ProAccess.shared.requirePro(from: "ai_board")
+                }
+                return
+            }
+            errorMessage = Self.message(for: reason)
         }
     }
 
@@ -234,7 +269,7 @@ struct AIBoardView: View {
         guard !kept.isEmpty, phase == .preview else { return }
         phase = .adding
 
-        let photos = await Self.downloadPhotos(kept)
+        let photos = await Self.loadPhotos(kept)
         let pieces = kept.map { suggestion -> AIBoardLayout.Piece in
             if let photo = photos[suggestion.id] {
                 return AIBoardLayout.Piece(text: suggestion.text, image: photo.content, aspect: photo.aspect, credit: suggestion.credit)
@@ -242,6 +277,9 @@ struct AIBoardView: View {
             return AIBoardLayout.Piece(text: suggestion.text, image: nil, aspect: 1, credit: nil)
         }
         let added = store.addItems(AIBoardLayout.items(for: pieces, existing: store.items, center: center))
+        for _ in added {
+            Analytics.capture("item_added", ["source": "ai_board", "board_item_count": store.items.count])
+        }
 
         // Unsplash counts a download for each photo that made it onto the board
         for suggestion in kept where photos[suggestion.id] != nil {
@@ -265,10 +303,12 @@ struct AIBoardView: View {
         let aspect: Double
     }
 
-    // Fetches the kept photos in parallel and stores them like any picked photo
-    private static func downloadPhotos(_ suggestions: [AIBoardAPI.Suggestion]) async -> [Int: Downloaded] {
+    // Fetches the kept photos in parallel into the image cache, only to learn
+    // their shape. The clipping keeps the images.unsplash.com address itself:
+    // Unsplash photos are hotlinked, never copied to our own servers.
+    private static func loadPhotos(_ suggestions: [AIBoardAPI.Suggestion]) async -> [Int: Downloaded] {
         let jobs: [(id: Int, url: URL)] = suggestions.compactMap { suggestion -> (id: Int, url: URL)? in
-            guard let url = suggestion.imageURL else { return nil }
+            guard let url = suggestion.imageURL, ImageStore.isUnsplash(url.absoluteString) else { return nil }
             return (suggestion.id, url)
         }
         return await withTaskGroup(of: Downloaded?.self, returning: [Int: Downloaded].self) { group in
@@ -276,11 +316,9 @@ struct AIBoardView: View {
                 let id = job.id
                 let url = job.url
                 group.addTask {
-                    guard let pair = try? await URLSession.shared.data(from: url),
-                          (pair.1 as? HTTPURLResponse)?.statusCode == 200,
-                          let imported = try? await ImageStore.shared.importPhoto(pair.0)
-                    else { return nil }
-                    return Downloaded(id: id, content: imported.content, aspect: imported.aspect)
+                    let content = url.absoluteString
+                    guard let aspect = await ImageStore.shared.aspect(for: content) else { return nil }
+                    return Downloaded(id: id, content: content, aspect: aspect)
                 }
             }
             var result: [Int: Downloaded] = [:]
@@ -299,10 +337,57 @@ struct AIBoardView: View {
             String(localized: "Create with AI isn't available right now.")
         case "network":
             String(localized: "Couldn't connect. Check your connection and try again.")
+        case "pro_required":
+            String(localized: "The App Store couldn't confirm your Pro plan. Try Restore Purchases in Settings.")
         case "refused", "invalid_prompt":
             String(localized: "Couldn't make a board from that. Try describing your year another way.")
         default:
             String(localized: "Something went wrong. Try again.")
+        }
+    }
+}
+
+// Asked once, before the first board, so people know where their words go
+private struct AIConsentSheet: View {
+    let onAccept: () -> Void
+    let onDecline: () -> Void
+
+    private var privacyURL: URL? {
+        guard let origin = SyncAPI.webOrigin else { return nil }
+        let lang = Bundle.main.preferredLocalizations.first?.hasPrefix("es") == true ? "es" : "en"
+        return URL(string: origin.absoluteString + "/privacy?lang=" + lang)
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    Image(systemName: "sparkles")
+                        .font(.largeTitle)
+                        .foregroundStyle(Color.accentColor)
+                        .accessibilityHidden(true)
+                    Text("Before You Start")
+                        .font(.title2.bold())
+                    Text("Your words are sent to Anthropic to write your goals, and search words to Unsplash to find photos. Nothing else from your board is sent.")
+                    if let privacyURL {
+                        Link("Privacy Policy", destination: privacyURL)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding()
+            }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                VStack(spacing: 8) {
+                    Button(action: onAccept) {
+                        Text("Continue").frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    Button("Not Now", action: onDecline)
+                }
+                .padding()
+                .background(.bar)
+            }
         }
     }
 }

@@ -2,9 +2,10 @@ import CryptoKit
 import ImageIO
 import UIKit
 
-// Board images live in three places: photos added on this device ("local:"),
+// Board images live in four places: photos added on this device ("local:"),
 // cloud images shared with the web app ("/api/sync/images/…", cached on disk
-// once fetched, and immutable), and the occasional inline "data:" URL.
+// once fetched, and immutable), Unsplash photos hotlinked from
+// images.unsplash.com (cached the same way), and the occasional "data:" URL.
 actor ImageStore {
     static let shared = ImageStore()
 
@@ -38,6 +39,22 @@ actor ImageStore {
 
     static func isLocal(_ content: String?) -> Bool { content?.hasPrefix(localPrefix) ?? false }
     static func isCloud(_ content: String?) -> Bool { content?.hasPrefix("/api/sync/images/") ?? false }
+    // Create with AI photos stay on Unsplash's own servers: their guidelines
+    // ask apps to hotlink, never to copy the photo to a server of their own.
+    // They are cached on this device like cloud images and never uploaded.
+    static let unsplashPrefix = "https://images.unsplash.com/"
+    static func isUnsplash(_ content: String?) -> Bool { content?.hasPrefix(unsplashPrefix) ?? false }
+
+    // Width over height of a remote or stored image, fetching it into the
+    // cache first if needed
+    func aspect(for content: String) async -> Double? {
+        guard let url = await fileURL(for: content),
+              let source = CGImageSourceCreateWithURL(url as CFURL, [kCGImageSourceShouldCache: false] as CFDictionary),
+              let size = Self.pixelSize(of: source)
+        else { return nil }
+        pixelSizes[content] = size
+        return size.width / size.height
+    }
 
     // Shrinks a picked photo to board size and keeps it on this device until sync uploads it
     func importPhoto(_ data: Data) throws -> (content: String, aspect: Double) {

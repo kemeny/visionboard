@@ -98,7 +98,9 @@ struct DailyCard: Equatable, Hashable {
         let openTexts = allTexts.filter { !$0.isAchieved }
         let texts = (openTexts.isEmpty ? allTexts : openTexts)
             .map { $0.content.trimmingCharacters(in: .whitespacesAndNewlines) }
-        let imageItems = items.filter { $0.type == .image && (ImageStore.isCloud($0.content) || ImageStore.isLocal($0.content)) }
+        let imageItems = items.filter {
+            $0.type == .image && (ImageStore.isCloud($0.content) || ImageStore.isLocal($0.content) || ImageStore.isUnsplash($0.content))
+        }
         let images: [String]
         if imageItems.contains(where: \.isAchieved) {
             images = (0..<10).flatMap { round in

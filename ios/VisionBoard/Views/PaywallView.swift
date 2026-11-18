@@ -87,6 +87,7 @@ struct PaywallView: View {
                             plan: option,
                             product: product,
                             showsTrialBadge: pro.startsTrial(option),
+                            trialLength: pro.trialLength(option),
                             isSelected: plan == option
                         ) {
                             guard plan != option else { return }
@@ -187,9 +188,16 @@ struct PaywallView: View {
         let terms: String
         switch plan {
         case .yearly:
-            terms = pro.startsTrial(.yearly)
-                ? String(localized: "Free for 7 days, then \(price) per year.")
-                : String(localized: "\(price) per year.")
+            // The trial length comes from the App Store's offer, never a fixed number
+            if pro.startsTrial(.yearly) {
+                if let length = pro.trialLength(.yearly) {
+                    terms = String(localized: "Free for \(length), then \(price) per year.")
+                } else {
+                    terms = String(localized: "Free trial, then \(price) per year.")
+                }
+            } else {
+                terms = String(localized: "\(price) per year.")
+            }
         case .monthly:
             terms = String(localized: "\(price) per month.")
         }
@@ -218,6 +226,8 @@ private struct PlanRow: View {
     let plan: ProAccess.Plan
     let product: Product
     let showsTrialBadge: Bool
+    // From the App Store's introductory offer, like "7 days"
+    let trialLength: String?
     let isSelected: Bool
     let onSelect: () -> Void
 
@@ -239,12 +249,18 @@ private struct PlanRow: View {
                         }
                         .font(.headline)
                         if showsTrialBadge {
-                            Text("7 days free")
-                                .font(.caption.bold())
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 3)
-                                .background(Capsule().fill(Color.accentColor.opacity(0.15)))
-                                .foregroundStyle(Color.accentColor)
+                            Group {
+                                if let trialLength {
+                                    Text("\(trialLength) free")
+                                } else {
+                                    Text("Free trial")
+                                }
+                            }
+                            .font(.caption.bold())
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(Capsule().fill(Color.accentColor.opacity(0.15)))
+                            .foregroundStyle(Color.accentColor)
                         }
                     }
                     Text(subtitle)

@@ -220,7 +220,9 @@ final class BoardInputView: UIView, UIScrollViewDelegate, UIGestureRecognizerDel
         guard let config else { return }
         let point = recognizer.location(in: self)
         let target = config.target(point)
-        let now = ProcessInfo.processInfo.systemUptime
+        // Wall-clock time is plenty for a double tap, and unlike systemUptime
+        // it isn't a required-reason API in the privacy manifest
+        let now = Date().timeIntervalSinceReferenceDate
         if let last = lastTap, now - last.time < 0.35, hypot(point.x - last.point.x, point.y - last.point.y) < 30 {
             lastTap = nil
             config.onTap(target, point)

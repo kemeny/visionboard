@@ -32,9 +32,16 @@ another kept private. The share sheet asks which board to add to.
 Someone writes a few sentences about the year they want; the sync Worker
 (`worker/src/ai.ts`) asks Claude for 6 to 9 short goals in the app's language
 and finds an Unsplash photo for each. They tap to leave out anything that
-doesn't fit, and Add to Board downloads the photos like picked ones and lays
-everything out as a collage (`Views/AIBoardView.swift`). Each photo keeps its
-Unsplash credit in the item's `credit` field, shown in the Style inspector.
+doesn't fit, and Add to Board lays everything out as a collage
+(`Views/AIBoardView.swift`). The photos stay hotlinked from
+images.unsplash.com, as Unsplash's API guidelines ask: the clipping's content
+is the Unsplash address, cached on the device like a cloud image and never
+uploaded to our image storage. Each photo keeps its Unsplash credit in the
+item's `credit` field, shown in the Style inspector and on the Feed. The
+first time, a short consent step says what goes to Anthropic and Unsplash
+(`ai-consent-accepted`). The request carries the active plan's signed App
+Store transaction, and the Worker checks it before it runs anything, so
+Create with AI is Pro on the server too.
 
 **Share sheet.** VisionBoard shows up in every app's share sheet (WhatsApp,
 Photos, Safari, Instagram). Photos come in as photos, a video as a still from
