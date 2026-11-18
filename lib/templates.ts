@@ -1,4 +1,5 @@
 import { BoardItem } from './types'
+import type { Lang } from './i18n'
 
 export interface BoardTemplate {
   id: string
@@ -212,8 +213,51 @@ export const TEMPLATES: BoardTemplate[] = [
   {
     id: 'blank',
     name: 'Blank Board',
-    description: 'Start from scratch — just you and the canvas',
+    description: 'Start from scratch. Just you and the canvas.',
     emoji: '📋',
     items: [],
   },
 ]
+
+// Spanish names, descriptions and clipping text for the templates above.
+// Clipping text is keyed by the English text.
+const TEMPLATE_ES: Record<string, { name: string; description: string }> = {
+  'this-year': { name: 'Este año', description: 'Imagina cómo quieres que se vea y se sienta este año' },
+  career: { name: 'Mi carrera', description: 'Diseña la vida laboral que de verdad quieres' },
+  life: { name: 'Mi vida', description: 'La foto completa de quién te estás volviendo' },
+  blank: { name: 'Tablero en blanco', description: 'Empieza desde cero. Solo tú y el lienzo.' },
+}
+
+const CONTENT_ES: Record<string, string> = {
+  'This year I will...': 'Este año voy a...',
+  'Places I want to go': 'Lugares a los que quiero ir',
+  'How I want to feel': 'Cómo me quiero sentir',
+  'Things to learn': 'Cosas por aprender',
+  'People to connect with': 'Personas con quienes conectar',
+  'Drop images of what inspires you anywhere on the board': 'Suelta en el tablero imágenes de lo que te inspira',
+  'My career vision': 'Mi visión profesional',
+  'The role I want': 'El rol que quiero',
+  'Skills to build': 'Habilidades por crecer',
+  'People who inspire me': 'Personas que me inspiran',
+  'What success feels like': 'Cómo se siente el éxito',
+  'Add images of your dream workspace, mentors, goals': 'Agrega imágenes de tu espacio ideal, tus mentores, tus metas',
+  'The life I am building': 'La vida que estoy construyendo',
+  'Home & space': 'Hogar y espacio',
+  'Health & body': 'Salud y cuerpo',
+  'Relationships': 'Relaciones',
+  'Adventures': 'Aventuras',
+  'Purpose & meaning': 'Propósito y sentido',
+}
+
+export function localizeTemplate(template: BoardTemplate, lang: Lang): BoardTemplate {
+  if (lang !== 'es') return template
+  const es = TEMPLATE_ES[template.id]
+  return {
+    ...template,
+    name: es?.name ?? template.name,
+    description: es?.description ?? template.description,
+    items: template.items.map((item) =>
+      item.type === 'text' && CONTENT_ES[item.content] ? { ...item, content: CONTENT_ES[item.content] } : item
+    ),
+  }
+}
