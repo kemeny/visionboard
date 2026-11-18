@@ -58,7 +58,7 @@ final class BoardStore {
     // MARK: Editing
 
     @discardableResult
-    func addText(at center: CGPoint, content: String = "New goal") -> BoardItem {
+    func addText(at center: CGPoint, content: String = String(localized: "New goal")) -> BoardItem {
         remember()
         let item = BoardItem(
             id: BoardItem.newID(), type: .text,

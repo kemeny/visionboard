@@ -26,7 +26,7 @@ struct TodayEntry: TimelineEntry {
     let text: String
     let imageURL: URL?
 
-    static let sample = TodayEntry(date: .now, text: "Run the Patagonia marathon", imageURL: nil)
+    static let sample = TodayEntry(date: .now, text: String(localized: "Run the Patagonia marathon"), imageURL: nil)
     static let empty = TodayEntry(date: .now, text: String(localized: "Open VisionBoard to start your board."), imageURL: nil)
 }
 

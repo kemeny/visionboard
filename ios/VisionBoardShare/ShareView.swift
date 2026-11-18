@@ -98,6 +98,6 @@ private struct ThingPreview: View {
         }
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(thing.image != nil ? (thing.isVideo ? "Video still" : "Photo") : (thing.text ?? ""))
+        .accessibilityLabel(thing.image != nil ? (thing.isVideo ? String(localized: "Video still") : String(localized: "Photo")) : (thing.text ?? ""))
     }
 }

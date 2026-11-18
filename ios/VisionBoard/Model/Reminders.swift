@@ -66,7 +66,7 @@ final class Reminders {
             else { continue }
             let card = DailyCard.pick(from: items, on: fire)
             let content = UNMutableNotificationContent()
-            content.title = "Your vision board"
+            content.title = String(localized: "Your vision board")
             content.body = card.text
             content.sound = .default
             content.userInfo = ["text": card.text, "image": card.image ?? ""]
@@ -102,7 +102,7 @@ final class Reminders {
         }
         let card = DailyCard.pick(from: items)
         let content = UNMutableNotificationContent()
-        content.title = "Your vision board"
+        content.title = String(localized: "Your vision board")
         content.body = card.text
         content.userInfo = ["text": card.text, "image": card.image ?? ""]
         if let image = card.image, let attachment = await Self.attachment(for: image) {
