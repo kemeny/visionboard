@@ -19,6 +19,8 @@ struct SettingsView: View {
     @AppStorage("appearance") private var appearance: Appearance = .system
     @AppStorage("canvas-paper") private var paper: PaperColor = .moleskine
     @AppStorage("analytics-opted-out") private var analyticsOptedOut = false
+    // Same key as Recaps.enabledKey; on unless turned off here
+    @AppStorage("checkins-enabled") private var checkins = true
 
     var body: some View {
         NavigationStack {
@@ -264,11 +266,26 @@ struct SettingsView: View {
                     .foregroundStyle(.red)
                     .font(.callout)
             }
+            Toggle("Weekly Recap and Check-ins", systemImage: "calendar.badge.checkmark", isOn: Binding(
+                get: { checkins },
+                set: { on in
+                    checkins = on
+                    Task { await Recaps.setEnabled(on, store: store, library: library, reminders: reminders) }
+                }
+            ))
         } header: {
             Text("Reminders")
         } footer: {
-            Text("Each day at this hour you'll get one goal and one photo from your board. Reminders go out on the hour.")
+            Text("Each day at this time you'll get one goal and one photo from your board. The weekly recap comes on Sunday, and if you're away for a week, a check-in brings your board back.")
         }
+        // The recap follows the reminder time, and the check-in steps aside while daily reminders are on
+        .onChange(of: reminders.isEnabled) { rescheduleRecaps() }
+        .onChange(of: reminders.hour) { rescheduleRecaps() }
+        .onChange(of: reminders.minute) { rescheduleRecaps() }
+    }
+
+    private func rescheduleRecaps() {
+        Task { await Recaps.reschedule(store: store, library: library, reminders: reminders) }
     }
 }
 

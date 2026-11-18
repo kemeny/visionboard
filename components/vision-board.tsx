@@ -765,11 +765,12 @@ export function VisionBoard() {
       const item = items.find((i) => i.id === id)
       if (!item || !!item.achievedAt === achieved) return
       updateItem(id, { achievedAt: achieved ? new Date().toISOString() : undefined })
+      const type = item.type === "image" ? "photo" : "text"
       if (achieved) {
         const days = daysSinceCreated(item)
-        track("goal_achieved", days === null ? {} : { days_since_created: days })
+        track("goal_achieved", days === null ? { type } : { type, days_since_created: days })
       } else {
-        track("goal_unachieved")
+        track("goal_unachieved", { type })
       }
     },
     [items, updateItem]

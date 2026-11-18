@@ -6,6 +6,7 @@ struct TodayView: View {
     @Environment(BoardStore.self) private var store
     @Environment(AppRouter.self) private var router
     @Environment(Reminders.self) private var reminders
+    @State private var yearShown: Int?
 
     var body: some View {
         NavigationStack {
@@ -20,12 +21,23 @@ struct TodayView: View {
                         .accessibilityAddTraits(.isButton)
                         .accessibilityHint("Opens full screen")
                 } secondary: {
-                    upcoming(from: context.date)
+                    VStack(alignment: .leading, spacing: 0) {
+                        if let year = YearRecap.year(on: context.date) {
+                            yearCard(year)
+                        }
+                        upcoming(from: context.date)
+                    }
                 }
             }
             .navigationTitle("Today")
+            .fullScreenCover(isPresented: Binding(get: { yearShown != nil }, set: { if !$0 { yearShown = nil } })) {
+                YearRecapView(year: yearShown ?? Calendar.current.component(.year, from: .now))
+            }
             .onAppear { Analytics.capture("today_viewed", ["surface": "tab"]) }
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Your Week", systemImage: "calendar") { router.weeklyRecapSource = "today" }
+                }
                 if !reminders.isEnabled {
                     ToolbarItem(placement: .primaryAction) {
                         Button("Daily Reminder", systemImage: "bell.badge") { router.tab = .settings }
@@ -33,6 +45,42 @@ struct TodayView: View {
                 }
             }
         }
+    }
+
+    private func yearCard(_ year: Int) -> some View {
+        Button {
+            yearShown = year
+        } label: {
+            HStack(spacing: 14) {
+                Image(systemName: "sparkles")
+                    .font(.title2)
+                    .foregroundStyle(.white)
+                    .frame(width: 48, height: 48)
+                    .background(
+                        LinearGradient(colors: [Color(red: 0.36, green: 0.18, blue: 0.32), Color(red: 0.86, green: 0.48, blue: 0.32)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                        in: RoundedRectangle(cornerRadius: 12)
+                    )
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Your \(String(year)) on VisionBoard")
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                    Text("See your goals, photos and days")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(12)
+            .background(Color.secondary.opacity(0.12), in: RoundedRectangle(cornerRadius: 16))
+            .contentShape(RoundedRectangle(cornerRadius: 16))
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal)
+        .padding(.top)
+        .padding(.bottom, 4)
     }
 
     private func upcoming(from now: Date) -> some View {

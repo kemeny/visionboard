@@ -25,9 +25,35 @@ struct BoardItem: Codable, Identifiable, Hashable {
     var originalContent: String?
     var locked: Bool?
     var liked: Bool?
+    // ISO 8601 time it was marked "I Did It"; nil while it's still a goal.
+    // Optional, so boards saved before this field still decode.
+    var achievedAt: String?
 
     var isLocked: Bool { locked ?? false }
     var isLiked: Bool { liked ?? false }
+    var isAchieved: Bool { achievedAt != nil }
+
+    var achievedDate: Date? { achievedAt.flatMap(BoardItem.parseISODate) }
+
+    // Ids start with the creation time in milliseconds ("1712345678901-ab12cd34")
+    var createdDate: Date? {
+        guard let ms = Double(id.split(separator: "-").first ?? ""), ms > 1_000_000_000_000 else { return nil }
+        return Date(timeIntervalSince1970: ms / 1000)
+    }
+
+    // The web writes toISOString() (with milliseconds); accept both forms
+    static func parseISODate(_ text: String) -> Date? {
+        let withFraction = ISO8601DateFormatter()
+        withFraction.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = withFraction.date(from: text) { return date }
+        return ISO8601DateFormatter().date(from: text)
+    }
+
+    static func isoString(_ date: Date) -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter.string(from: date)
+    }
 
     static func newID() -> String {
         "\(Int(Date().timeIntervalSince1970 * 1000))-\(UUID().uuidString.prefix(8).lowercased())"

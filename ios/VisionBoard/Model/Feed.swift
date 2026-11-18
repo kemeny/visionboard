@@ -12,6 +12,8 @@ enum Feed {
 
     private static let statsKey = "feed-stats"
     private static let hourMs = 60.0 * 60 * 1000
+    // A done clipping is kept in about 3 feed rounds in 10
+    static let achievedWeight = 0.3
 
     static func loadStats() -> [String: Stats] {
         guard let data = UserDefaults.standard.data(forKey: statsKey) else { return [:] }
@@ -54,8 +56,12 @@ enum Feed {
     // and never more than two text cards in a row when a photo can break them up
     static func round(_ items: [BoardItem], stats: [String: Stats], avoid: [String] = [], likedOnly: Bool = false) -> [BoardItem] {
         let now = nowMs()
-        let ranked = items
-            .filter { isFeedItem($0) && (!likedOnly || $0.isLiked) }
+        let eligible = items.filter { isFeedItem($0) && (!likedOnly || $0.isLiked) }
+        // Done goals still come back, just less often. Liked keeps everything
+        // liked, and a board where everything is done still has a feed.
+        let thin = !likedOnly && eligible.contains { !$0.isAchieved }
+        let pool = thin ? eligible.filter { !$0.isAchieved || Double.random(in: 0..<1) < achievedWeight } : eligible
+        let ranked = pool
             .map { ($0, score($0, stats[$0.id], now: now)) }
             .sorted { $0.1 > $1.1 }
             .map(\.0)
@@ -77,19 +83,28 @@ enum Feed {
 }
 
 // Today's goal and photo, rotating through the board so each day differs.
-// Same rotation as the Worker's pickReminder, so web and phone agree.
+// Same rotation as the Worker's pickReminder, so web and phone agree: goals
+// marked done step aside unless every goal is done, and done photos come
+// round 3 times in 10.
 struct DailyCard: Equatable, Hashable {
     var text: String
     var image: String?
 
     static func pick(from items: [BoardItem], on date: Date = .now) -> DailyCard {
         let day = Int(floor(date.timeIntervalSince1970 / 86_400))
-        let texts = items
-            .filter { $0.type == .text && Feed.isFeedItem($0) }
+        let allTexts = items.filter { $0.type == .text && Feed.isFeedItem($0) }
+        let openTexts = allTexts.filter { !$0.isAchieved }
+        let texts = (openTexts.isEmpty ? allTexts : openTexts)
             .map { $0.content.trimmingCharacters(in: .whitespacesAndNewlines) }
-        let images = items
-            .filter { $0.type == .image && (ImageStore.isCloud($0.content) || ImageStore.isLocal($0.content)) }
-            .map(\.content)
+        let imageItems = items.filter { $0.type == .image && (ImageStore.isCloud($0.content) || ImageStore.isLocal($0.content)) }
+        let images: [String]
+        if imageItems.contains(where: \.isAchieved) {
+            images = (0..<10).flatMap { round in
+                imageItems.filter { !$0.isAchieved || (round % 3 == 0 && round < 9) }.map(\.content)
+            }
+        } else {
+            images = imageItems.map(\.content)
+        }
         return DailyCard(
             text: texts.isEmpty ? String(localized: "Take a minute with your vision board today.") : texts[day % texts.count],
             image: images.isEmpty ? nil : images[day % images.count]

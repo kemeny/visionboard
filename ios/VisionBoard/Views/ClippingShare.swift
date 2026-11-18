@@ -45,6 +45,15 @@ enum ClippingShare {
 
     @MainActor
     private static func present(_ activityItems: [Any], kind: String) {
+        presentSheet(activityItems) {
+            Analytics.capture("clipping_shared", ["kind": kind])
+        }
+    }
+
+    // The system share sheet over whatever is on screen. onCompleted runs
+    // only when something was actually sent or saved.
+    @MainActor
+    static func presentSheet(_ activityItems: [Any], onCompleted: @escaping () -> Void) {
         let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
         let scene = scenes.first { $0.activationState == .foregroundActive } ?? scenes.first
         guard var top = scene?.keyWindow?.rootViewController else { return }
@@ -52,7 +61,7 @@ enum ClippingShare {
 
         let sheet = UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
         sheet.completionWithItemsHandler = { _, completed, _, _ in
-            if completed { Analytics.capture("clipping_shared", ["kind": kind]) }
+            if completed { onCompleted() }
         }
         if let popover = sheet.popoverPresentationController {
             popover.sourceView = top.view

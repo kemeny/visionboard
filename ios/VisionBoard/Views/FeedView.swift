@@ -117,8 +117,35 @@ struct FeedView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .contentShape(Rectangle())
         .onTapGesture(count: 2) { like(item, page: page) }
+        .overlay(alignment: .topLeading) {
+            if item.isAchieved {
+                HStack(spacing: 6) {
+                    AchievedSeal(size: 20)
+                    Text("Done")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white)
+                }
+                .padding(.leading, 6)
+                .padding(.trailing, 12)
+                .padding(.vertical, 6)
+                .background(Color.black.opacity(0.45), in: Capsule())
+                .padding(20)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+            }
+        }
         .overlay(alignment: .bottomTrailing) {
             VStack(spacing: 18) {
+                Button {
+                    Celebrate.toggleAchieved(item, in: store)
+                } label: {
+                    Label(item.isAchieved ? String(localized: "Mark as Not Done") : String(localized: "I Did It"), systemImage: item.isAchieved ? "checkmark.seal.fill" : "checkmark.seal")
+                        .labelStyle(.iconOnly)
+                        .font(.title)
+                        .foregroundStyle(item.isAchieved ? Color.green : Color.white)
+                        .symbolEffect(.bounce, value: item.isAchieved)
+                        .frame(minWidth: 44, minHeight: 44)
+                }
                 Button {
                     share(item)
                 } label: {
@@ -146,7 +173,9 @@ struct FeedView: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(item.type == .text ? item.content : "Photo from your board")
+        .accessibilityValue(item.isAchieved ? String(localized: "Done") : "")
         .accessibilityAction(named: item.isLiked ? "Unlike" : "Like") { store.toggleLike(item.id) }
+        .accessibilityAction(named: item.isAchieved ? String(localized: "Mark as Not Done") : String(localized: "I Did It")) { Celebrate.toggleAchieved(item, in: store) }
         .accessibilityAction(named: "Share") { share(item) }
     }
 
