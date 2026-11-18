@@ -6,12 +6,29 @@
 //   ANTHROPIC_API_KEY    Claude Messages API
 //   UNSPLASH_ACCESS_KEY  Unsplash API access key ("Client-ID")
 // Without either one the routes answer 503 {error: "ai_unavailable"}.
+//
+// Create with AI is a Pro feature: /ai/board needs the app's signed App Store
+// transaction for an active plan in X-VB-Pro (see storekit.ts), and answers
+// 402 {error: "pro_required"} without one. PRO_CHECK = "off" skips this for
+// local testing with Xcode's StoreKit configuration, whose transactions are
+// not signed by Apple.
+
+import { isActivePro } from './storekit.ts'
 
 export interface AIEnv {
   DB: D1Database
   ANTHROPIC_API_KEY?: string
   UNSPLASH_ACCESS_KEY?: string
+  // Shared with the web app's proxy (proxy.ts), which sends it in X-VB-Proxy.
+  // Only requests carrying it may name the caller's address in X-Forwarded-For.
+  PROXY_SECRET?: string
+  // Requests per hour the Unsplash app may make (5000 in production, 50 in demo)
+  UNSPLASH_HOURLY_QUOTA?: string
+  APPLE_BUNDLE_ID?: string
+  PRO_CHECK?: string
 }
+
+const DEFAULT_BUNDLE_ID = 'com.kemenystudio.visionboard'
 
 export const MAX_PROMPT_CHARS = 600
 export const MAX_TEXT_CHARS = 60
@@ -24,11 +41,21 @@ const DEFAULT_ITEMS = 8
 const MODEL = 'claude-haiku-5-5'
 const ANTHROPIC_VERSION = '2026-10-21'
 
-// Per caller and overall, per clock hour. The overall cap bounds cost even if
-// someone rotates addresses.
+// Per caller and overall, per clock hour. The overall caps bound cost even if
+// someone rotates addresses, and keep Unsplash under its hourly quota: half of
+// it for searches (one per clipping, so a board can use up to MAX_ITEMS) and
+// half for download pings.
 const BOARD_LIMIT_PER_IP = 10
-const BOARD_LIMIT_GLOBAL = 400
 const DOWNLOAD_LIMIT_PER_IP = 120
+const DEFAULT_UNSPLASH_QUOTA = 5000
+
+export function globalLimits(env: Pick<AIEnv, 'UNSPLASH_HOURLY_QUOTA'>) {
+  const quota = Number(env.UNSPLASH_HOURLY_QUOTA) > 0 ? Number(env.UNSPLASH_HOURLY_QUOTA) : DEFAULT_UNSPLASH_QUOTA
+  return {
+    boards: Math.max(1, Math.floor(quota / 2 / MAX_ITEMS)),
+    downloads: Math.max(1, Math.floor(quota / 2)),
+  }
+}
 
 const UTM = 'utm_source=visionboard&utm_medium=referral'
 
@@ -51,11 +78,27 @@ async function sha256Hex(text: string): Promise<string> {
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
-// Requests come through the web app's proxy, so the first X-Forwarded-For hop
-// is the person; CF-Connecting-IP covers direct calls.
-export function clientIP(request: Request): string {
+function constantTimeEqual(a: string, b: string): boolean {
+  const x = new TextEncoder().encode(a)
+  const y = new TextEncoder().encode(b)
+  let diff = x.length ^ y.length
+  for (let i = 0; i < Math.max(x.length, y.length); i++) diff |= (x[i] ?? 0) ^ (y[i] ?? 0)
+  return diff === 0
+}
+
+// Requests through the web app's proxy carry the person's address as the first
+// X-Forwarded-For hop. Anyone can send that header straight to the Worker, so
+// it only counts when the proxy's shared secret comes with it; otherwise the
+// address is CF-Connecting-IP. Until PROXY_SECRET is set (on both sides),
+// X-Forwarded-For is trusted as before so the limits keep working.
+export function clientIP(request: Request, proxySecret?: string): string {
+  const direct = request.headers.get('CF-Connecting-IP') || 'unknown'
+  if (proxySecret) {
+    const sent = request.headers.get('X-VB-Proxy') || ''
+    if (!constantTimeEqual(sent, proxySecret)) return direct
+  }
   const forwarded = request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim()
-  return forwarded || request.headers.get('CF-Connecting-IP') || 'unknown'
+  return forwarded || direct
 }
 
 // Adds one to a counter for this hour and returns the new count
@@ -72,9 +115,9 @@ async function bump(env: AIEnv, key: string, now: number): Promise<number> {
 }
 
 // Only a hash of the address is stored, and only until the hour ends
-async function overLimit(env: AIEnv, request: Request, kind: string, perIP: number, global?: number): Promise<boolean> {
+export async function overLimit(env: AIEnv, request: Request, kind: string, perIP: number, global?: number): Promise<boolean> {
   const now = Date.now()
-  const ip = await sha256Hex(clientIP(request))
+  const ip = await sha256Hex(clientIP(request, env.PROXY_SECRET))
   if ((await bump(env, `${kind}:ip:${ip}`, now)) > perIP) return true
   if (global !== undefined && (await bump(env, `${kind}:all`, now)) > global) return true
   return false
@@ -269,7 +312,9 @@ export async function handleAI(request: Request, env: AIEnv, path: string): Prom
     if (!/^https:\/\/api\.unsplash\.com\/photos\/[A-Za-z0-9_-]+\/download(\?[^\s#]*)?$/.test(url)) {
       return fail('invalid_url', 400)
     }
-    if (await overLimit(env, request, 'unsplash', DOWNLOAD_LIMIT_PER_IP)) return fail('rate_limited', 429)
+    if (await overLimit(env, request, 'unsplash', DOWNLOAD_LIMIT_PER_IP, globalLimits(env).downloads)) {
+      return fail('rate_limited', 429)
+    }
     const response = await fetch(url, {
       headers: { Authorization: `Client-ID ${env.UNSPLASH_ACCESS_KEY}`, 'Accept-Version': 'v1' },
     })
@@ -284,7 +329,14 @@ export async function handleAI(request: Request, env: AIEnv, path: string): Prom
   if (!Number.isFinite(requested)) return fail('invalid_count', 400)
   const count = Math.min(MAX_ITEMS, Math.max(MIN_ITEMS, Math.round(requested)))
 
-  if (await overLimit(env, request, 'board', BOARD_LIMIT_PER_IP, BOARD_LIMIT_GLOBAL)) {
+  if (env.PRO_CHECK !== 'off') {
+    const proof = request.headers.get('X-VB-Pro') || ''
+    if (!proof || !(await isActivePro(proof, env.APPLE_BUNDLE_ID || DEFAULT_BUNDLE_ID))) {
+      return fail('pro_required', 402)
+    }
+  }
+
+  if (await overLimit(env, request, 'board', BOARD_LIMIT_PER_IP, globalLimits(env).boards)) {
     return fail('rate_limited', 429)
   }
 
