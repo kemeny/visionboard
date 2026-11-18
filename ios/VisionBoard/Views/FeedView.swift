@@ -119,8 +119,9 @@ struct FeedView: View {
         .onTapGesture(count: 2) { like(item, page: page) }
         .overlay(alignment: .bottomTrailing) {
             VStack(spacing: 18) {
-                Button {
-                    share(item)
+                Menu {
+                    Button("Share", systemImage: "square.and.arrow.up") { share(item, format: .original) }
+                    Button("Share as Story", systemImage: "rectangle.portrait") { share(item, format: .story) }
                 } label: {
                     Label("Share", systemImage: "square.and.arrow.up")
                         .labelStyle(.iconOnly)
@@ -150,11 +151,11 @@ struct FeedView: View {
         .accessibilityAction(named: "Share") { share(item) }
     }
 
-    private func share(_ item: BoardItem) {
+    private func share(_ item: BoardItem, format: ClippingShare.Format = .original) {
         guard sharing == nil else { return }
         sharing = item.id
         Task {
-            await ClippingShare.share(item)
+            await ClippingShare.share(item, format: format)
             sharing = nil
         }
     }

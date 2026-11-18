@@ -99,10 +99,12 @@ struct WallpaperSheet: View {
             photos[content] = await ImageStore.shared.image(for: content)
         }
 
+        // Free plans get a tiny mark above the home indicator; Pro has none
+        let mark = !ProAccess.shared.isPro
         let content = Group {
             switch style {
-            case .board: BoardWallpaper(items: items, paper: paper, size: size)
-            case .today: TodayWallpaper(card: card, paper: paper, size: size)
+            case .board: BoardWallpaper(items: items, paper: paper, size: size, showMark: mark)
+            case .today: TodayWallpaper(card: card, paper: paper, size: size, showMark: mark)
             }
         }
         .environment(\.preloadedImages, photos)
@@ -141,6 +143,7 @@ private struct BoardWallpaper: View {
     let items: [BoardItem]
     let paper: PaperColor
     let size: CGSize
+    let showMark: Bool
 
     var body: some View {
         let area = CGSize(width: size.width, height: size.height * 0.58)
@@ -161,6 +164,9 @@ private struct BoardWallpaper: View {
         }
         .frame(width: size.width, height: size.height, alignment: .topLeading)
         .clipped()
+        .overlay(alignment: .bottom) {
+            if showMark { WallpaperMark(color: .primary) }
+        }
     }
 }
 
@@ -169,6 +175,7 @@ private struct TodayWallpaper: View {
     let card: DailyCard
     let paper: PaperColor
     let size: CGSize
+    let showMark: Bool
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -190,5 +197,21 @@ private struct TodayWallpaper: View {
                 .padding(.bottom, size.height * 0.2)
         }
         .frame(width: size.width, height: size.height)
+        .overlay(alignment: .bottom) {
+            if showMark { WallpaperMark(color: card.image == nil ? .primary : .white) }
+        }
+    }
+}
+
+// A tiny, quiet "Made with VisionBoard" just above the home indicator,
+// between the flashlight and camera buttons
+private struct WallpaperMark: View {
+    let color: Color
+
+    var body: some View {
+        Text("Made with VisionBoard")
+            .font(.system(size: 9, weight: .medium))
+            .foregroundStyle(color.opacity(0.35))
+            .padding(.bottom, 40)
     }
 }
