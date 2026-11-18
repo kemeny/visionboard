@@ -112,6 +112,7 @@ final class BoardStore {
         copy.locked = nil
         items.append(copy)
         commit()
+        Analytics.capture("item_added", ["source": "duplicate", "board_item_count": items.count])
         return copy
     }
 
@@ -232,7 +233,7 @@ struct BoardTemplate: Identifiable {
     let symbol: String
 
     static let all = [
-        BoardTemplate(id: "demo-goals-2026", name: String(localized: "Goals 2026"), symbol: "target"),
+        BoardTemplate(id: "demo-goals-2027", name: String(localized: "Goals 2027"), symbol: "target"),
         BoardTemplate(id: "demo-morning-routine", name: String(localized: "Morning Routine"), symbol: "sunrise"),
         BoardTemplate(id: "demo-travel-bucket", name: String(localized: "Travel Bucket List"), symbol: "airplane"),
         BoardTemplate(id: "demo-creative-studio", name: String(localized: "Creative Studio"), symbol: "paintpalette"),
