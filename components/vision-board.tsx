@@ -36,7 +36,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { BoardItem, TEXT_COLORS, FONT_SIZES, TEXT_STYLES, FontStyle } from "@/lib/types"
+import { BoardItem, TEXT_COLORS, FONT_SIZES, TEXT_STYLES, FontStyle, UNSPLASH_REFERRAL_URL } from "@/lib/types"
 
 const LEGACY_STYLE_MAP: Record<string, FontStyle> = {
   normal: 'clean', bold: 'loud', italic: 'editorial', serif: 'elegant',
@@ -1403,6 +1403,27 @@ export function VisionBoard() {
               <RotateCcw className="h-3 w-3" />
               Restore BG
             </Button>
+          )}
+
+          {selectedItem.credit && (
+            <span className="whitespace-nowrap px-2 text-xs text-muted-foreground">
+              Photo by{" "}
+              {selectedItem.credit.url ? (
+                <a href={selectedItem.credit.url} target="_blank" rel="noopener noreferrer" className="underline">
+                  {selectedItem.credit.name}
+                </a>
+              ) : (
+                selectedItem.credit.name
+              )}
+              {selectedItem.credit.source === "unsplash" && (
+                <>
+                  {" "}on{" "}
+                  <a href={UNSPLASH_REFERRAL_URL} target="_blank" rel="noopener noreferrer" className="underline">
+                    Unsplash
+                  </a>
+                </>
+              )}
+            </span>
           )}
 
           <div className="mx-1 h-5 w-px bg-border" />

@@ -64,6 +64,23 @@ struct ItemInspector: View {
                 }
             }
 
+            if item.type == .image, let credit = item.credit {
+                Section("Photo") {
+                    if let profile = credit.url.flatMap({ URL(string: $0) }) {
+                        Link(destination: profile) {
+                            Label(creditLine(credit), systemImage: "camera")
+                        }
+                    } else {
+                        Label(creditLine(credit), systemImage: "camera")
+                    }
+                    if credit.source == "unsplash", let unsplash = URL(string: "https://unsplash.com/?utm_source=visionboard&utm_medium=referral") {
+                        Link(destination: unsplash) {
+                            Label("View on Unsplash", systemImage: "arrow.up.right.square")
+                        }
+                    }
+                }
+            }
+
             Section("Arrange") {
                 LabeledContent("Rotation") {
                     Slider(value: rotation(item), in: -45...45, step: 0.5) {
@@ -101,6 +118,12 @@ struct ItemInspector: View {
             get: { store.item(item.id)?[keyPath: path] ?? value },
             set: { newValue in store.update(item.id) { $0[keyPath: path] = newValue } }
         )
+    }
+
+    private func creditLine(_ credit: BoardItem.Credit) -> String {
+        credit.source == "unsplash"
+            ? String(localized: "Photo by \(credit.name) on Unsplash")
+            : String(localized: "Photo by \(credit.name)")
     }
 
     private func rotation(_ item: BoardItem) -> Binding<Double> {

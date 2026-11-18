@@ -80,7 +80,18 @@ export interface BoardItem {
   originalContent?: string // stores original image before bg removal
   locked?: boolean
   liked?: boolean // hearted in the feed; synced with the board
+  credit?: ImageCredit // who took the photo, for stock photos that need attribution
 }
+
+// Attribution kept with a photo, e.g. Unsplash photos added by the iOS AI board.
+// Same shape as ios/VisionBoard/Model/BoardItem.swift (BoardItem.Credit).
+export interface ImageCredit {
+  name: string // the photographer
+  url?: string // their profile page
+  source?: string // where the photo came from, e.g. "unsplash"
+}
+
+export const UNSPLASH_REFERRAL_URL = 'https://unsplash.com/?utm_source=visionboard&utm_medium=referral'
 
 export interface BoardState {
   items: BoardItem[]
