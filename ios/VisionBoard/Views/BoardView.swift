@@ -27,6 +27,7 @@ struct BoardView: View {
     enum Naming { case new, rename }
     @AppStorage("canvas-pattern") private var pattern: CanvasPattern = .dots
     @AppStorage("canvas-paper") private var paper: PaperColor = .moleskine
+    @AppStorage("onboarded") private var onboarded = false
 
     var body: some View {
         NavigationStack {
@@ -104,6 +105,10 @@ struct BoardView: View {
             }
             .onChange(of: selection) { _, id in
                 if id == nil { showStyle = false }
+            }
+            // Onboarding fills the board behind its sheet; frame what it made
+            .onChange(of: onboarded) { _, done in
+                if done { fitBoard() }
             }
             .sheet(item: Binding(
                 get: { editingTextID.map(EditTarget.init) },
