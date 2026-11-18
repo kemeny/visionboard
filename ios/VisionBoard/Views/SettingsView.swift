@@ -49,6 +49,11 @@ struct SettingsView: View {
                             analyticsOptedOut = !share
                         }
                     ))
+                    if let privacy = Self.webPage("/privacy") {
+                        Link(destination: privacy) {
+                            Label("Privacy Policy", systemImage: "hand.raised")
+                        }
+                    }
                 } header: {
                     Text("Privacy")
                 } footer: {
@@ -56,6 +61,16 @@ struct SettingsView: View {
                 }
                 Section {
                     LabeledContent("Version", value: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "")
+                    if let support = Self.webPage("/support") {
+                        Link(destination: support) {
+                            Label("Help and Support", systemImage: "questionmark.circle")
+                        }
+                    }
+                    if let terms = Self.webPage("/terms") {
+                        Link(destination: terms) {
+                            Label("Terms of Use", systemImage: "doc.text")
+                        }
+                    }
                     if let site = URL(string: "https://kemenystudio.com") {
                         Link(destination: site) {
                             Label("Made by Kemeny Studio", systemImage: "safari")
@@ -208,6 +223,13 @@ struct SettingsView: View {
         confirmJoin = true
     }
 
+    // A page on the web app, in Spanish when the app is
+    private static func webPage(_ path: String) -> URL? {
+        let lang = Bundle.main.preferredLocalizations.first?.hasPrefix("es") == true ? "es" : "en"
+        let full = path + "?lang=" + lang
+        return SyncAPI.absoluteURL(for: full) ?? URL(string: "https://visionboard.kemenystudio.com" + full)
+    }
+
     // MARK: Reminders
 
     private var remindersSection: some View {
@@ -216,7 +238,7 @@ struct SettingsView: View {
                 get: { reminders.isEnabled },
                 set: { on in
                     if on {
-                        Task { await reminders.enable(hour: reminders.hour, items: store.items) }
+                        Task { await reminders.enable(hour: reminders.hour, minute: reminders.minute, items: store.items) }
                     } else {
                         reminders.disable()
                     }
@@ -224,10 +246,10 @@ struct SettingsView: View {
             ))
             if reminders.isEnabled {
                 DatePicker("Time", selection: Binding(
-                    get: { Calendar.current.date(bySettingHour: reminders.hour, minute: 0, second: 0, of: .now) ?? .now },
+                    get: { Calendar.current.date(bySettingHour: reminders.hour, minute: reminders.minute, second: 0, of: .now) ?? .now },
                     set: { date in
-                        let hour = Calendar.current.component(.hour, from: date)
-                        Task { await reminders.enable(hour: hour, items: store.items) }
+                        let parts = Calendar.current.dateComponents([.hour, .minute], from: date)
+                        Task { await reminders.enable(hour: parts.hour ?? 8, minute: parts.minute ?? 0, items: store.items) }
                     }
                 ), displayedComponents: .hourAndMinute)
                 Button("Send a Test", systemImage: "paperplane") { Task { await reminders.sendTest(items: store.items) } }
