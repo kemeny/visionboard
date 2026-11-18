@@ -9,6 +9,7 @@ struct FeedView: View {
     enum Filter: String, CaseIterable, Identifiable {
         case forYou = "For You", liked = "Liked"
         var id: String { rawValue }
+        var label: String { self == .forYou ? String(localized: "For You") : String(localized: "Liked") }
     }
 
     private struct Page: Identifiable, Hashable {
@@ -50,7 +51,7 @@ struct FeedView: View {
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Picker("Feed", selection: $filter) {
-                        ForEach(Filter.allCases) { Text($0.rawValue).tag($0) }
+                        ForEach(Filter.allCases) { Text($0.label).tag($0) }
                     }
                     .pickerStyle(.segmented)
                     .fixedSize()

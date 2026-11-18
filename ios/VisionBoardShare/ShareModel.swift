@@ -43,7 +43,7 @@ final class ShareModel {
 
     func load() async {
         guard ShareInbox.isAvailable else {
-            phase = .failed("VisionBoard can't reach its board from here. Open the app once, then try again.")
+            phase = .failed(String(localized: "VisionBoard can't reach its board from here. Open the app once, then try again."))
             return
         }
         let saved = ShareInbox.loadBoards()
@@ -59,7 +59,7 @@ final class ShareModel {
         if things.contains(where: { $0.image != nil }) {
             things.removeAll { $0.image == nil && ($0.text.map(Self.looksLikeURL) ?? false) }
         }
-        phase = things.isEmpty ? .failed("There's nothing here VisionBoard can add. Try a photo, a video, a link or some text.") : .ready
+        phase = things.isEmpty ? .failed(String(localized: "There's nothing here VisionBoard can add. Try a photo, a video, a link or some text.")) : .ready
     }
 
     func add() {
@@ -78,7 +78,7 @@ final class ShareModel {
             try ShareInbox.write(items, board: board)
             context?.completeRequest(returningItems: nil)
         } catch {
-            phase = .failed("Couldn't save to your board: \(error.localizedDescription)")
+            phase = .failed(String(localized: "Couldn't save to your board: \(error.localizedDescription)"))
         }
     }
 

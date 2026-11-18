@@ -83,7 +83,7 @@ struct BoardView: View {
             } message: {
                 if naming == .new { Text("For example 2027, Career or Travel.") }
             }
-            .confirmationDialog("Delete \u{201C}\(library.current?.name ?? "this board")\u{201D}?", isPresented: $confirmDeleteBoard, titleVisibility: .visible) {
+            .confirmationDialog("Delete \u{201C}\(library.current?.name ?? String(localized: "this board"))\u{201D}?", isPresented: $confirmDeleteBoard, titleVisibility: .visible) {
                 Button("Delete Board", role: .destructive) {
                     Task {
                         selection = nil

@@ -92,7 +92,7 @@ enum SyncAPI {
         _ path: String, key: String?, method: String = "GET", body: Data? = nil, contentType: String = "application/json"
     ) async throws -> T {
         guard let origin = webOrigin, let url = URL(string: origin.absoluteString + "/api/sync" + path) else {
-            throw Failure(message: "Sync isn't set up in this build", status: 0)
+            throw Failure(message: String(localized: "Sync isn't set up in this build"), status: 0)
         }
         var request = URLRequest(url: url)
         request.httpMethod = method

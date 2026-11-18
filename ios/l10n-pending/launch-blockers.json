@@ -1,0 +1,21 @@
+{
+  "app": {
+    "Starter Board": "Tablero de inicio",
+    "this board": "este tablero",
+    "Your vision board": "Tu tablero",
+    "New goal": "Nueva meta",
+    "For You": "Para ti",
+    "Sync isn't set up in this build": "La sincronización no está configurada en esta versión"
+  },
+  "widget": {
+    "Run the Patagonia marathon": "Correr la maratón de la Patagonia"
+  },
+  "share": {
+    "VisionBoard can't reach its board from here. Open the app once, then try again.": "VisionBoard no puede llegar a tu tablero desde aquí. Abre la app una vez y vuelve a intentarlo.",
+    "There's nothing here VisionBoard can add. Try a photo, a video, a link or some text.": "No hay nada aquí que VisionBoard pueda agregar. Prueba con una foto, un video, un enlace o un texto.",
+    "Couldn't save to your board: %@": "No se pudo guardar en tu tablero: %@",
+    "Video still": "Imagen del video",
+    "Photo": "Foto"
+  },
+  "infoplist": {}
+}
