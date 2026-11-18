@@ -53,6 +53,14 @@ struct VisionBoardApp: App {
                     await reminders.reschedule(items: store.items)
                     await WidgetPublisher.publish(items: store.items)
                 }
+                // A new local day, a time zone change or daylight saving time
+                // moves the reminder times, so lay the two weeks out again
+                .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
+                    Task {
+                        await reminders.reschedule(items: store.items)
+                        await WidgetPublisher.publish(items: store.items)
+                    }
+                }
                 // Board edits change which goal shows on which day
                 .task(id: store.items) {
                     try? await Task.sleep(for: .seconds(2))

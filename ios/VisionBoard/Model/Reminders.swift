@@ -12,15 +12,18 @@ import UserNotifications
 final class Reminders {
     private static let enabledKey = "reminders-enabled"
     private static let hourKey = "reminders-hour"
+    private static let minuteKey = "reminders-minute"
     private static let idPrefix = "daily-"
     private static let daysAhead = 14
 
     var isEnabled = UserDefaults.standard.bool(forKey: Reminders.enabledKey)
     var hour: Int = UserDefaults.standard.object(forKey: Reminders.hourKey) as? Int ?? 8
+    // Older installs saved only the hour, so they keep firing on the hour
+    var minute: Int = UserDefaults.standard.object(forKey: Reminders.minuteKey) as? Int ?? 0
     var errorMessage: String?
     var testMessage: String?
 
-    func enable(hour: Int, items: [BoardItem]) async {
+    func enable(hour: Int, minute: Int = 0, items: [BoardItem]) async {
         do {
             let granted = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
             guard granted else {
@@ -36,8 +39,10 @@ final class Reminders {
         if !isEnabled { Analytics.capture("reminders_enabled", ["hour": hour]) }
         isEnabled = true
         self.hour = hour
+        self.minute = minute
         UserDefaults.standard.set(true, forKey: Self.enabledKey)
         UserDefaults.standard.set(hour, forKey: Self.hourKey)
+        UserDefaults.standard.set(minute, forKey: Self.minuteKey)
         await reschedule(items: items)
     }
 
@@ -56,7 +61,7 @@ final class Reminders {
         for offset in 0..<Self.daysAhead {
             guard
                 let day = calendar.date(byAdding: .day, value: offset, to: now),
-                let fire = calendar.date(bySettingHour: hour, minute: 0, second: 0, of: day),
+                let fire = calendar.date(bySettingHour: hour, minute: minute, second: 0, of: day),
                 fire > now
             else { continue }
             let card = DailyCard.pick(from: items, on: fire)

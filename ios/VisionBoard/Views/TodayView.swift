@@ -9,15 +9,19 @@ struct TodayView: View {
 
     var body: some View {
         NavigationStack {
-            AdaptiveArrangement {
-                TodayCardView(card: DailyCard.pick(from: store.items))
-                    .clipShape(RoundedRectangle(cornerRadius: 24))
-                    .padding()
-                    .onTapGesture { router.todayCard = DailyCard.pick(from: store.items) }
-                    .accessibilityAddTraits(.isButton)
-                    .accessibilityHint("Opens full screen")
-            } secondary: {
-                upcoming
+            // Redraws each minute, so the card turns over when the day does
+            // even if the app stays open
+            TimelineView(.everyMinute) { context in
+                AdaptiveArrangement {
+                    TodayCardView(card: DailyCard.pick(from: store.items, on: context.date))
+                        .clipShape(RoundedRectangle(cornerRadius: 24))
+                        .padding()
+                        .onTapGesture { router.todayCard = DailyCard.pick(from: store.items) }
+                        .accessibilityAddTraits(.isButton)
+                        .accessibilityHint("Opens full screen")
+                } secondary: {
+                    upcoming(from: context.date)
+                }
             }
             .navigationTitle("Today")
             .onAppear { Analytics.capture("today_viewed", ["surface": "tab"]) }
@@ -31,14 +35,14 @@ struct TodayView: View {
         }
     }
 
-    private var upcoming: some View {
+    private func upcoming(from now: Date) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("Coming Up")
                 .font(.headline)
                 .padding(.horizontal)
                 .padding(.bottom, 8)
             ForEach(1..<7, id: \.self) { offset in
-                let date = Calendar.current.date(byAdding: .day, value: offset, to: .now) ?? .now
+                let date = Calendar.current.date(byAdding: .day, value: offset, to: now) ?? now
                 let card = DailyCard.pick(from: store.items, on: date)
                 HStack(spacing: 12) {
                     if let image = card.image {
